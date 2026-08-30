@@ -1,0 +1,14 @@
+# Build output
+/build
+/bin
+
+# Assets are the user's own art (see README)
+/assets
+
+# Runtime save
+save.lua
+
+# Editor/OS noise
+*.swp
+*~
+.DS_Store
