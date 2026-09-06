@@ -47,8 +47,6 @@ private:
     bool is_fullscreen{false};
     bool show_fps{false};
     bool vsync{true};
-    bool vsync_at_start{true};
-    bool vsync_changed{false};
     std::string lang{"en"};
     bool discord_rpc{true};
     int master_volume{80};

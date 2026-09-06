@@ -35,7 +35,6 @@ OptionsState::OptionsState(Engine& eng) : m_eng(eng)
     is_fullscreen = s.fullscreen;
     show_fps = s.show_fps;
     vsync = s.vsync;
-    vsync_at_start = s.vsync;
     lang = s.language;
     discord_rpc = s.discord_rpc;
     master_volume = s.master_volume;
@@ -257,7 +256,7 @@ void OptionsState::apply_settings()
         else if (opt.id == "fullscreen") { s.fullscreen = opt.value; m_eng.set_fullscreen(opt.value); }
         else if (opt.id == "language") s.language = (opt.current == 0) ? "pt" : "en";
         else if (opt.id == "show_fps") s.show_fps = opt.value;
-        else if (opt.id == "vsync") { s.vsync = opt.value; if (opt.value != vsync_at_start) vsync_changed = true; else vsync_changed = false; }
+        else if (opt.id == "vsync") { s.vsync = opt.value; m_eng.set_vsync(opt.value); }
         else if (opt.id == "quality") { s.quality = (opt.current == 0) ? "low" : "high"; DrawUtils::set_render_quality(s.quality); }
         else if (opt.id == "discord_rpc") s.discord_rpc = opt.value;
         else if (opt.id == "master_volume") { s.master_volume = opt.slider_value; SoundManager::set_master_volume(opt.slider_value); }
@@ -357,12 +356,6 @@ void OptionsState::draw(Engine& eng)
     }
 
     DrawUtils::text(eng, Localization::get_text("help_input"), 70, SCREEN_HEIGHT - 55, 14, 90, 110, 140, 180);
-
-    if (vsync_changed)
-    {
-        std::string notice = (lang == "pt") ? Localization::get_text("vsync_restart_pt") : Localization::get_text("vsync_restart_en");
-        DrawUtils::text(eng, notice, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30, 13, 255, 200, 80, 200, true);
-    }
 
     DrawUtils::scanlines(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 14);
 }

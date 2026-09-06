@@ -127,7 +127,15 @@ void Engine::set_fullscreen(bool on)
 
 void Engine::set_vsync(bool on)
 {
-    SDL_RenderSetVSync(m_renderer.get(), on ? 1 : 0);
+    SDL_RenderSetLogicalSize(m_renderer.get(), 0, 0);
+    m_renderer.reset();
+
+    const std::uint32_t flags = SDL_RENDERER_ACCELERATED | (on ? SDL_RENDERER_PRESENTVSYNC : 0);
+    SDL_Renderer* r = SDL_CreateRenderer(m_window.get(), -1, flags);
+    if (r == nullptr) { r = SDL_CreateRenderer(m_window.get(), -1, SDL_RENDERER_ACCELERATED); }
+    m_renderer = std::shared_ptr<SDL_Renderer>(r, RendererDeleter{});
+    SDL_SetRenderDrawBlendMode(m_renderer.get(), SDL_BLENDMODE_BLEND);
+    SDL_RenderSetLogicalSize(m_renderer.get(), static_cast<int>(m_logical_w), static_cast<int>(m_logical_h));
 }
 
 void Engine::set_resolution(std::uint32_t w, std::uint32_t h)
