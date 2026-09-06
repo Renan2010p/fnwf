@@ -36,6 +36,7 @@ void MenuState::build_options() {
         options.push_back({Localization::get_text("quit"), "quit"});
     } else {
         if (m_completed_nights >= 5) { options.push_back({Localization::get_text("extras"), "extras"}); options.push_back({Localization::get_text("custom_night"), "night7"}); }
+        options.push_back({Localization::get_text("arcade"), "arcade"});
         options.push_back({Localization::get_text("achievements"), "conquistas"});
         options.push_back({Localization::get_text("back"), "back_menu"});
     }
@@ -78,7 +79,7 @@ void MenuState::draw(Engine& eng) {
     DrawUtils::vhs_osd(eng, "WITH FRIENDS", 60, 116, 220, 240, 220, 46);
     int classic_alpha = static_cast<int>(120 + 100 * std::sin(timer * 3.0));
     DrawUtils::text_rotated(eng, "CLASSIC EDITION", 310, 155, -8.0, 20, 255, 220, 50, classic_alpha);
-    DrawUtils::text(eng, "v2.0.2", 62, 176, 15, 140, 170, 200, 220);
+    DrawUtils::text(eng, "v2.0.3", 62, 176, 15, 140, 170, 200, 220);
     eng.draw_rect(60, 204, 360, 2, 100, 180, 255, static_cast<int>(120 + 40 * std::sin(timer * 2)));
     for (int i = 0; i < (int)options.size(); ++i) {
         int y = 300 + i * 62;

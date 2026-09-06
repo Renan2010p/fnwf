@@ -14,6 +14,7 @@ public:
     bool is_done() const override;
     auto result() const -> const std::string& override { return m_result; }
     auto get_is_win() const -> bool { return is_win; }
+    auto get_night() const -> int { return night; }
 
 private:
     void draw_game_over(Engine& eng);

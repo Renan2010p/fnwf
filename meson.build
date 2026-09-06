@@ -44,6 +44,7 @@ fnwf_sources = files(
   'src/game1/states/GameOverState.cpp',
   'src/game1/states/ExtrasState.cpp',
   'src/game1/states/ConquistasState.cpp',
+  'src/game1/states/ArcadeState.cpp',
 )
 
 fnwf_inc = include_directories('src')
