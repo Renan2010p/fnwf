@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build g++ pkg-config \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev \
+            zip
+
+      - name: Build
+        run: |
+          meson setup build --buildtype=release
+          meson compile -C build
+
+      - name: Generate sounds
+        run: bash generate_sounds.sh
+
+      - name: Package
+        run: |
+          mkdir -p release/fnwf-linux
+          cp build/fnwf release/fnwf-linux/
+          cp -r assets release/fnwf-linux/
+          cp LICENSE release/fnwf-linux/
+          cp README.txt release/fnwf-linux/
+          cp run.sh release/fnwf-linux/
+          chmod +x release/fnwf-linux/run.sh release/fnwf-linux/fnwf
+
+          # Copy SDL2 libs
+          ldd build/fnwf | grep -o '/[^ ]*SDL[^ ]*' | while read lib; do
+            cp "$lib" release/fnwf-linux/
+          done
+
+          cd release
+          tar czf fnwf-linux-${{ github.ref_name }}.tar.gz fnwf-linux/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-linux
+          path: release/fnwf-linux-${{ github.ref_name }}.tar.gz
+
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 meson ninja-build zip
+
+      - name: Cross-compile for Windows
+        run: |
+          cat > meson-cross-windows.ini << 'EOF'
+          [binaries]
+          c = 'x86_64-w64-mingw32-gcc'
+          cpp = 'x86_64-w64-mingw32-g++'
+          ar = 'x86_64-w64-mingw32-ar'
+          strip = 'x86_64-w64-mingw32-strip'
+          pkgconfig = 'x86_64-w64-mingw32-pkg-config'
+          exe_wrapper = 'wine64'
+
+          [host_machine]
+          system = 'windows'
+          cpu_family = 'x86_64'
+          cpu = 'x86_64'
+          endian = 'little'
+          EOF
+
+          meson setup build-win --cross-file meson-cross-windows.ini --buildtype=release
+          meson compile -C build-win
+
+      - name: Generate sounds
+        run: bash generate_sounds.sh
+
+      - name: Package
+        run: |
+          mkdir -p release/fnwf-windows
+          cp build-win/fnwf.exe release/fnwf-windows/
+          cp -r assets release/fnwf-windows/
+          cp LICENSE release/fnwf-windows/
+          cp README.txt release/fnwf-windows/
+
+          # Download SDL2 DLLs for Windows
+          cd release/fnwf-windows
+          for lib in SDL2 SDL2_ttf SDL2_image SDL2_mixer; do
+            curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/lib${lib,,}-2.30.0-mingw.zip" 2>/dev/null || true
+          done
+          cd ../..
+
+          # Copy any available Windows DLLs
+          find /usr -name "SDL*.dll" 2>/dev/null | head -20 | while read dll; do
+            cp "$dll" release/fnwf-windows/ 2>/dev/null || true
+          done
+
+          cd release
+          zip -r fnwf-windows-${{ github.ref_name }}.zip fnwf-windows/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-windows
+          path: release/fnwf-windows-${{ github.ref_name }}.zip
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            fnwf-linux/fnwf-linux-*.tar.gz
+            fnwf-windows/fnwf-windows-*.zip
+          generate_release_notes: true
