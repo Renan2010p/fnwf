@@ -1,6 +1,6 @@
 ===========================================
   Five Nights With Friends — Classic Edition
-  v2.0.2
+  v2.0.3
 ===========================================
 
 A survival horror game inspired by Five Nights at Freddy's,

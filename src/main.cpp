@@ -22,6 +22,7 @@
 #include "game1/states/GameOverState.hpp"
 #include "game1/states/ExtrasState.hpp"
 #include "game1/states/ConquistasState.hpp"
+#include "game1/states/ArcadeState.hpp"
 
 #include <cstdio>
 #include <string>
@@ -182,11 +183,27 @@ auto main(int argc, char** argv) -> int
                 else if (res == "extras") { do_switch("extras"); }
                 else if (res == "options") { do_switch("options"); }
                 else if (res == "conquistas") { do_switch("conquistas"); }
+                else if (res == "arcade") { sm.switch_state("arcade", [](fnwf::Engine& e) { return std::make_unique<fnwf::ArcadeState>(e); }); state_name = "arcade"; }
                 else if (res == "quit") { eng.request_stop(); }
             }
             else if (state_name == "extras" || state_name == "conquistas" || state_name == "options")
             {
                 do_switch("menu");
+            }
+            else if (state_name == "arcade")
+            {
+                auto& res = cur->result();
+                if (res == "arcade_die")
+                {
+                    sm.switch_state("gameover", [](fnwf::Engine& e) {
+                        return std::make_unique<fnwf::GameOverState>(false, 0, e);
+                    });
+                    state_name = "gameover";
+                }
+                else if (res == "menu")
+                {
+                    do_switch("menu");
+                }
             }
             else if (state_name == "story")
             {
@@ -266,6 +283,7 @@ auto main(int argc, char** argv) -> int
             {
                 auto* go = dynamic_cast<fnwf::GameOverState*>(cur);
                 if (go && go->get_is_win()) { do_switch("menu"); }
+                else if (go && go->get_night() == 0) { do_switch("menu"); }
                 else { do_switch("newspaper"); }
             }
             else if (state_name == "custom_night")
