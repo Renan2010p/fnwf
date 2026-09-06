@@ -18,15 +18,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y meson ninja-build g++ pkg-config \
             libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev \
-            zip
+            ffmpeg zip
+
+      - name: Generate sounds
+        run: bash generate_sounds.sh
 
       - name: Build
         run: |
           meson setup build --buildtype=release
           meson compile -C build
-
-      - name: Generate sounds
-        run: bash generate_sounds.sh
 
       - name: Package
         run: |
@@ -34,13 +34,11 @@ jobs:
           cp build/fnwf release/fnwf-linux/
           cp -r assets release/fnwf-linux/
           cp LICENSE release/fnwf-linux/
-          cp README.txt release/fnwf-linux/
           cp run.sh release/fnwf-linux/
           chmod +x release/fnwf-linux/run.sh release/fnwf-linux/fnwf
 
-          # Copy SDL2 libs
           ldd build/fnwf | grep -o '/[^ ]*SDL[^ ]*' | while read lib; do
-            cp "$lib" release/fnwf-linux/
+            cp "$lib" release/fnwf-linux/ 2>/dev/null || true
           done
 
           cd release
@@ -53,58 +51,57 @@ jobs:
           path: release/fnwf-linux-${{ github.ref_name }}.tar.gz
 
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install MinGW
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mingw-w64 meson ninja-build zip
-
-      - name: Cross-compile for Windows
-        run: |
-          cat > meson-cross-windows.ini << 'EOF'
-          [binaries]
-          c = 'x86_64-w64-mingw32-gcc'
-          cpp = 'x86_64-w64-mingw32-g++'
-          ar = 'x86_64-w64-mingw32-ar'
-          strip = 'x86_64-w64-mingw32-strip'
-          pkgconfig = 'x86_64-w64-mingw32-pkg-config'
-          exe_wrapper = 'wine64'
-
-          [host_machine]
-          system = 'windows'
-          cpu_family = 'x86_64'
-          cpu = 'x86_64'
-          endian = 'little'
-          EOF
-
-          meson setup build-win --cross-file meson-cross-windows.ini --buildtype=release
-          meson compile -C build-win
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_ttf
+            mingw-w64-x86_64-SDL2_image
+            mingw-w64-x86_64-SDL2_mixer
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-ffmpeg
+            meson
+            ninja
+            git
+            zip
 
       - name: Generate sounds
         run: bash generate_sounds.sh
 
+      - name: Build
+        run: |
+          meson setup build --buildtype=release
+          meson compile -C build
+
       - name: Package
         run: |
           mkdir -p release/fnwf-windows
-          cp build-win/fnwf.exe release/fnwf-windows/
+          cp build/fnwf.exe release/fnwf-windows/
           cp -r assets release/fnwf-windows/
           cp LICENSE release/fnwf-windows/
-          cp README.txt release/fnwf-windows/
 
-          # Download SDL2 DLLs for Windows
-          cd release/fnwf-windows
-          for lib in SDL2 SDL2_ttf SDL2_image SDL2_mixer; do
-            curl -sLO "https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/lib${lib,,}-2.30.0-mingw.zip" 2>/dev/null || true
-          done
-          cd ../..
-
-          # Copy any available Windows DLLs
-          find /usr -name "SDL*.dll" 2>/dev/null | head -20 | while read dll; do
+          # Copy SDL2 DLLs
+          for dll in $(ldd build/fnwf.exe | grep -o '/mingw64/bin/[^ ]*\.dll'); do
             cp "$dll" release/fnwf-windows/ 2>/dev/null || true
           done
+          # Also grab them directly
+          cp /mingw64/bin/SDL2.dll release/fnwf-windows/ 2>/dev/null || true
+          cp /mingw64/bin/SDL2_ttf.dll release/fnwf-windows/ 2>/dev/null || true
+          cp /mingw64/bin/SDL2_image.dll release/fnwf-windows/ 2>/dev/null || true
+          cp /mingw64/bin/SDL2_mixer.dll release/fnwf-windows/ 2>/dev/null || true
 
           cd release
           zip -r fnwf-windows-${{ github.ref_name }}.zip fnwf-windows/
