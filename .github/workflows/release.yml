@@ -34,7 +34,7 @@ jobs:
           cp build/fnwf release/fnwf-linux/
           cp -r assets release/fnwf-linux/
           cp LICENSE release/fnwf-linux/
-          cp README.md release/fnwf-linux/
+          cp README.txt release/fnwf-linux/
           cp run.sh release/fnwf-linux/
           chmod +x release/fnwf-linux/run.sh release/fnwf-linux/fnwf
 
@@ -93,7 +93,7 @@ jobs:
           cp build/fnwf.exe release/fnwf-windows/
           cp -r assets release/fnwf-windows/
           cp LICENSE release/fnwf-windows/
-          cp README.md release/fnwf-windows/
+          cp README.txt release/fnwf-windows/
 
           # Copy SDL2 DLLs
           for dll in $(ldd build/fnwf.exe | grep -o '/mingw64/bin/[^ ]*\.dll'); do
