@@ -1,14 +1,16 @@
-# Build output
-/build
-/bin
-
-# Assets are the user's own art (see README)
-/assets
-
-# Runtime save
+bin/
+build/
+*.gcda
+*.gcno
+*.o
+*.so
+*.dll
+*.exe
+*.pyc
+__pycache__/
 save.lua
-
-# Editor/OS noise
-*.swp
-*~
-.DS_Store
+config.lua
+.fna_cache/
+nimcache/
+dist/
+*.bundle

@@ -47,12 +47,9 @@ auto Engine::new_instance(std::string_view title, std::uint32_t w, std::uint32_t
 
 void Engine::shutdown() noexcept
 {
-    // Smart pointers own textures/fonts and destroy them via their deleters;
-    // only raw mixer chunks need a manual free. Destroy everything BEFORE
-    // SDL_Quit so no SDL object is released after the subsystems are gone.
-    m_textures.clear();   // shared_ptr<SDL_Texture> -> SDL_DestroyTexture
+    m_textures.clear();
     m_text_cache.clear();
-    m_fonts.clear();      // shared_ptr<TTF_Font> -> TTF_CloseFont
+    m_fonts.clear();
     for (auto& [id, c] : m_chunks)
     {
         if (c != nullptr) { Mix_FreeChunk(c); }
@@ -66,35 +63,39 @@ void Engine::shutdown() noexcept
     SDL_Quit();
 }
 
-auto Engine::poll_events() -> std::vector<Ev>
+auto Engine::poll_events() -> std::vector<Event>
 {
-    std::vector<Ev> events;
+    std::vector<Event> events;
     SDL_Event e{};
     while (SDL_PollEvent(&e))
     {
-        Ev ev;
+        Event ev;
         switch (e.type)
         {
             case SDL_QUIT:
-                ev.type = "QUIT";
+                ev.type = EventType::Quit;
                 break;
             case SDL_KEYDOWN:
             case SDL_KEYUP:
-                ev.type = (e.type == SDL_KEYDOWN) ? "KEYDOWN" : "KEYUP";
+                ev.type = (e.type == SDL_KEYDOWN) ? EventType::KeyDown : EventType::KeyUp;
                 ev.key = static_cast<std::int32_t>(e.key.keysym.sym);
                 ev.key_name = e.key.keysym.sym ? SDL_GetKeyName(e.key.keysym.sym) : "";
                 ev.scan_name = SDL_GetScancodeName(e.key.keysym.scancode) ? SDL_GetScancodeName(e.key.keysym.scancode) : "";
                 break;
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
-                ev.type = (e.type == SDL_MOUSEBUTTONDOWN) ? "MOUSEBUTTONDOWN" : "MOUSEBUTTONUP";
+                ev.type = (e.type == SDL_MOUSEBUTTONDOWN) ? EventType::MouseButtonDown : EventType::MouseButtonUp;
                 ev.x = e.button.x;
                 ev.y = e.button.y;
                 break;
             case SDL_MOUSEMOTION:
-                ev.type = "MOUSEMOTION";
+                ev.type = EventType::MouseMotion;
                 ev.x = e.motion.x;
                 ev.y = e.motion.y;
+                break;
+            case SDL_MOUSEWHEEL:
+                ev.type = EventType::MouseWheel;
+                ev.y = e.wheel.y;
                 break;
             default:
                 continue;
@@ -157,7 +158,8 @@ void Engine::clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t 
     SDL_RenderClear(m_renderer.get());
 }
 
-void Engine::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::uint32_t h, std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a, bool filled)
+void Engine::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::uint32_t h,
+                       std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a, bool filled)
 {
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
     const SDL_Rect rect{ x, y, static_cast<int>(w), static_cast<int>(h) };
@@ -165,13 +167,15 @@ void Engine::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::uin
     else { SDL_RenderDrawRect(m_renderer.get(), &rect); }
 }
 
-void Engine::line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2, std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
+void Engine::line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
+                  std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
 {
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
     SDL_RenderDrawLine(m_renderer.get(), x1, y1, x2, y2);
 }
 
-void Engine::circle(std::int32_t cx, std::int32_t cy, std::int32_t radius, std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a, bool filled)
+void Engine::circle(std::int32_t cx, std::int32_t cy, std::int32_t radius,
+                    std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a, bool filled)
 {
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
     const int r2 = radius * radius;
@@ -190,27 +194,53 @@ void Engine::circle(std::int32_t cx, std::int32_t cy, std::int32_t radius, std::
 }
 
 void Engine::draw_texture(const TextureHandle& tex, std::int32_t dx, std::int32_t dy, std::uint32_t dw, std::uint32_t dh,
-                          std::optional<std::array<std::int32_t, 4>> src, std::optional<std::uint8_t> alpha)
+                          std::int32_t sx, std::int32_t sy, std::int32_t sw, std::int32_t sh,
+                          std::optional<std::uint8_t> alpha)
 {
     auto it = m_textures.find(tex.id);
     if (it == m_textures.end()) { return; }
     SDL_Texture* t = it->second.get();
     if (alpha.has_value()) { SDL_SetTextureAlphaMod(t, *alpha); }
-    std::optional<SDL_Rect> sr;
-    SDL_Rect s{};
-    if (src.has_value())
+
+    SDL_Rect* sr_ptr = nullptr;
+    SDL_Rect sr{};
+    if (sx >= 0 && sy >= 0 && sw >= 0 && sh >= 0)
     {
-        s = SDL_Rect{ (*src)[0], (*src)[1], (*src)[2], (*src)[3] };
-        sr = s;
+        sr = SDL_Rect{ sx, sy, sw, sh };
+        sr_ptr = &sr;
     }
     const SDL_Rect dst{ dx, dy, static_cast<int>(dw), static_cast<int>(dh) };
-    SDL_RenderCopy(m_renderer.get(), t, sr ? &*sr : nullptr, &dst);
+    SDL_RenderCopy(m_renderer.get(), t, sr_ptr, &dst);
     if (alpha.has_value()) { SDL_SetTextureAlphaMod(t, 255); }
 }
 
-auto Engine::draw_text(std::string_view text, std::int32_t x, std::int32_t y, SDL_Color color, std::uint8_t alpha, bool center, std::uint32_t font_idx) -> bool
+void Engine::draw_texture_rotated(const TextureHandle& tex, std::int32_t dx, std::int32_t dy, std::uint32_t dw, std::uint32_t dh,
+                                  double angle, std::optional<std::uint8_t> alpha)
 {
-    if (text.empty() || font_idx >= m_fonts.size()) { return true; }
+    auto it = m_textures.find(tex.id);
+    if (it == m_textures.end()) { return; }
+    SDL_Texture* t = it->second.get();
+    if (alpha.has_value()) { SDL_SetTextureAlphaMod(t, *alpha); }
+
+    const SDL_Rect dst{ dx, dy, static_cast<int>(dw), static_cast<int>(dh) };
+    SDL_RenderCopyEx(m_renderer.get(), t, nullptr, &dst, angle, nullptr, SDL_FLIP_NONE);
+    if (alpha.has_value()) { SDL_SetTextureAlphaMod(t, 255); }
+}
+
+auto Engine::draw_text(std::string_view text, std::int32_t x, std::int32_t y, std::uint32_t font_size,
+                       std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
+                       bool center, std::int32_t font_idx) -> bool
+{
+    if (text.empty()) { return true; }
+
+    // Find or create font for this size
+    std::int64_t fidx = font_idx;
+    if (fidx < 0)
+    {
+        fidx = load_font("assets/font/font.ttf", static_cast<std::uint16_t>(font_size));
+        if (fidx < 0) { return true; }
+    }
+    if (static_cast<std::size_t>(fidx) >= m_fonts.size()) { return true; }
 
     // cache key: text + size + color
     std::uint64_t h = 0xcbf29ce484222325ULL;
@@ -219,8 +249,8 @@ auto Engine::draw_text(std::string_view text, std::int32_t x, std::int32_t y, SD
         h ^= c;
         h *= 0x100000001b3ULL;
     }
-    h ^= (std::uint64_t(font_idx) << 32) | (std::uint64_t(color.r) << 16) | (std::uint64_t(color.g) << 8) | std::uint64_t(color.b);
-    h ^= std::uint64_t(alpha) << 24;
+    h ^= (std::uint64_t(fidx) << 32) | (std::uint64_t(r) << 16) | (std::uint64_t(g) << 8) | std::uint64_t(b);
+    h ^= std::uint64_t(a) << 24;
 
     auto it = m_text_cache.find(h);
     Tex tex;
@@ -229,8 +259,8 @@ auto Engine::draw_text(std::string_view text, std::int32_t x, std::int32_t y, SD
     if (it == m_text_cache.end())
     {
         if (m_text_cache.size() > 2048) { m_text_cache.clear(); }
-        TTF_Font* font = m_fonts[font_idx].get();
-        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, std::string(text).c_str(), rgba(color.r, color.g, color.b, alpha));
+        TTF_Font* font = m_fonts[fidx].get();
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(font, std::string(text).c_str(), rgba(r, g, b, a));
         if (surf == nullptr) { return true; }
         tw = surf->w;
         th = surf->h;
@@ -251,6 +281,38 @@ auto Engine::draw_text(std::string_view text, std::int32_t x, std::int32_t y, SD
     const int py = center ? (y - th / 2) : y;
     const SDL_Rect dst{ px, py, tw, th };
     SDL_RenderCopy(m_renderer.get(), tex.get(), nullptr, &dst);
+    return true;
+}
+
+auto Engine::draw_text_rotated(std::string_view text, std::int32_t x, std::int32_t y, std::uint32_t font_size,
+                               double angle, std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
+                               bool center, std::int32_t font_idx) -> bool
+{
+    if (text.empty()) { return true; }
+
+    std::int64_t fidx = font_idx;
+    if (fidx < 0)
+    {
+        fidx = load_font("assets/font/font.ttf", static_cast<std::uint16_t>(font_size));
+        if (fidx < 0) { return true; }
+    }
+    if (static_cast<std::size_t>(fidx) >= m_fonts.size()) { return true; }
+
+    TTF_Font* font = m_fonts[fidx].get();
+    SDL_Surface* surf = TTF_RenderUTF8_Blended(font, std::string(text).c_str(), rgba(r, g, b, a));
+    if (surf == nullptr) { return true; }
+    int tw = surf->w;
+    int th = surf->h;
+    SDL_Texture* raw = SDL_CreateTextureFromSurface(m_renderer.get(), surf);
+    SDL_FreeSurface(surf);
+    if (raw == nullptr) { return true; }
+    SDL_SetTextureBlendMode(raw, SDL_BLENDMODE_BLEND);
+
+    const int px = center ? (x - tw / 2) : x;
+    const int py = center ? (y - th / 2) : y;
+    const SDL_Rect dst{ px, py, tw, th };
+    SDL_RenderCopyEx(m_renderer.get(), raw, nullptr, &dst, angle, nullptr, SDL_FLIP_NONE);
+    SDL_DestroyTexture(raw);
     return true;
 }
 
@@ -316,8 +378,6 @@ auto Engine::texture_size(std::uint32_t id) noexcept -> std::pair<std::uint32_t,
 
 void Engine::set_render_target(std::optional<TextureHandle> target)
 {
-    // Logical size only applies to the window target; render textures use their
-    // own size (SDL_SetRenderTarget sets the viewport to the texture size).
     if (target.has_value())
     {
         auto it = m_textures.find(target->id);
@@ -369,7 +429,6 @@ void Engine::update_discord(std::string_view details, std::string_view state)
 {
     (void)details;
     (void)state;
-    // stub
 }
 
 auto Engine::get_texture(std::uint32_t id) noexcept -> SDL_Texture*
