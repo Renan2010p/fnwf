@@ -231,4 +231,11 @@ void DrawUtils::vhs_osd(Engine& eng, const std::string& text, std::int32_t x, st
     DrawUtils::text(eng, text, x, y, scale, r, g, b, 255, false);
 }
 
+void DrawUtils::clear_cache()
+{
+    s_sprite_cache.clear();
+    s_font_cache.clear();
+    s_scanline_cache.clear();
+}
+
 } // namespace fnwf

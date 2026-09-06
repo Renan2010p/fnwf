@@ -104,6 +104,7 @@ private:
     std::uint32_t m_logical_w{};
     std::uint32_t m_logical_h{};
     bool m_running{false};
+    bool m_vsync{false};
 };
 
 } // namespace fnwf
