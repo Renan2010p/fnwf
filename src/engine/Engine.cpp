@@ -1,4 +1,5 @@
 #include "engine/Engine.hpp"
+#include "core/DrawUtils.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -42,6 +43,7 @@ auto Engine::new_instance(std::string_view title, std::uint32_t w, std::uint32_t
     m_logical_w = w;
     m_logical_h = h;
     m_running = true;
+    m_vsync = vsync;
     return true;
 }
 
@@ -127,8 +129,15 @@ void Engine::set_fullscreen(bool on)
 
 void Engine::set_vsync(bool on)
 {
+    if (on == m_vsync) return;
+    m_vsync = on;
+
     SDL_RenderSetLogicalSize(m_renderer.get(), 0, 0);
     m_renderer.reset();
+
+    m_textures.clear();
+    m_text_cache.clear();
+    DrawUtils::clear_cache();
 
     const std::uint32_t flags = SDL_RENDERER_ACCELERATED | (on ? SDL_RENDERER_PRESENTVSYNC : 0);
     SDL_Renderer* r = SDL_CreateRenderer(m_window.get(), -1, flags);

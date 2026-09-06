@@ -56,6 +56,8 @@ public:
     static void vhs_osd(Engine& eng, const std::string& text, std::int32_t x, std::int32_t y,
                         std::uint8_t r = 210, std::uint8_t g = 255, std::uint8_t b = 210, std::uint32_t scale = 14);
 
+    static void clear_cache();
+
 private:
     static inline std::unordered_map<std::string, TextureHandle> s_sprite_cache{};
     static inline std::unordered_map<std::uint32_t, std::int64_t> s_font_cache{};

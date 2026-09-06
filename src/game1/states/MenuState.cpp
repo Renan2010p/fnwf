@@ -78,7 +78,7 @@ void MenuState::draw(Engine& eng) {
     DrawUtils::vhs_osd(eng, "WITH FRIENDS", 60, 116, 220, 240, 220, 46);
     int classic_alpha = static_cast<int>(120 + 100 * std::sin(timer * 3.0));
     DrawUtils::text_rotated(eng, "CLASSIC EDITION", 310, 155, -8.0, 20, 255, 220, 50, classic_alpha);
-    DrawUtils::text(eng, "v1.3", 62, 176, 15, 140, 170, 200, 220);
+    DrawUtils::text(eng, "v2.0.2", 62, 176, 15, 140, 170, 200, 220);
     eng.draw_rect(60, 204, 360, 2, 100, 180, 255, static_cast<int>(120 + 40 * std::sin(timer * 2)));
     for (int i = 0; i < (int)options.size(); ++i) {
         int y = 300 + i * 62;
