@@ -14,3 +14,7 @@ config.lua
 nimcache/
 dist/
 *.bundle
+config.dat save.dat
+release/
+config.dat
+save.dat
