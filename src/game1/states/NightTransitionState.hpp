@@ -1,6 +1,5 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
 
 namespace fnwf {
 
@@ -11,14 +10,16 @@ public:
     void handle_event(const Event& ev) override;
     void update(double dt) override;
     void draw(Engine& eng) override;
-    bool is_done() const override { return done; }
+    bool is_done() const override {
+        return done;
+    }
 
 private:
     struct Message
     {
         std::string user{};
         std::string avatar{};
-        std::array<int,3> color{};
+        std::array<int, 3> color{};
         std::string text{};
     };
 
@@ -40,4 +41,4 @@ private:
     double target_scroll{0.0};
 };
 
-}
+}  // namespace fnwf

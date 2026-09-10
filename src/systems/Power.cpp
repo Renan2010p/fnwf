@@ -5,23 +5,27 @@
 #include <algorithm>
 #include <cstdio>
 
-namespace fnwf
-{
+namespace fnwf {
 
 PowerSystem::PowerSystem() = default;
 
-void PowerSystem::update(double dt, int door_usage, bool camera_open)
-{
-    if (is_dead) { dead_timer += dt; return; }
+void PowerSystem::update(double dt, int door_usage, bool camera_open) {
+    if (is_dead) {
+        dead_timer += dt;
+        return;
+    }
     usage_level = std::min(5, 1 + door_usage + (camera_open ? 1 : 0));
     static const double drain_muls[] = {1.0, 1.55, 2.35, 3.4, 4.8};
     double mul = drain_muls[std::max(0, std::min(4, usage_level - 1))];
     power -= GameSettings::BASE_POWER_DRAIN * mul * dt;
-    if (power <= 0.0) { power = 0.0; is_dead = true; dead_timer = 0.0; }
+    if (power <= 0.0) {
+        power = 0.0;
+        is_dead = true;
+        dead_timer = 0.0;
+    }
 }
 
-void PowerSystem::draw(Engine& eng)
-{
+void PowerSystem::draw(Engine& eng) {
     auto x = 24;
     auto y = GameSettings::SCREEN_HEIGHT - 78;
     int pct = std::max(0, static_cast<int>(power));
@@ -32,8 +36,7 @@ void PowerSystem::draw(Engine& eng)
 
     auto uy = y + 28;
     DrawUtils::text(eng, Localization::get_text("usage"), x, uy, 16, 200, 200, 200);
-    for (int i = 0; i < 5; ++i)
-    {
+    for (int i = 0; i < 5; ++i) {
         auto ux = x + 78 + i * 16;
         auto c = (i < usage_level) ? GameSettings::MONITOR_GREEN : Color{40, 40, 45};
         eng.draw_rect(ux, uy + 4, 10, 16, c.r, c.g, c.b);
@@ -41,4 +44,4 @@ void PowerSystem::draw(Engine& eng)
     }
 }
 
-} // namespace fnwf
+}  // namespace fnwf

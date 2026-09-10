@@ -1,8 +1,7 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace fnwf {
 
@@ -26,8 +25,12 @@ public:
     void handle_event(const Event& ev) override;
     void update(double dt) override;
     void draw(Engine& eng) override;
-    bool is_done() const override { return done; }
-    auto result() const -> const std::string& override { return m_result; }
+    bool is_done() const override {
+        return done;
+    }
+    auto result() const -> const std::string& override {
+        return m_result;
+    }
 
 private:
     void rebuild_options();
@@ -42,7 +45,7 @@ private:
     std::vector<OptionItem> options{};
     int max_options{0};
 
-    std::vector<std::pair<int,int>> resolutions{};
+    std::vector<std::pair<int, int>> resolutions{};
     int current_res_idx{0};
     bool is_fullscreen{false};
     bool show_fps{false};
@@ -61,4 +64,4 @@ private:
     std::vector<double> item_glows{};
 };
 
-}
+}  // namespace fnwf

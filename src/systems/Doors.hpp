@@ -1,11 +1,10 @@
 #pragma once
 
 #include "engine/Engine.hpp"
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class DoorSystem
 {
@@ -28,4 +27,4 @@ private:
     std::unordered_map<std::string, std::array<int, 4>> button_rects{};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

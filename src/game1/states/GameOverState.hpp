@@ -1,6 +1,5 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
 
 namespace fnwf {
 
@@ -12,9 +11,15 @@ public:
     void update(double dt) override;
     void draw(Engine& eng) override;
     bool is_done() const override;
-    auto result() const -> const std::string& override { return m_result; }
-    auto get_is_win() const -> bool { return is_win; }
-    auto get_night() const -> int { return night; }
+    auto result() const -> const std::string& override {
+        return m_result;
+    }
+    auto get_is_win() const -> bool {
+        return is_win;
+    }
+    auto get_night() const -> int {
+        return night;
+    }
 
 private:
     void draw_game_over(Engine& eng);
@@ -29,4 +34,4 @@ private:
     std::string m_result{};
 };
 
-}
+}  // namespace fnwf

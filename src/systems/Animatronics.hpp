@@ -1,20 +1,24 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class Animatronic
 {
 public:
-    Animatronic(std::string name, int ai_level, std::string start_pos,
+    Animatronic(std::string name,
+                int ai_level,
+                std::string start_pos,
                 const std::unordered_map<std::string, std::vector<std::string>>& path_map);
 
-    void update(double dt, const std::string* camera_looking_at,
-                bool left_door_closed, bool right_door_closed, bool mask_on);
+    void update(double dt,
+                const std::string* camera_looking_at,
+                bool left_door_closed,
+                bool right_door_closed,
+                bool mask_on);
     auto is_at_left_door() const -> bool;
     auto is_at_right_door() const -> bool;
 
@@ -35,7 +39,9 @@ public:
 
 private:
     void try_move(const std::string* camera_looking_at,
-                  bool left_door_closed, bool right_door_closed, bool mask_on);
+                  bool left_door_closed,
+                  bool right_door_closed,
+                  bool mask_on);
 };
 
 class SonkAnimatronic
@@ -43,8 +49,11 @@ class SonkAnimatronic
 public:
     SonkAnimatronic(int ai_level);
 
-    void update(double dt, const std::string* camera_looking_at,
-                bool left_door_closed, bool right_door_closed, bool mask_on);
+    void update(double dt,
+                const std::string* camera_looking_at,
+                bool left_door_closed,
+                bool right_door_closed,
+                bool mask_on);
     auto is_at_left_door() const -> bool;
     auto is_at_right_door() const -> bool;
 
@@ -70,8 +79,11 @@ class AnimatronicManager
 public:
     AnimatronicManager(int night, const std::vector<int>* custom_ai = nullptr);
 
-    void update(double dt, const std::string* camera_looking_at,
-                bool left_door_closed, bool right_door_closed, bool mask_on);
+    void update(double dt,
+                const std::string* camera_looking_at,
+                bool left_door_closed,
+                bool right_door_closed,
+                bool mask_on);
 
     auto get_positions() const -> std::unordered_map<std::string, std::string>;
     auto get_attacker() const -> std::string;
@@ -90,4 +102,4 @@ public:
     bool secret_mode{false};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

@@ -3,8 +3,7 @@
 #include "engine/Engine.hpp"
 #include <string>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class JumpscareSystem
 {
@@ -13,7 +12,9 @@ public:
     void trigger(const std::string& animatronic_name);
     void update(double dt);
     void draw(Engine& eng);
-    auto is_done() const -> bool { return done; }
+    auto is_done() const -> bool {
+        return done;
+    }
     void reset();
 
     bool active{false};
@@ -23,4 +24,4 @@ public:
     bool done{false};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

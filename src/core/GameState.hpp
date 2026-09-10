@@ -1,15 +1,12 @@
 #pragma once
 
 #include "engine/Engine.hpp"
-#include "engine/Event.hpp"
 
 #include <string>
 
-namespace fnwf
-{
+namespace fnwf {
 
-enum class StateResult
-{
+enum class StateResult {
     None,
     Win,
     Jumpscare,
@@ -34,8 +31,13 @@ public:
     virtual void update(double dt) = 0;
     virtual void draw(Engine& eng) = 0;
     virtual bool is_done() const = 0;
-    virtual auto get_result() const -> StateResult { return StateResult::None; }
-    virtual auto result() const -> const std::string& { static const std::string empty; return empty; }
+    virtual auto get_result() const -> StateResult {
+        return StateResult::None;
+    }
+    virtual auto result() const -> const std::string& {
+        static const std::string empty;
+        return empty;
+    }
 };
 
-} // namespace fnwf
+}  // namespace fnwf

@@ -2,8 +2,7 @@
 
 #include <cstdint>
 
-namespace fnwf::GameSettings
-{
+namespace fnwf::GameSettings {
 
 constexpr std::int32_t SCREEN_WIDTH = 1280;
 constexpr std::int32_t SCREEN_HEIGHT = 720;
@@ -18,4 +17,4 @@ constexpr double PAN_SPEED = 8.0;
 constexpr std::int32_t PAN_MARGIN = 200;
 constexpr double MOVE_INTERVAL = 5.0;
 
-} // namespace fnwf::GameSettings
+}  // namespace fnwf::GameSettings

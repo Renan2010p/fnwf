@@ -1,12 +1,11 @@
 #pragma once
 
 #include "engine/Engine.hpp"
-#include "game1/GameSettings.hpp"
-#include <vector>
+#include "game1/Colors.hpp"
 #include <cmath>
+#include <vector>
 
-namespace fnwf
-{
+namespace fnwf {
 
 struct ProjectionSlice
 {
@@ -21,10 +20,15 @@ class Office
 public:
     Office(Engine& eng);
     void update(int mouse_x, double dt);
-    void draw(Engine& eng, double left_door_anim, double right_door_anim,
-              bool left_light, bool right_light,
-              const std::string& anim_at_left, const std::string& anim_at_right,
-              const std::string& anim_at_vent, const std::string& anim_in_office);
+    void draw(Engine& eng,
+              double left_door_anim,
+              double right_door_anim,
+              bool left_light,
+              bool right_light,
+              const std::string& anim_at_left,
+              const std::string& anim_at_right,
+              const std::string& anim_at_vent,
+              const std::string& anim_in_office);
 
     bool vent_light{false};
 
@@ -40,8 +44,11 @@ private:
     void draw_depth_structure(Engine& eng);
     void draw_side_walls(Engine& eng);
     void draw_hallways_base(Engine& eng);
-    void draw_hallways_dynamic(Engine& eng, bool left_light, bool right_light,
-                               const std::string& anim_left, const std::string& anim_right);
+    void draw_hallways_dynamic(Engine& eng,
+                               bool left_light,
+                               bool right_light,
+                               const std::string& anim_left,
+                               const std::string& anim_right);
     void draw_vent_base(Engine& eng);
     void draw_vent_dynamic(Engine& eng, const std::string& anim_vent);
     void draw_doors(Engine& eng, double left_anim, double right_anim);
@@ -66,4 +73,4 @@ private:
     std::vector<ProjectionSlice> projection_data{};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

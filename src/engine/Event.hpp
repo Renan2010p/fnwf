@@ -3,11 +3,9 @@
 #include <cstdint>
 #include <string>
 
-namespace fnwf
-{
+namespace fnwf {
 
-enum class EventType
-{
+enum class EventType {
     None,
     Quit,
     KeyDown,
@@ -28,4 +26,4 @@ struct Event
     std::int32_t y{};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

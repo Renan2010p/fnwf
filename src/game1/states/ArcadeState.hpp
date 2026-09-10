@@ -1,12 +1,11 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
-#include "systems/Office.hpp"
+#include "systems/Animatronics.hpp"
 #include "systems/CameraSystem.hpp"
 #include "systems/Doors.hpp"
-#include "systems/Power.hpp"
-#include "systems/Animatronics.hpp"
 #include "systems/Jumpscare.hpp"
+#include "systems/Office.hpp"
+#include "systems/Power.hpp"
 #include <string>
 
 namespace fnwf {
@@ -19,9 +18,13 @@ public:
     void update(double dt) override;
     void draw(Engine& eng) override;
     bool is_done() const override;
-    auto result() const -> const std::string& override { return m_result; }
+    auto result() const -> const std::string& override {
+        return m_result;
+    }
 
-    int get_score() const { return static_cast<int>(time_survived); }
+    int get_score() const {
+        return static_cast<int>(time_survived);
+    }
 
 private:
     void update_difficulty();
@@ -72,4 +75,4 @@ private:
     double base_power_drain{0.12};
 };
 
-}
+}  // namespace fnwf

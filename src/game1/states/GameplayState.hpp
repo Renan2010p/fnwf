@@ -1,15 +1,14 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
-#include "systems/Office.hpp"
+#include "systems/Animatronics.hpp"
 #include "systems/CameraSystem.hpp"
 #include "systems/Doors.hpp"
-#include "systems/Power.hpp"
-#include "systems/Animatronics.hpp"
 #include "systems/Jumpscare.hpp"
-#include <vector>
+#include "systems/Office.hpp"
+#include "systems/Power.hpp"
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace fnwf {
 
@@ -21,7 +20,9 @@ public:
     void update(double dt) override;
     void draw(Engine& eng) override;
     bool is_done() const override;
-    auto result() const -> const std::string& override { return m_result; }
+    auto result() const -> const std::string& override {
+        return m_result;
+    }
 
 private:
     void update_power_out(double dt);
@@ -74,4 +75,4 @@ private:
     bool secret_mode{false};
 };
 
-}
+}  // namespace fnwf

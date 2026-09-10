@@ -5,8 +5,7 @@
 #include <memory>
 #include <string>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class GameState;
 
@@ -22,8 +21,12 @@ public:
     void update(double dt);
     void draw();
     void handle_event(const Event& ev);
-    auto current_name() const -> const std::string& { return m_current_name; }
-    auto current() -> GameState* { return m_current.get(); }
+    auto current_name() const -> const std::string& {
+        return m_current_name;
+    }
+    auto current() -> GameState* {
+        return m_current.get();
+    }
 
 private:
     Engine& m_eng;
@@ -31,4 +34,4 @@ private:
     std::string m_current_name{};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

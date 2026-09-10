@@ -1,18 +1,27 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
-#include <vector>
 #include <string>
+#include <vector>
 namespace fnwf {
-struct MenuItem { std::string label; std::string action; };
-class MenuState : public GameState {
+struct MenuItem
+{
+    std::string label;
+    std::string action;
+};
+class MenuState : public GameState
+{
 public:
     MenuState(int completed_nights, bool has_seen_story, Engine& eng);
     void handle_event(const Event& ev) override;
     void update(double dt) override;
     void draw(Engine& eng) override;
-    bool is_done() const override { return done; }
-    auto result() const -> const std::string& override { return m_result; }
+    bool is_done() const override {
+        return done;
+    }
+    auto result() const -> const std::string& override {
+        return m_result;
+    }
+
 private:
     void build_options();
     auto handle_action(const std::string& action) -> std::string;
@@ -35,4 +44,4 @@ private:
     std::vector<TextureHandle> menu_animatronics{};
     int current_anim_idx{0};
 };
-}
+}  // namespace fnwf

@@ -3,8 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class Localization
 {
@@ -15,9 +14,10 @@ public:
 
 private:
     static inline std::string s_current_lang{"pt"};
-    static inline std::unordered_map<std::string, std::unordered_map<std::string, std::string>> s_translations{};
+    static inline std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+        s_translations{};
     static inline bool s_initialized{false};
     static void ensure_initialized();
 };
 
-} // namespace fnwf
+}  // namespace fnwf
