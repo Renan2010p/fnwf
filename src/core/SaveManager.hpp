@@ -18,11 +18,11 @@ class SaveManager
 {
 public:
     static auto load_data() -> GameData;
-    static void save_progress(int completed_nights,
+    static auto save_progress(int completed_nights,
                               bool has_seen_story,
                               bool infinite_power,
                               bool fast_nights,
-                              const std::vector<std::string>& achievements);
+                              const std::vector<std::string>& achievements) -> void;
 };
 
 }  // namespace fnwf

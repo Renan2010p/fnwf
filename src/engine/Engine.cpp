@@ -65,7 +65,7 @@ auto Engine::new_instance(std::string_view title,
     return true;
 }
 
-void Engine::shutdown() noexcept {
+auto Engine::shutdown() noexcept -> void {
     m_textures.clear();
     m_text_cache.clear();
     m_fonts.clear();
@@ -124,19 +124,19 @@ auto Engine::ticks() const noexcept -> double {
     return static_cast<double>(SDL_GetTicks64());
 }
 
-void Engine::present() {
+auto Engine::present() -> void {
     SDL_RenderPresent(m_renderer.get());
 }
 
-void Engine::set_logical_size(std::uint32_t w, std::uint32_t h) {
+auto Engine::set_logical_size(std::uint32_t w, std::uint32_t h) -> void {
     SDL_RenderSetLogicalSize(m_renderer.get(), static_cast<int>(w), static_cast<int>(h));
 }
 
-void Engine::set_fullscreen(bool on) {
+auto Engine::set_fullscreen(bool on) -> void {
     SDL_SetWindowFullscreen(m_window.get(), on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 }
 
-void Engine::set_vsync(bool on) {
+auto Engine::set_vsync(bool on) -> void {
     if (on == m_vsync)
         return;
     m_vsync = on;
@@ -162,7 +162,7 @@ void Engine::set_vsync(bool on) {
         m_renderer.get(), static_cast<int>(m_logical_w), static_cast<int>(m_logical_h));
 }
 
-void Engine::set_resolution(std::uint32_t w, std::uint32_t h) {
+auto Engine::set_resolution(std::uint32_t w, std::uint32_t h) -> void {
     SDL_SetWindowSize(m_window.get(), static_cast<int>(w), static_cast<int>(h));
     SDL_RenderSetLogicalSize(m_renderer.get(), static_cast<int>(w), static_cast<int>(h));
 }
@@ -182,12 +182,12 @@ auto Engine::get_display_modes() -> std::vector<std::array<std::int32_t, 3>> {
     return modes;
 }
 
-void Engine::clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) {
+auto Engine::clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) -> void {
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
     SDL_RenderClear(m_renderer.get());
 }
 
-void Engine::draw_rect(std::int32_t x,
+auto Engine::draw_rect(std::int32_t x,
                        std::int32_t y,
                        std::uint32_t w,
                        std::uint32_t h,
@@ -195,7 +195,7 @@ void Engine::draw_rect(std::int32_t x,
                        std::uint8_t g,
                        std::uint8_t b,
                        std::uint8_t a,
-                       bool filled) {
+                       bool filled) -> void {
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
     const SDL_Rect rect{x, y, static_cast<int>(w), static_cast<int>(h)};
     if (filled) {
@@ -205,26 +205,26 @@ void Engine::draw_rect(std::int32_t x,
     }
 }
 
-void Engine::line(std::int32_t x1,
+auto Engine::line(std::int32_t x1,
                   std::int32_t y1,
                   std::int32_t x2,
                   std::int32_t y2,
                   std::uint8_t r,
                   std::uint8_t g,
                   std::uint8_t b,
-                  std::uint8_t a) {
+                  std::uint8_t a) -> void {
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
     SDL_RenderDrawLine(m_renderer.get(), x1, y1, x2, y2);
 }
 
-void Engine::circle(std::int32_t cx,
+auto Engine::circle(std::int32_t cx,
                     std::int32_t cy,
                     std::int32_t radius,
                     std::uint8_t r,
                     std::uint8_t g,
                     std::uint8_t b,
                     std::uint8_t a,
-                    bool filled) {
+                    bool filled) -> void {
     if (radius <= 0)
         return;
     SDL_SetRenderDrawColor(m_renderer.get(), r, g, b, a);
@@ -247,7 +247,7 @@ void Engine::circle(std::int32_t cx,
     }
 }
 
-void Engine::draw_texture(const TextureHandle& tex,
+auto Engine::draw_texture(const TextureHandle& tex,
                           std::int32_t dx,
                           std::int32_t dy,
                           std::uint32_t dw,
@@ -256,7 +256,7 @@ void Engine::draw_texture(const TextureHandle& tex,
                           std::int32_t sy,
                           std::int32_t sw,
                           std::int32_t sh,
-                          std::optional<std::uint8_t> alpha) {
+                          std::optional<std::uint8_t> alpha) -> void {
     auto it = m_textures.find(tex.id);
     if (it == m_textures.end()) {
         return;
@@ -279,13 +279,13 @@ void Engine::draw_texture(const TextureHandle& tex,
     }
 }
 
-void Engine::draw_texture_rotated(const TextureHandle& tex,
+auto Engine::draw_texture_rotated(const TextureHandle& tex,
                                   std::int32_t dx,
                                   std::int32_t dy,
                                   std::uint32_t dw,
                                   std::uint32_t dh,
                                   double angle,
-                                  std::optional<std::uint8_t> alpha) {
+                                  std::optional<std::uint8_t> alpha) -> void {
     auto it = m_textures.find(tex.id);
     if (it == m_textures.end()) {
         return;
@@ -496,7 +496,7 @@ auto Engine::texture_size(std::uint32_t id) noexcept -> std::pair<std::uint32_t,
     return {static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(h)};
 }
 
-void Engine::set_render_target(std::optional<TextureHandle> target) {
+auto Engine::set_render_target(std::optional<TextureHandle> target) -> void {
     if (target.has_value()) {
         auto it = m_textures.find(target->id);
         if (it != m_textures.end()) {
@@ -511,7 +511,7 @@ void Engine::set_render_target(std::optional<TextureHandle> target) {
     }
 }
 
-void Engine::reset_render_target() {
+auto Engine::reset_render_target() -> void {
     set_render_target(std::nullopt);
 }
 
@@ -524,11 +524,11 @@ auto Engine::play_sound(const SoundHandle& snd, std::int32_t loops, std::int32_t
     return channel;
 }
 
-void Engine::stop_channel(std::int32_t channel) {
+auto Engine::stop_channel(std::int32_t channel) -> void {
     Mix_HaltChannel(channel);
 }
 
-void Engine::stop_all_sounds() {
+auto Engine::stop_all_sounds() -> void {
     Mix_HaltChannel(-1);
 }
 
@@ -539,7 +539,7 @@ auto Engine::mouse_pos() -> std::pair<std::int32_t, std::int32_t> {
     return {x, y};
 }
 
-void Engine::update_discord(std::string_view details, std::string_view state) {
+auto Engine::update_discord(std::string_view details, std::string_view state) -> void {
     (void)details;
     (void)state;
 }

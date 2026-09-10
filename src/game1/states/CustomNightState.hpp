@@ -9,10 +9,10 @@ class CustomNightState : public GameState
 {
 public:
     CustomNightState(Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
     auto result() const -> const std::string& override {
@@ -23,11 +23,11 @@ public:
     }
 
 private:
-    void rebuild_layout();
-    void apply_preset(int index);
-    void cycle_preset(int direction);
+    auto rebuild_layout() -> void;
+    auto apply_preset(int index) -> void;
+    auto cycle_preset(int direction) -> void;
     auto get_ai_cap() const -> int;
-    void unlock_secret_mode();
+    auto unlock_secret_mode() -> void;
 
     Engine& m_eng;
     double timer{0.0};

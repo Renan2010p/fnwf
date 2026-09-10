@@ -7,7 +7,7 @@
 
 namespace fnwf {
 
-void DrawUtils::load_sprite(Engine& eng, const std::string& name) {
+auto DrawUtils::load_sprite(Engine& eng, const std::string& name) -> void {
     if (s_sprite_cache.count(name))
         return;
     std::string path = std::string(GameSettings::ASSETS_DIR) + "/" + name + ".png";
@@ -25,7 +25,7 @@ auto DrawUtils::get_sprite(const std::string& name) -> std::optional<TextureHand
     return std::nullopt;
 }
 
-void DrawUtils::set_fonts(Engine& eng) {
+auto DrawUtils::set_fonts(Engine& eng) -> void {
     s_main_font = eng.load_font(std::string(GameSettings::ASSETS_DIR) + "/font/font.ttf", 16);
     if (s_main_font == -1)
         s_main_font = 0;
@@ -44,7 +44,7 @@ auto DrawUtils::get_font_by_size(Engine& eng, std::uint32_t size) -> std::int64_
     return idx;
 }
 
-void DrawUtils::set_render_quality(const std::string& level) {
+auto DrawUtils::set_render_quality(const std::string& level) -> void {
     s_render_quality = (level == "high") ? "high" : "low";
 }
 
@@ -52,7 +52,7 @@ auto DrawUtils::get_render_quality() -> const std::string& {
     return s_render_quality;
 }
 
-void DrawUtils::text(Engine& eng,
+auto DrawUtils::text(Engine& eng,
                      const std::string& text,
                      std::int32_t x,
                      std::int32_t y,
@@ -62,12 +62,12 @@ void DrawUtils::text(Engine& eng,
                      std::uint8_t b,
                      std::uint8_t alpha,
                      bool center,
-                     std::int32_t font_idx) {
+                     std::int32_t font_idx) -> void {
     auto f_idx = font_idx >= 0 ? font_idx : get_font_by_size(eng, size);
     eng.draw_text(text, x, y, size, r, g, b, alpha, center, f_idx);
 }
 
-void DrawUtils::text_rotated(Engine& eng,
+auto DrawUtils::text_rotated(Engine& eng,
                              const std::string& text,
                              std::int32_t x,
                              std::int32_t y,
@@ -77,17 +77,14 @@ void DrawUtils::text_rotated(Engine& eng,
                              std::uint8_t g,
                              std::uint8_t b,
                              std::uint8_t alpha,
-                             bool center) {
+                             bool center) -> void {
     auto f_idx = get_font_by_size(eng, size);
     eng.draw_text_rotated(text, x, y, size, angle, r, g, b, alpha, center, f_idx);
 }
 
-void DrawUtils::static_noise(Engine& eng,
-                             std::int32_t x,
-                             std::int32_t y,
-                             std::uint32_t w,
-                             std::uint32_t h,
-                             float intensity) {
+auto DrawUtils::static_noise(
+    Engine& eng, std::int32_t x, std::int32_t y, std::uint32_t w, std::uint32_t h, float intensity)
+    -> void {
     float ci = intensity;
     if (s_render_quality == "low") {
         ci *= 0.55f;
@@ -97,12 +94,12 @@ void DrawUtils::static_noise(Engine& eng,
     }
 }
 
-void DrawUtils::scanlines(Engine& eng,
+auto DrawUtils::scanlines(Engine& eng,
                           std::int32_t x,
                           std::int32_t y,
                           std::uint32_t w,
                           std::uint32_t h,
-                          std::uint8_t alpha) {
+                          std::uint8_t alpha) -> void {
     std::uint8_t a = alpha;
     std::int32_t step = 4;
     if (s_render_quality == "low") {
@@ -128,7 +125,7 @@ void DrawUtils::scanlines(Engine& eng,
     }
 }
 
-void DrawUtils::button_box(Engine& eng,
+auto DrawUtils::button_box(Engine& eng,
                            std::int32_t x,
                            std::int32_t y,
                            std::uint32_t w,
@@ -140,7 +137,7 @@ void DrawUtils::button_box(Engine& eng,
                            std::uint8_t b_on,
                            std::uint8_t r_off,
                            std::uint8_t g_off,
-                           std::uint8_t b_off) {
+                           std::uint8_t b_off) -> void {
     auto r = active ? r_on : r_off;
     auto g = active ? g_on : g_off;
     auto b = active ? b_on : b_off;
@@ -149,12 +146,12 @@ void DrawUtils::button_box(Engine& eng,
     text(eng, label, x + w / 2, y + h / 2, 14, 255, 255, 255, 255, true);
 }
 
-void DrawUtils::animatronic_sprite(Engine& eng,
+auto DrawUtils::animatronic_sprite(Engine& eng,
                                    const std::string& name,
                                    std::int32_t x,
                                    std::int32_t y,
                                    std::uint32_t w,
-                                   std::uint32_t h) {
+                                   std::uint32_t h) -> void {
     auto tex = get_sprite(name);
     if (tex) {
         eng.draw_texture(*tex, x, y, w, h);
@@ -166,7 +163,7 @@ void DrawUtils::animatronic_sprite(Engine& eng,
     }
 }
 
-void DrawUtils::trapezoid(Engine& eng,
+auto DrawUtils::trapezoid(Engine& eng,
                           std::uint8_t r,
                           std::uint8_t g,
                           std::uint8_t b,
@@ -177,7 +174,7 @@ void DrawUtils::trapezoid(Engine& eng,
                           std::int32_t p3x,
                           std::int32_t p3y,
                           std::int32_t p4x,
-                          std::int32_t p4y) {
+                          std::int32_t p4y) -> void {
     std::int32_t y_min = std::min(p1y, p2y);
     std::int32_t y_max = std::max(p3y, p4y);
     if (y_max == y_min)
@@ -197,31 +194,31 @@ void DrawUtils::trapezoid(Engine& eng,
     }
 }
 
-void DrawUtils::star(Engine& eng,
+auto DrawUtils::star(Engine& eng,
                      std::int32_t cx,
                      std::int32_t cy,
                      std::int32_t outer_r,
                      std::uint8_t r,
                      std::uint8_t g,
-                     std::uint8_t b) {
+                     std::uint8_t b) -> void {
     auto size = outer_r;
     eng.draw_rect(cx - size / 4, cy - size / 2, size / 2, size, r, g, b);
     eng.draw_rect(cx - size / 2, cy - size / 4, size, size / 2, r, g, b);
 }
 
-void DrawUtils::animatronic_face(Engine& eng,
+auto DrawUtils::animatronic_face(Engine& eng,
                                  const std::string& name,
                                  std::int32_t x,
                                  std::int32_t y,
                                  std::uint32_t w,
-                                 std::uint32_t h) {
+                                 std::uint32_t h) -> void {
     auto tex = get_sprite(name);
     if (tex) {
         eng.draw_texture(*tex, x, y, w, h);
     }
 }
 
-void DrawUtils::rounded_texture(Engine& eng,
+auto DrawUtils::rounded_texture(Engine& eng,
                                 const TextureHandle& tex,
                                 std::int32_t x,
                                 std::int32_t y,
@@ -231,7 +228,7 @@ void DrawUtils::rounded_texture(Engine& eng,
                                 std::uint8_t bg_r,
                                 std::uint8_t bg_g,
                                 std::uint8_t bg_b,
-                                std::uint8_t alpha) {
+                                std::uint8_t alpha) -> void {
     radius = std::max(1, radius);
     eng.draw_texture(tex, x, y, w, h, -1, -1, -1, -1, alpha);
 
@@ -247,17 +244,17 @@ void DrawUtils::rounded_texture(Engine& eng,
     }
 }
 
-void DrawUtils::apply_camera_effect(Engine& eng,
+auto DrawUtils::apply_camera_effect(Engine& eng,
                                     float noise_intensity,
                                     std::uint8_t scanline_alpha,
-                                    std::uint32_t /*scanline_spacing*/) {
+                                    std::uint32_t /*scanline_spacing*/) -> void {
     scanlines(eng, 0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, scanline_alpha);
     static_noise(
         eng, 0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, noise_intensity);
 }
 
-void DrawUtils::vignette(
-    Engine& eng, float intensity, std::uint8_t r, std::uint8_t g, std::uint8_t b) {
+auto DrawUtils::vignette(
+    Engine& eng, float intensity, std::uint8_t r, std::uint8_t g, std::uint8_t b) -> void {
     intensity = std::max(0.0f, std::min(1.0f, intensity));
     auto layers = (s_render_quality == "high") ? 22 : 10;
     auto max_a = static_cast<std::uint8_t>(150 * intensity);
@@ -272,26 +269,26 @@ void DrawUtils::vignette(
     }
 }
 
-void DrawUtils::tone_overlay(
-    Engine& eng, std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t alpha) {
+auto DrawUtils::tone_overlay(
+    Engine& eng, std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t alpha) -> void {
     if (alpha <= 0)
         return;
     eng.draw_rect(0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, r, g, b, alpha);
 }
 
-void DrawUtils::vhs_osd(Engine& eng,
+auto DrawUtils::vhs_osd(Engine& eng,
                         const std::string& text,
                         std::int32_t x,
                         std::int32_t y,
                         std::uint8_t r,
                         std::uint8_t g,
                         std::uint8_t b,
-                        std::uint32_t scale) {
+                        std::uint32_t scale) -> void {
     DrawUtils::text(eng, text, x + 1, y + 1, scale, 0, 0, 0, 255, false);
     DrawUtils::text(eng, text, x, y, scale, r, g, b, 255, false);
 }
 
-void DrawUtils::clear_cache() {
+auto DrawUtils::clear_cache() -> void {
     s_sprite_cache.clear();
     s_font_cache.clear();
     s_scanline_cache.clear();

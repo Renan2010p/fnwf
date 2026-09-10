@@ -16,11 +16,11 @@ public:
 
     explicit StateMachine(Engine& eng) : m_eng(eng) {}
 
-    void switch_state(const std::string& name, StateFactory factory);
-    void switch_state_raw(std::unique_ptr<GameState> state);
-    void update(double dt);
-    void draw();
-    void handle_event(const Event& ev);
+    auto switch_state(const std::string& name, StateFactory factory) -> void;
+    auto switch_state_raw(std::unique_ptr<GameState> state) -> void;
+    auto update(double dt) -> void;
+    auto draw() -> void;
+    auto handle_event(const Event& ev) -> void;
     auto current_name() const -> const std::string& {
         return m_current_name;
     }

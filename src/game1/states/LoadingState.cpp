@@ -12,9 +12,9 @@ LoadingState::LoadingState(Engine& eng) : m_eng(eng) {
     tip = Localization::get_text("tip_" + std::to_string(tip_idx));
 }
 
-void LoadingState::handle_event(const Event&) {}
+auto LoadingState::handle_event(const Event&) -> void {}
 
-void LoadingState::update(double dt) {
+auto LoadingState::update(double dt) -> void {
     timer += dt;
     glitch_timer += dt;
     loader_angle += 360.0 * dt;
@@ -33,7 +33,7 @@ void LoadingState::update(double dt) {
     }
 }
 
-void LoadingState::draw(Engine& eng) {
+auto LoadingState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(3, 3, 5, 255);
     DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.012f);

@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cmath>
 namespace fnwf {
-static float lerp(float a, float b, float t) {
+static auto lerp(float a, float b, float t) -> float {
     return a + (b - a) * std::min(1.0f, std::max(0.0f, t));
 }
 MenuState::MenuState(int cn, bool hss, Engine& eng)
@@ -28,7 +28,7 @@ MenuState::MenuState(int cn, bool hss, Engine& eng)
     build_options();
     SoundManager::play_menu_ambient();
 }
-void MenuState::build_options() {
+auto MenuState::build_options() -> void {
     options.clear();
     if (menu_page == "main") {
         options.push_back({Localization::get_text("new_game"), "start"});
@@ -59,12 +59,12 @@ void MenuState::build_options() {
         options.push_back({Localization::get_text("back"), "back_menu"});
     }
 }
-void MenuState::update(double dt) {
+auto MenuState::update(double dt) -> void {
     timer += dt;
     highlight_target_y = 300 + (selected - 1) * 62 - 17;
     highlight_y = lerp(highlight_y, highlight_target_y, 12.0 * dt);
 }
-void MenuState::handle_event(const Event& ev) {
+auto MenuState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown) {
         if (ev.key == 1073741906 || ev.key == 'w') {
             selected = ((selected - 2 + (int)options.size()) % (int)options.size()) + 1;
@@ -113,7 +113,7 @@ auto MenuState::handle_action(const std::string& action) -> std::string {
     }
     return action;
 }
-void MenuState::draw(Engine& eng) {
+auto MenuState::draw(Engine& eng) -> void {
     eng.draw_rect(0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 4, 5, 9);
     auto cur = menu_animatronics[current_anim_idx % menu_animatronics.size()];
     float bounce = 5 * std::sin(timer * 0.8);

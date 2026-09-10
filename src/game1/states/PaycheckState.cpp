@@ -8,7 +8,7 @@ namespace fnwf {
 
 PaycheckState::PaycheckState(Engine& eng) : m_eng(eng) {}
 
-void PaycheckState::update(double dt) {
+auto PaycheckState::update(double dt) -> void {
     timer += dt;
     if (fading_in) {
         fade_alpha = std::max(0, fade_alpha - (int)(150 * dt));
@@ -22,7 +22,7 @@ void PaycheckState::update(double dt) {
     }
 }
 
-void PaycheckState::handle_event(const Event& ev) {
+auto PaycheckState::handle_event(const Event& ev) -> void {
     if ((ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown) && !fading_in &&
         !fading_out) {
         fading_out = true;
@@ -30,7 +30,7 @@ void PaycheckState::handle_event(const Event& ev) {
     }
 }
 
-void PaycheckState::draw(Engine& eng) {
+auto PaycheckState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(20, 20, 25, 255);
     DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.01f);

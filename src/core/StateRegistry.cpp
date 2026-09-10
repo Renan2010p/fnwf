@@ -2,7 +2,7 @@
 
 namespace fnwf {
 
-void StateRegistry::register_state(const std::string& name, Factory factory) {
+auto StateRegistry::register_state(const std::string& name, Factory factory) -> void {
     m_factories[name] = std::move(factory);
 }
 

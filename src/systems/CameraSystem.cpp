@@ -35,7 +35,7 @@ auto CameraSystem::get_bottom_toggle_rects() const
     return {btn1, btn2};
 }
 
-void CameraSystem::toggle() {
+auto CameraSystem::toggle() -> void {
     if (is_mask_open || is_mask_animating)
         return;
     is_open = !is_open;
@@ -44,7 +44,7 @@ void CameraSystem::toggle() {
         static_timer = static_duration;
 }
 
-void CameraSystem::toggle_mask() {
+auto CameraSystem::toggle_mask() -> void {
     if (is_open || is_animating || is_mask_animating)
         return;
     is_mask_open = !is_mask_open;
@@ -58,7 +58,7 @@ void CameraSystem::toggle_mask() {
     }
 }
 
-void CameraSystem::force_remove_mask() {
+auto CameraSystem::force_remove_mask() -> void {
     if (!is_mask_open && mask_anim_progress <= 0.0)
         return;
     if (is_mask_animating && !is_mask_open)
@@ -67,7 +67,7 @@ void CameraSystem::force_remove_mask() {
     is_mask_animating = true;
 }
 
-void CameraSystem::switch_camera(const std::string& cam_id) {
+auto CameraSystem::switch_camera(const std::string& cam_id) -> void {
     if (cam_id != current_cam) {
         auto& names = GameSettings::camera_names();
         if (names.find(cam_id) != names.end()) {
@@ -157,7 +157,7 @@ auto CameraSystem::handle_click(int mx, int my) -> bool {
     return false;
 }
 
-void CameraSystem::update(double dt) {
+auto CameraSystem::update(double dt) -> void {
     if (static_timer > 0)
         static_timer -= dt;
 
@@ -182,9 +182,9 @@ void CameraSystem::update(double dt) {
         is_mask_animating = false;
 }
 
-void CameraSystem::draw(Engine& eng,
+auto CameraSystem::draw(Engine& eng,
                         const std::unordered_map<std::string, std::string>& anim_positions,
-                        int foxy_stage) {
+                        int foxy_stage) -> void {
     auto [mask_rect, monitor_rect] = get_bottom_toggle_rects();
 
     if (!is_mask_open && !is_visible()) {
@@ -241,7 +241,7 @@ void CameraSystem::draw(Engine& eng,
     }
 }
 
-void CameraSystem::draw_mask_overlay(Engine& eng) {
+auto CameraSystem::draw_mask_overlay(Engine& eng) -> void {
     using namespace GameSettings;
     double eased = ease_out_cubic(mask_anim_progress);
     int slide_offset = (int)((1.0 - eased) * -SCREEN_HEIGHT);
@@ -285,9 +285,9 @@ void CameraSystem::draw_mask_overlay(Engine& eng) {
     eng.draw_rect(right_eye_x, eye_y, eye_w, eye_h, 100, 78, 50, 255, false);
 }
 
-void CameraSystem::draw_monitor(Engine& eng,
+auto CameraSystem::draw_monitor(Engine& eng,
                                 const std::unordered_map<std::string, std::string>& anim_positions,
-                                int foxy_stage) {
+                                int foxy_stage) -> void {
     using namespace GameSettings;
     double eased = ease_out_cubic(anim_progress);
     int slide_offset = (int)((1.0 - eased) * (SCREEN_HEIGHT - 40));
@@ -321,7 +321,7 @@ void CameraSystem::draw_monitor(Engine& eng,
     DrawUtils::text(eng, "CLOSE", btn_x + btn_w / 2, close_btn_y + 15, 12, 200, 60, 60, 255, true);
 }
 
-void CameraSystem::draw_monitor_animation(Engine& eng) {
+auto CameraSystem::draw_monitor_animation(Engine& eng) -> void {
     using namespace GameSettings;
     double progress = ease_out_cubic(anim_progress);
     int slide_offset = (int)((1.0 - progress) * (SCREEN_HEIGHT - 40));
@@ -336,10 +336,9 @@ void CameraSystem::draw_monitor_animation(Engine& eng) {
     }
 }
 
-void CameraSystem::draw_camera_view(
-    Engine& eng,
-    const std::unordered_map<std::string, std::string>& anim_positions,
-    int foxy_stage) {
+auto CameraSystem::draw_camera_view(
+    Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions, int foxy_stage)
+    -> void {
     using namespace GameSettings;
     int cx = SCREEN_WIDTH / 2, cy = SCREEN_HEIGHT / 2 - 30;
     if (current_cam == "1A")
@@ -358,10 +357,10 @@ void CameraSystem::draw_camera_view(
         draw_supply_closet(eng, cx, cy, anim_positions);
 }
 
-void CameraSystem::draw_show_stage(Engine& eng,
+auto CameraSystem::draw_show_stage(Engine& eng,
                                    int cx,
                                    int cy,
-                                   const std::unordered_map<std::string, std::string>& ap) {
+                                   const std::unordered_map<std::string, std::string>& ap) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 40, 30, 35);
     auto it = ap.find("cedro");
     if (it != ap.end() && it->second == "1A")
@@ -371,10 +370,8 @@ void CameraSystem::draw_show_stage(Engine& eng,
         DrawUtils::animatronic_face(eng, "eser", cx + 30, cy - 40, 100, 120);
 }
 
-void CameraSystem::draw_dining_area(Engine& eng,
-                                    int cx,
-                                    int cy,
-                                    const std::unordered_map<std::string, std::string>& ap) {
+auto CameraSystem::draw_dining_area(
+    Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& ap) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 30, 28, 32);
     for (auto& name : {"cedro", "eser"}) {
         auto it = ap.find(name);
@@ -385,21 +382,21 @@ void CameraSystem::draw_dining_area(Engine& eng,
     }
 }
 
-void CameraSystem::draw_backstage(Engine& eng,
+auto CameraSystem::draw_backstage(Engine& eng,
                                   int cx,
                                   int cy,
-                                  const std::unordered_map<std::string, std::string>& ap) {
+                                  const std::unordered_map<std::string, std::string>& ap) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 25, 20, 28);
     auto it = ap.find("cedro");
     if (it != ap.end() && it->second == "1C")
         DrawUtils::animatronic_face(eng, "cedro", cx - 60, cy - 40, 120, 150);
 }
 
-void CameraSystem::draw_hallway(Engine& eng,
+auto CameraSystem::draw_hallway(Engine& eng,
                                 int cx,
                                 int cy,
                                 const std::unordered_map<std::string, std::string>& ap,
-                                const std::string& cam_id) {
+                                const std::string& cam_id) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 35, 32, 38);
     for (auto& name : {"cedro", "eser"}) {
         auto it = ap.find(name);
@@ -410,11 +407,11 @@ void CameraSystem::draw_hallway(Engine& eng,
     }
 }
 
-void CameraSystem::draw_hall_corner(Engine& eng,
+auto CameraSystem::draw_hall_corner(Engine& eng,
                                     int cx,
                                     int cy,
                                     const std::unordered_map<std::string, std::string>& ap,
-                                    const std::string& cam_id) {
+                                    const std::string& cam_id) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 20, 18, 22);
     for (auto& name : {"cedro", "eser"}) {
         auto it = ap.find(name);
@@ -425,17 +422,15 @@ void CameraSystem::draw_hall_corner(Engine& eng,
     }
 }
 
-void CameraSystem::draw_supply_closet(Engine& eng,
-                                      int cx,
-                                      int cy,
-                                      const std::unordered_map<std::string, std::string>& ap) {
+auto CameraSystem::draw_supply_closet(
+    Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& ap) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 28, 25, 30);
     auto it = ap.find("cedro");
     if (it != ap.end() && it->second == "3")
         DrawUtils::animatronic_face(eng, "cedro", cx - 60, cy - 40, 120, 150);
 }
 
-void CameraSystem::draw_sonk_cove(Engine& eng, int cx, int cy, int foxy_stage) {
+auto CameraSystem::draw_sonk_cove(Engine& eng, int cx, int cy, int foxy_stage) -> void {
     eng.draw_rect(cx - 300, cy - 150, 600, 350, 15, 12, 20);
     eng.draw_rect(cx - 280, cy - 130, 560, 310, 35, 30, 45, 120);
 
@@ -461,7 +456,8 @@ void CameraSystem::draw_sonk_cove(Engine& eng, int cx, int cy, int foxy_stage) {
     }
 }
 
-void CameraSystem::draw_map(Engine& eng, const std::unordered_map<std::string, std::string>&) {
+auto CameraSystem::draw_map(Engine& eng, const std::unordered_map<std::string, std::string>&)
+    -> void {
     using namespace GameSettings;
 
     auto cam_positions =

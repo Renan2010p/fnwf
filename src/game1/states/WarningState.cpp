@@ -6,7 +6,7 @@ namespace fnwf {
 WarningState::WarningState(Engine& eng) {
     (void)eng;
 }
-void WarningState::handle_event(const Event& ev) {
+auto WarningState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown) {
         if (phase < 2) {
             phase = 2;
@@ -14,7 +14,7 @@ void WarningState::handle_event(const Event& ev) {
         }
     }
 }
-void WarningState::update(double dt) {
+auto WarningState::update(double dt) -> void {
     timer += dt;
     if (phase == 0) {
         alpha += 600 * dt;
@@ -34,7 +34,7 @@ void WarningState::update(double dt) {
         }
     }
 }
-void WarningState::draw(Engine& eng) {
+auto WarningState::draw(Engine& eng) -> void {
     eng.clear(0, 0, 0);
     auto cx = GameSettings::SCREEN_WIDTH / 2, cy = GameSettings::SCREEN_HEIGHT / 2;
     auto a = static_cast<int>(alpha);

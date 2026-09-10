@@ -8,7 +8,7 @@ namespace fnwf {
 
 NewspaperState::NewspaperState(Engine& eng) : m_eng(eng) {}
 
-void NewspaperState::update(double dt) {
+auto NewspaperState::update(double dt) -> void {
     timer += dt;
     if (fading_in) {
         fade_alpha = std::max(0, fade_alpha - (int)(100 * dt));
@@ -22,7 +22,7 @@ void NewspaperState::update(double dt) {
     }
 }
 
-void NewspaperState::handle_event(const Event& ev) {
+auto NewspaperState::handle_event(const Event& ev) -> void {
     if ((ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown) && !fading_in &&
         !fading_out && timer > 3.0) {
         fading_out = true;
@@ -30,7 +30,7 @@ void NewspaperState::handle_event(const Event& ev) {
     }
 }
 
-void NewspaperState::draw(Engine& eng) {
+auto NewspaperState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(10, 10, 15, 255);
     DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.015f);

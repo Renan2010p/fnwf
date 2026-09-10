@@ -14,11 +14,11 @@ Animatronic::Animatronic(std::string n,
     : name(std::move(n)), ai_level(ai), position(std::move(start)), path_map(&paths),
       active(ai > 0) {}
 
-void Animatronic::update(double dt,
+auto Animatronic::update(double dt,
                          const std::string* camera_looking_at,
                          bool left_door_closed,
                          bool right_door_closed,
-                         bool mask_on) {
+                         bool mask_on) -> void {
     if (!active || attacking)
         return;
     just_left_office = false;
@@ -50,10 +50,10 @@ void Animatronic::update(double dt,
     }
 }
 
-void Animatronic::try_move(const std::string* /*camera_looking_at*/,
+auto Animatronic::try_move(const std::string* /*camera_looking_at*/,
                            bool left_door_closed,
                            bool right_door_closed,
-                           bool /*mask_on*/) {
+                           bool /*mask_on*/) -> void {
     int roll = Rng::int_range(1, 20);
     if (roll > ai_level)
         return;
@@ -132,11 +132,11 @@ auto Animatronic::is_at_right_door() const -> bool {
 // Sonk
 SonkAnimatronic::SonkAnimatronic(int ai) : ai_level(ai), active(ai > 0) {}
 
-void SonkAnimatronic::update(double dt,
+auto SonkAnimatronic::update(double dt,
                              const std::string* camera_looking_at,
                              bool /*left_door_closed*/,
                              bool /*right_door_closed*/,
-                             bool /*mask_on*/) {
+                             bool /*mask_on*/) -> void {
     if (!active || attacking)
         return;
 
@@ -240,11 +240,11 @@ AnimatronicManager::AnimatronicManager(int night, const std::vector<int>* custom
         sonk.charge_duration = 0.65;
 }
 
-void AnimatronicManager::update(double dt,
+auto AnimatronicManager::update(double dt,
                                 const std::string* camera_looking_at,
                                 bool left_door_closed,
                                 bool right_door_closed,
-                                bool mask_on) {
+                                bool mask_on) -> void {
     cedro.update(dt, camera_looking_at, left_door_closed, right_door_closed, mask_on);
     eser.update(dt, camera_looking_at, left_door_closed, right_door_closed, mask_on);
     alice.update(dt, camera_looking_at, left_door_closed, right_door_closed, mask_on);

@@ -9,7 +9,7 @@
 
 namespace fnwf {
 
-static float lerp_f(float a, float b, float t) {
+static auto lerp_f(float a, float b, float t) -> float {
     return a + (b - a) * std::min(1.0f, std::max(0.0f, t));
 }
 
@@ -57,7 +57,7 @@ OptionsState::OptionsState(Engine& eng) : m_eng(eng) {
         item_glows[0] = 1.0;
 }
 
-void OptionsState::rebuild_options() {
+auto OptionsState::rebuild_options() -> void {
     options.clear();
     std::vector<std::string> res_vals;
     for (auto& r : resolutions)
@@ -156,7 +156,7 @@ void OptionsState::rebuild_options() {
         selected = max_options;
 }
 
-void OptionsState::update(double dt) {
+auto OptionsState::update(double dt) -> void {
     timer += dt;
     bg_scroll += dt * 35.0;
 
@@ -186,7 +186,7 @@ void OptionsState::update(double dt) {
     }
 }
 
-void OptionsState::handle_event(const Event& ev) {
+auto OptionsState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown) {
         int key = ev.key;
         if (key == 1073741906 || key == 'w') {
@@ -247,7 +247,7 @@ void OptionsState::handle_event(const Event& ev) {
     }
 }
 
-void OptionsState::handle_click(int mx, int my) {
+auto OptionsState::handle_click(int mx, int my) -> void {
     int panel_x = 40;
     int panel_w = GameSettings::SCREEN_WIDTH - 80;
 
@@ -295,7 +295,7 @@ void OptionsState::handle_click(int mx, int my) {
     }
 }
 
-void OptionsState::apply_settings() {
+auto OptionsState::apply_settings() -> void {
     auto& s = SettingsManager::instance();
     for (auto& opt : options) {
         if (opt.id == "resolution") {
@@ -333,7 +333,7 @@ void OptionsState::apply_settings() {
     SettingsManager::save();
 }
 
-void OptionsState::draw(Engine& eng) {
+auto OptionsState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(5, 5, 12, 255);
 

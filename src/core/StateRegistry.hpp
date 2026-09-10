@@ -15,7 +15,7 @@ class StateRegistry
 public:
     using Factory = std::function<std::unique_ptr<GameState>(Engine&)>;
 
-    void register_state(const std::string& name, Factory factory);
+    auto register_state(const std::string& name, Factory factory) -> void;
     auto create(const std::string& name, Engine& eng) -> std::unique_ptr<GameState>;
     auto has_state(const std::string& name) const -> bool;
 

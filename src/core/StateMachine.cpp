@@ -3,28 +3,28 @@
 
 namespace fnwf {
 
-void StateMachine::switch_state(const std::string& name, StateFactory factory) {
+auto StateMachine::switch_state(const std::string& name, StateFactory factory) -> void {
     m_current_name = name;
     m_current = factory(m_eng);
 }
 
-void StateMachine::switch_state_raw(std::unique_ptr<GameState> state) {
+auto StateMachine::switch_state_raw(std::unique_ptr<GameState> state) -> void {
     m_current = std::move(state);
 }
 
-void StateMachine::update(double dt) {
+auto StateMachine::update(double dt) -> void {
     if (m_current) {
         m_current->update(dt);
     }
 }
 
-void StateMachine::draw() {
+auto StateMachine::draw() -> void {
     if (m_current) {
         m_current->draw(m_eng);
     }
 }
 
-void StateMachine::handle_event(const Event& ev) {
+auto StateMachine::handle_event(const Event& ev) -> void {
     if (m_current) {
         m_current->handle_event(ev);
     }

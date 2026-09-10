@@ -32,7 +32,7 @@ auto SettingsManager::read_bounded_string(std::ifstream& f) -> std::string {
     return s;
 }
 
-void SettingsManager::load() {
+auto SettingsManager::load() -> void {
     std::ifstream f("config.dat", std::ios::binary);
     if (!f.is_open())
         return;
@@ -55,7 +55,7 @@ void SettingsManager::load() {
     }
 }
 
-void SettingsManager::save() {
+auto SettingsManager::save() -> void {
     std::ofstream f("config.dat", std::ios::binary);
     if (!f.is_open())
         return;

@@ -79,26 +79,26 @@ public:
                       std::uint32_t h,
                       bool fullscreen,
                       bool vsync) -> std::expected<bool, std::string>;
-    void shutdown() noexcept;
+    auto shutdown() noexcept -> void;
 
     auto poll_events() -> std::vector<Event>;
     auto ticks() const noexcept -> double;
     auto keeps_running() const noexcept -> bool {
         return m_running;
     }
-    void request_stop() noexcept {
+    auto request_stop() noexcept -> void {
         m_running = false;
     }
-    void present();
+    auto present() -> void;
 
-    void set_logical_size(std::uint32_t w, std::uint32_t h);
-    void set_fullscreen(bool on);
-    void set_vsync(bool on);
-    void set_resolution(std::uint32_t w, std::uint32_t h);
+    auto set_logical_size(std::uint32_t w, std::uint32_t h) -> void;
+    auto set_fullscreen(bool on) -> void;
+    auto set_vsync(bool on) -> void;
+    auto set_resolution(std::uint32_t w, std::uint32_t h) -> void;
     auto get_display_modes() -> std::vector<std::array<std::int32_t, 3>>;
 
-    void clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255);
-    void draw_rect(std::int32_t x,
+    auto clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255) -> void;
+    auto draw_rect(std::int32_t x,
                    std::int32_t y,
                    std::uint32_t w,
                    std::uint32_t h,
@@ -106,24 +106,24 @@ public:
                    std::uint8_t g,
                    std::uint8_t b,
                    std::uint8_t a = 255,
-                   bool filled = true);
-    void line(std::int32_t x1,
+                   bool filled = true) -> void;
+    auto line(std::int32_t x1,
               std::int32_t y1,
               std::int32_t x2,
               std::int32_t y2,
               std::uint8_t r,
               std::uint8_t g,
               std::uint8_t b,
-              std::uint8_t a = 255);
-    void circle(std::int32_t cx,
+              std::uint8_t a = 255) -> void;
+    auto circle(std::int32_t cx,
                 std::int32_t cy,
                 std::int32_t radius,
                 std::uint8_t r,
                 std::uint8_t g,
                 std::uint8_t b,
                 std::uint8_t a = 255,
-                bool filled = true);
-    void draw_texture(const TextureHandle& tex,
+                bool filled = true) -> void;
+    auto draw_texture(const TextureHandle& tex,
                       std::int32_t dx,
                       std::int32_t dy,
                       std::uint32_t dw,
@@ -132,14 +132,14 @@ public:
                       std::int32_t sy = -1,
                       std::int32_t sw = -1,
                       std::int32_t sh = -1,
-                      std::optional<std::uint8_t> alpha = std::nullopt);
-    void draw_texture_rotated(const TextureHandle& tex,
+                      std::optional<std::uint8_t> alpha = std::nullopt) -> void;
+    auto draw_texture_rotated(const TextureHandle& tex,
                               std::int32_t dx,
                               std::int32_t dy,
                               std::uint32_t dw,
                               std::uint32_t dh,
                               double angle,
-                              std::optional<std::uint8_t> alpha = std::nullopt);
+                              std::optional<std::uint8_t> alpha = std::nullopt) -> void;
     auto draw_text(std::string_view text,
                    std::int32_t x,
                    std::int32_t y,
@@ -170,16 +170,16 @@ public:
         -> std::optional<std::array<std::int32_t, 2>>;
     auto texture_size(std::uint32_t id) noexcept -> std::pair<std::uint32_t, std::uint32_t>;
 
-    void set_render_target(std::optional<TextureHandle> target);
-    void reset_render_target();
+    auto set_render_target(std::optional<TextureHandle> target) -> void;
+    auto reset_render_target() -> void;
 
     auto play_sound(const SoundHandle& snd, std::int32_t loops, std::int32_t channel)
         -> std::int32_t;
-    void stop_channel(std::int32_t channel);
-    void stop_all_sounds();
+    auto stop_channel(std::int32_t channel) -> void;
+    auto stop_all_sounds() -> void;
     auto mouse_pos() -> std::pair<std::int32_t, std::int32_t>;
 
-    void update_discord(std::string_view details, std::string_view state);
+    auto update_discord(std::string_view details, std::string_view state) -> void;
 
 private:
     auto get_texture(std::uint32_t id) noexcept -> SDL_Texture*;

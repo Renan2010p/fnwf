@@ -2,7 +2,7 @@
 
 namespace fnwf {
 
-void Localization::ensure_initialized() {
+auto Localization::ensure_initialized() -> void {
     if (s_initialized)
         return;
     s_initialized = true;
@@ -460,7 +460,7 @@ void Localization::ensure_initialized() {
     };
 }
 
-void Localization::set_language(const std::string& lang) {
+auto Localization::set_language(const std::string& lang) -> void {
     ensure_initialized();
     if (s_translations.count(lang)) {
         s_current_lang = lang;

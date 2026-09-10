@@ -12,14 +12,14 @@ class CameraSystem
 public:
     CameraSystem(Engine& eng);
 
-    void update(double dt);
-    void draw(Engine& eng,
+    auto update(double dt) -> void;
+    auto draw(Engine& eng,
               const std::unordered_map<std::string, std::string>& anim_positions,
-              int foxy_stage);
-    void toggle();
-    void toggle_mask();
-    void force_remove_mask();
-    void switch_camera(const std::string& cam_id);
+              int foxy_stage) -> void;
+    auto toggle() -> void;
+    auto toggle_mask() -> void;
+    auto force_remove_mask() -> void;
+    auto switch_camera(const std::string& cam_id) -> void;
     auto is_fully_open() const -> bool;
     auto is_visible() const -> bool;
     auto check_toggle_click(int mx, int my) -> bool;
@@ -37,42 +37,46 @@ private:
     auto ease_out_cubic(double v) const -> double;
     auto get_bottom_toggle_rects() const -> std::pair<std::array<int, 4>, std::array<int, 4>>;
 
-    void draw_mask_overlay(Engine& eng);
-    void draw_monitor(Engine& eng,
+    auto draw_mask_overlay(Engine& eng) -> void;
+    auto draw_monitor(Engine& eng,
                       const std::unordered_map<std::string, std::string>& anim_positions,
-                      int foxy_stage);
-    void draw_monitor_animation(Engine& eng);
-    void draw_camera_view(Engine& eng,
+                      int foxy_stage) -> void;
+    auto draw_monitor_animation(Engine& eng) -> void;
+    auto draw_camera_view(Engine& eng,
                           const std::unordered_map<std::string, std::string>& anim_positions,
-                          int foxy_stage);
-    void draw_show_stage(Engine& eng,
+                          int foxy_stage) -> void;
+    auto draw_show_stage(Engine& eng,
                          int cx,
                          int cy,
-                         const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_dining_area(Engine& eng,
+                         const std::unordered_map<std::string, std::string>& anim_positions)
+        -> void;
+    auto draw_dining_area(Engine& eng,
                           int cx,
                           int cy,
-                          const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_backstage(Engine& eng,
+                          const std::unordered_map<std::string, std::string>& anim_positions)
+        -> void;
+    auto draw_backstage(Engine& eng,
                         int cx,
                         int cy,
-                        const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_hallway(Engine& eng,
+                        const std::unordered_map<std::string, std::string>& anim_positions) -> void;
+    auto draw_hallway(Engine& eng,
                       int cx,
                       int cy,
                       const std::unordered_map<std::string, std::string>& anim_positions,
-                      const std::string& cam_id);
-    void draw_hall_corner(Engine& eng,
+                      const std::string& cam_id) -> void;
+    auto draw_hall_corner(Engine& eng,
                           int cx,
                           int cy,
                           const std::unordered_map<std::string, std::string>& anim_positions,
-                          const std::string& cam_id);
-    void draw_supply_closet(Engine& eng,
+                          const std::string& cam_id) -> void;
+    auto draw_supply_closet(Engine& eng,
                             int cx,
                             int cy,
-                            const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_sonk_cove(Engine& eng, int cx, int cy, int foxy_stage);
-    void draw_map(Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions);
+                            const std::unordered_map<std::string, std::string>& anim_positions)
+        -> void;
+    auto draw_sonk_cove(Engine& eng, int cx, int cy, int foxy_stage) -> void;
+    auto draw_map(Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions)
+        -> void;
 
     Engine& m_eng;
     double static_timer{0.0};

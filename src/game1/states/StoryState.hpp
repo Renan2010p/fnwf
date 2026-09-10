@@ -9,10 +9,10 @@ class StoryState : public GameState
 {
 public:
     StoryState(int night, Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
 
@@ -26,11 +26,11 @@ private:
         std::string text{};
     };
 
-    void build_messages();
-    void update_scroll_target();
+    auto build_messages() -> void;
+    auto update_scroll_target() -> void;
     auto wrap_text(const std::string& text, int max_width, int font_size)
         -> std::vector<std::string>;
-    void draw_discord_ui(Engine& eng);
+    auto draw_discord_ui(Engine& eng) -> void;
 
     Engine& m_eng;
     int night{1};

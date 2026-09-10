@@ -48,7 +48,7 @@ NightTransitionState::NightTransitionState(int night_, Engine& eng) : m_eng(eng)
     }
 }
 
-void NightTransitionState::update_scroll() {
+auto NightTransitionState::update_scroll() -> void {
     int th = 15;
     std::string prev;
     for (int i = 0; i < visible_messages && i < (int)messages.size(); ++i) {
@@ -64,7 +64,7 @@ void NightTransitionState::update_scroll() {
         target_scroll = th - va;
 }
 
-void NightTransitionState::advance() {
+auto NightTransitionState::advance() -> void {
     if (phase == 0) {
         phase = 1;
         fade_alpha = 0;
@@ -80,7 +80,7 @@ void NightTransitionState::advance() {
     }
 }
 
-void NightTransitionState::update(double dt) {
+auto NightTransitionState::update(double dt) -> void {
     timer += dt;
     if (phase == 0) {
         fade_alpha = std::max(0, fade_alpha - (int)(250 * dt));
@@ -99,14 +99,14 @@ void NightTransitionState::update(double dt) {
     scroll_y = scroll_y + (target_scroll - scroll_y) * 6.0 * dt;
 }
 
-void NightTransitionState::handle_event(const Event& ev) {
+auto NightTransitionState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown && (ev.key == 13 || ev.key == 32))
         advance();
     else if (ev.type == EventType::MouseButtonDown)
         advance();
 }
 
-void NightTransitionState::draw(Engine& eng) {
+auto NightTransitionState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(54, 57, 63, 255);
     if (phase >= 1)
@@ -128,7 +128,7 @@ void NightTransitionState::draw(Engine& eng) {
         eng.draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 54, 57, 63, fade_alpha);
 }
 
-void NightTransitionState::draw_discord(Engine& eng) {
+auto NightTransitionState::draw_discord(Engine& eng) -> void {
     using namespace GameSettings;
     int sw = 240;
     eng.draw_rect(0, 0, sw, SCREEN_HEIGHT, 47, 49, 54, 255);

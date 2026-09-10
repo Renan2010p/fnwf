@@ -41,7 +41,7 @@ auto Office::project_depth(double nx, double z, double height) -> std::tuple<int
     return {sx, sy, scale};
 }
 
-void Office::precalculate_projection() {
+auto Office::precalculate_projection() -> void {
     auto screen_w = GameSettings::SCREEN_WIDTH;
     auto screen_h = GameSettings::SCREEN_HEIGHT;
     double fov = PI * 100.0 / 180.0;
@@ -61,7 +61,7 @@ void Office::precalculate_projection() {
     }
 }
 
-void Office::build_static_layer() {
+auto Office::build_static_layer() -> void {
     m_eng.set_render_target(office_static_tex);
     m_eng.clear(5, 5, 8);
     draw_ceiling(m_eng);
@@ -77,13 +77,13 @@ void Office::build_static_layer() {
     m_eng.reset_render_target();
 }
 
-void Office::update(int mouse_x, double dt) {
+auto Office::update(int mouse_x, double dt) -> void {
     double norm = static_cast<double>(mouse_x) / GameSettings::SCREEN_WIDTH;
     target_pan = (norm - 0.5) * 2.0;
     pan_x += (target_pan - pan_x) * 4.0 * dt;
 }
 
-void Office::draw(Engine& eng,
+auto Office::draw(Engine& eng,
                   double left_door_anim,
                   double right_door_anim,
                   bool left_light,
@@ -91,7 +91,7 @@ void Office::draw(Engine& eng,
                   const std::string& anim_at_left,
                   const std::string& anim_at_right,
                   const std::string& anim_at_vent,
-                  const std::string& anim_in_office) {
+                  const std::string& anim_in_office) -> void {
     double t = static_cast<double>(clock()) / CLOCKS_PER_SEC;
     eng.set_render_target(office_tex);
     eng.draw_texture(
@@ -137,7 +137,7 @@ void Office::draw(Engine& eng,
     }
 }
 
-void Office::draw_ceiling(Engine& eng) {
+auto Office::draw_ceiling(Engine& eng) -> void {
     DrawUtils::trapezoid(eng,
                          22,
                          20,
@@ -168,7 +168,7 @@ void Office::draw_ceiling(Engine& eng) {
     }
 }
 
-void Office::draw_floor(Engine& eng) {
+auto Office::draw_floor(Engine& eng) -> void {
     int floor_left_far = bw_left - hall_depth;
     int floor_right_far = bw_right + hall_depth;
     DrawUtils::trapezoid(eng,
@@ -220,7 +220,7 @@ void Office::draw_floor(Engine& eng) {
     }
 }
 
-void Office::draw_back_wall_base(Engine& eng) {
+auto Office::draw_back_wall_base(Engine& eng) -> void {
     eng.draw_rect(bw_left,
                   bw_top,
                   bw_right - bw_left,
@@ -286,7 +286,7 @@ void Office::draw_back_wall_base(Engine& eng) {
     eng.line(vp_x, bw_top, vp_x, bw_bottom, 60, 55, 65, 120);
 }
 
-void Office::draw_back_wall_dynamic(Engine& eng, double t) {
+auto Office::draw_back_wall_dynamic(Engine& eng, double t) -> void {
     int clock_x = vp_x + 120, clock_y = bw_top + 30;
     eng.line(clock_x,
              clock_y,
@@ -300,7 +300,7 @@ void Office::draw_back_wall_dynamic(Engine& eng, double t) {
     eng.draw_rect(vp_x - 120, bw_top + 6, 240, 16, 220, 210, 165, lamp_a);
 }
 
-void Office::draw_depth_structure(Engine& eng) {
+auto Office::draw_depth_structure(Engine& eng) -> void {
     double depths[] = {0.12, 0.24, 0.36, 0.50, 0.66, 0.82};
     for (double z : depths) {
         auto [lx, y, s] = project_depth(-1.0, z);
@@ -321,7 +321,7 @@ void Office::draw_depth_structure(Engine& eng) {
     }
 }
 
-void Office::draw_side_walls(Engine& eng) {
+auto Office::draw_side_walls(Engine& eng) -> void {
     DrawUtils::trapezoid(eng,
                          38,
                          35,
@@ -348,7 +348,7 @@ void Office::draw_side_walls(Engine& eng) {
                          bw_bottom);
 }
 
-void Office::draw_hallways_base(Engine& eng) {
+auto Office::draw_hallways_base(Engine& eng) -> void {
     int ht = bw_top + 15, hb = bw_bottom - 15;
     int lx = bw_left - hall_depth - hall_w;
     int lw = hall_w + 10;
@@ -388,11 +388,11 @@ void Office::draw_hallways_base(Engine& eng) {
     }
 }
 
-void Office::draw_hallways_dynamic(Engine& eng,
+auto Office::draw_hallways_dynamic(Engine& eng,
                                    bool left_light,
                                    bool right_light,
                                    const std::string& anim_left,
-                                   const std::string& anim_right) {
+                                   const std::string& anim_right) -> void {
     int ht = bw_top + 15, hb = bw_bottom - 15;
     int lx = bw_left - hall_depth - hall_w;
     int lw = hall_w + 10;
@@ -428,7 +428,7 @@ void Office::draw_hallways_dynamic(Engine& eng,
     }
 }
 
-void Office::draw_vent_base(Engine& eng) {
+auto Office::draw_vent_base(Engine& eng) -> void {
     int vx = vp_x - 60, vy = bw_bottom - 110, vw = 120, vh = 80;
     eng.draw_rect(vx, vy, vw, vh, 5, 5, 7);
     eng.draw_rect(vx, vy, vw, vh, 40, 40, 45, 255, false);
@@ -438,7 +438,7 @@ void Office::draw_vent_base(Engine& eng) {
     }
 }
 
-void Office::draw_vent_dynamic(Engine& eng, const std::string& anim_vent) {
+auto Office::draw_vent_dynamic(Engine& eng, const std::string& anim_vent) -> void {
     int vx = vp_x - 60, vy = bw_bottom - 110, vw = 120, vh = 80;
     if (vent_light) {
         eng.draw_rect(vx, vy, vw, vh, 200, 200, 220, 90);
@@ -450,7 +450,7 @@ void Office::draw_vent_dynamic(Engine& eng, const std::string& anim_vent) {
     }
 }
 
-void Office::draw_doors(Engine& eng, double left_anim_val, double right_anim_val) {
+auto Office::draw_doors(Engine& eng, double left_anim_val, double right_anim_val) -> void {
     int ht = bw_top + 15, hb = bw_bottom - 15;
     int door_h = hb - ht;
     if (left_anim_val > 0.01)
@@ -467,7 +467,7 @@ void Office::draw_doors(Engine& eng, double left_anim_val, double right_anim_val
                          static_cast<int>(door_h * right_anim_val));
 }
 
-void Office::draw_single_door(Engine& eng, int x, int y, int w, int v_h) {
+auto Office::draw_single_door(Engine& eng, int x, int y, int w, int v_h) -> void {
     eng.draw_rect(x,
                   y,
                   w,
@@ -487,7 +487,7 @@ void Office::draw_single_door(Engine& eng, int x, int y, int w, int v_h) {
     eng.draw_rect(x, y, w, v_h, 95, 90, 85, 255, false);
 }
 
-void Office::draw_office_elements(Engine& eng) {
+auto Office::draw_office_elements(Engine& eng) -> void {
     auto [bl_x, bl_y, bl_s] = project_depth(-0.70, 0.58, 0);
     auto [br_x, br_y, br_s] = project_depth(0.70, 0.58, 0);
     auto [fl_x, fl_y, fl_s] = project_depth(-1.00, 0.92, 0);
@@ -551,7 +551,7 @@ void Office::draw_office_elements(Engine& eng) {
         mug_x + mug_w / 2 - 1, mug_y - mug_h + 2, 5, mug_h - 4, 120, 115, 102, 255, false);
 }
 
-void Office::draw_fan(Engine& eng, double t) {
+auto Office::draw_fan(Engine& eng, double t) -> void {
     auto [fx, fy, fs] = project_depth(-0.46, 0.66, 34);
     int cx = fx, cy = fy;
     auto hub_r = std::max(3, static_cast<int>(5 * fs));
@@ -570,7 +570,7 @@ void Office::draw_fan(Engine& eng, double t) {
     eng.circle(cx, cy - 5, hub_r, 80, 80, 85);
 }
 
-void Office::draw_wall_dressing(Engine& eng) {
+auto Office::draw_wall_dressing(Engine& eng) -> void {
     for (int side : {-1, 1}) {
         int base_x = (side < 0) ? (bw_left - hall_depth + 22) : (bw_right + hall_depth - 130);
         eng.draw_rect(base_x, bw_top + 44, 108, 30, 26, 24, 30);
@@ -584,7 +584,7 @@ void Office::draw_wall_dressing(Engine& eng) {
     }
 }
 
-void Office::draw_in_office(Engine& eng, const std::string& anim_name) {
+auto Office::draw_in_office(Engine& eng, const std::string& anim_name) -> void {
     if (anim_name.empty())
         return;
     int w = 400, h = 500;
@@ -595,7 +595,7 @@ void Office::draw_in_office(Engine& eng, const std::string& anim_name) {
         DrawUtils::animatronic_sprite(eng, anim_name, x, y, w, h);
 }
 
-void Office::draw_ambient(Engine& eng) {
+auto Office::draw_ambient(Engine& eng) -> void {
     eng.draw_rect(0, 0, GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT, 0, 0, 0, 24);
     eng.draw_rect(0, 0, GameSettings::OFFICE_WIDTH, 120, 0, 0, 0, 40);
     eng.draw_rect(0, GameSettings::SCREEN_HEIGHT - 90, GameSettings::OFFICE_WIDTH, 90, 0, 0, 0, 32);

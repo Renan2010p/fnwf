@@ -22,11 +22,11 @@ ConquistasState::ConquistasState(const std::vector<std::string>& ach, Engine& en
                           Localization::get_text("night_7_ach_desc")}};
 }
 
-void ConquistasState::update(double dt) {
+auto ConquistasState::update(double dt) -> void {
     timer += dt;
 }
 
-void ConquistasState::handle_event(const Event& ev) {
+auto ConquistasState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown) {
         int key = ev.key;
         if (key == 27 || key == 13 || key == 32) {
@@ -37,7 +37,7 @@ void ConquistasState::handle_event(const Event& ev) {
     }
 }
 
-void ConquistasState::draw(Engine& eng) {
+auto ConquistasState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(10, 10, 15, 255);
     DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.01f);

@@ -14,11 +14,11 @@ public:
                 std::string start_pos,
                 const std::unordered_map<std::string, std::vector<std::string>>& path_map);
 
-    void update(double dt,
+    auto update(double dt,
                 const std::string* camera_looking_at,
                 bool left_door_closed,
                 bool right_door_closed,
-                bool mask_on);
+                bool mask_on) -> void;
     auto is_at_left_door() const -> bool;
     auto is_at_right_door() const -> bool;
 
@@ -38,10 +38,10 @@ public:
     double move_interval{5.0};
 
 private:
-    void try_move(const std::string* camera_looking_at,
+    auto try_move(const std::string* camera_looking_at,
                   bool left_door_closed,
                   bool right_door_closed,
-                  bool mask_on);
+                  bool mask_on) -> void;
 };
 
 class SonkAnimatronic
@@ -49,11 +49,11 @@ class SonkAnimatronic
 public:
     SonkAnimatronic(int ai_level);
 
-    void update(double dt,
+    auto update(double dt,
                 const std::string* camera_looking_at,
                 bool left_door_closed,
                 bool right_door_closed,
-                bool mask_on);
+                bool mask_on) -> void;
     auto is_at_left_door() const -> bool;
     auto is_at_right_door() const -> bool;
 
@@ -79,11 +79,11 @@ class AnimatronicManager
 public:
     AnimatronicManager(int night, const std::vector<int>* custom_ai = nullptr);
 
-    void update(double dt,
+    auto update(double dt,
                 const std::string* camera_looking_at,
                 bool left_door_closed,
                 bool right_door_closed,
-                bool mask_on);
+                bool mask_on) -> void;
 
     auto get_positions() const -> std::unordered_map<std::string, std::string>;
     auto get_attacker() const -> std::string;

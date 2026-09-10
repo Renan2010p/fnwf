@@ -1,6 +1,6 @@
 ===========================================
   Five Nights With Friends — Classic Edition
-  v2.0.4
+  v2.0.5
 ===========================================
 
 A survival horror game inspired by Five Nights at Freddy's,
@@ -115,8 +115,8 @@ and a reference for how the game worked.
 
   Tag a version to trigger the release workflow:
 
-    git tag v2.0.4
-    git push origin v2.0.4
+    git tag v2.0.5
+    git push origin v2.0.5
 
   This will automatically build Linux and Windows packages
   and create a GitHub Release with download links.

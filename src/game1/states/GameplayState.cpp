@@ -17,11 +17,11 @@ GameplayState::GameplayState(Engine& eng, int night_, const std::vector<int>* cu
     SoundManager::set_engine(&eng);
 }
 
-bool GameplayState::is_done() const {
+auto GameplayState::is_done() const -> bool {
     return !m_result.empty() && fade_alpha >= 255;
 }
 
-void GameplayState::update(double dt) {
+auto GameplayState::update(double dt) -> void {
     fx_timer += dt;
 
     if (fading_in) {
@@ -140,7 +140,7 @@ void GameplayState::update(double dt) {
     danger_level = std::max(0.0, std::min(1.0, danger));
 }
 
-void GameplayState::update_power_out(double dt) {
+auto GameplayState::update_power_out(double dt) -> void {
     if (!_power_out_snd) {
         SoundManager::stop_ambient();
         SoundManager::play_sound("power_out");
@@ -174,7 +174,7 @@ void GameplayState::update_power_out(double dt) {
     }
 }
 
-void GameplayState::handle_event(const Event& ev) {
+auto GameplayState::handle_event(const Event& ev) -> void {
     if (jumpscare.active || power.is_dead || fading_in || fading_out)
         return;
 
@@ -263,7 +263,7 @@ void GameplayState::handle_event(const Event& ev) {
     }
 }
 
-void GameplayState::draw(Engine& eng) {
+auto GameplayState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     bool high_fx = (DrawUtils::get_render_quality() == "high");
 
@@ -355,7 +355,7 @@ void GameplayState::draw(Engine& eng) {
     draw_fade(eng);
 }
 
-void GameplayState::draw_hud(Engine& eng) {
+auto GameplayState::draw_hud(Engine& eng) -> void {
     using namespace GameSettings;
     std::string suffix = Localization::get_text("am");
     std::string hour_str = std::to_string(current_hour) + " " + suffix;
@@ -397,7 +397,7 @@ void GameplayState::draw_hud(Engine& eng) {
     }
 }
 
-void GameplayState::draw_power_out(Engine& eng) {
+auto GameplayState::draw_power_out(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(0, 0, 0, 255);
     if (power_out_phase >= 1) {
@@ -421,7 +421,7 @@ void GameplayState::draw_power_out(Engine& eng) {
     }
 }
 
-void GameplayState::draw_fade(Engine& eng) {
+auto GameplayState::draw_fade(Engine& eng) -> void {
     if (fade_alpha > 0)
         eng.draw_rect(
             0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 0, 0, 0, fade_alpha);

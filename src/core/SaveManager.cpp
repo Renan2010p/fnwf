@@ -40,11 +40,11 @@ auto SaveManager::load_data() -> GameData {
     return data;
 }
 
-void SaveManager::save_progress(int completed_nights,
+auto SaveManager::save_progress(int completed_nights,
                                 bool has_seen_story,
                                 bool infinite_power,
                                 bool fast_nights,
-                                const std::vector<std::string>& achievements) {
+                                const std::vector<std::string>& achievements) -> void {
     std::ofstream f(SAVE_FILE, std::ios::binary);
     if (!f.is_open())
         return;

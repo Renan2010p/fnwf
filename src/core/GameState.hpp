@@ -27,10 +27,10 @@ class GameState
 {
 public:
     virtual ~GameState() = default;
-    virtual void handle_event(const Event& ev) = 0;
-    virtual void update(double dt) = 0;
-    virtual void draw(Engine& eng) = 0;
-    virtual bool is_done() const = 0;
+    virtual auto handle_event(const Event& ev) -> void = 0;
+    virtual auto update(double dt) -> void = 0;
+    virtual auto draw(Engine& eng) -> void = 0;
+    virtual auto is_done() const -> bool = 0;
     virtual auto get_result() const -> StateResult {
         return StateResult::None;
     }
