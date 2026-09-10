@@ -1,5 +1,5 @@
 project('fnwf', 'cpp',
-  version : '2.0.7',
+  version : '2.0.8',
   default_options : [
     'cpp_std=c++23',
     'warning_level=2',
@@ -167,7 +167,7 @@ fnwf_sources = files(
 
 fnwf_inc = include_directories('src')
 
-executable('fnwf',
+fnwf = executable('fnwf',
   fnwf_sources,
   include_directories : fnwf_inc,
   dependencies : [
@@ -178,4 +178,20 @@ executable('fnwf',
   ],
   cpp_pch : 'src/pch.hpp',
   install : true
+)
+
+# === Release packaging ===
+release_name = 'fnwf-classic-v@0@-linux-x86_64'.format(meson.project_version())
+
+custom_target('package',
+  input : fnwf,
+  output : release_name + '.tar.gz',
+  command : [
+    find_program('scripts/package.sh'),
+    '@INPUT@',
+    '@OUTDIR@',
+    meson.project_version(),
+    meson.project_source_root(),
+  ],
+  build_by_default : true,
 )
