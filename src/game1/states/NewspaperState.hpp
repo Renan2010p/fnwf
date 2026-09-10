@@ -1,6 +1,5 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
 
 namespace fnwf {
 
@@ -11,7 +10,9 @@ public:
     void handle_event(const Event& ev) override;
     void update(double dt) override;
     void draw(Engine& eng) override;
-    bool is_done() const override { return done; }
+    bool is_done() const override {
+        return done;
+    }
 
 private:
     Engine& m_eng;
@@ -22,4 +23,4 @@ private:
     bool fading_out{false};
 };
 
-}
+}  // namespace fnwf

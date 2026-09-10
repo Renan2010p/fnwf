@@ -2,8 +2,7 @@
 
 #include "game1/Types.hpp"
 
-namespace fnwf::GameSettings
-{
+namespace fnwf::GameSettings {
 
 constexpr Color BLACK{0, 0, 0};
 constexpr Color WHITE{255, 255, 255};
@@ -37,4 +36,4 @@ constexpr Color CEDRO_COLOR{140, 110, 80};
 constexpr Color ESER_COLOR{40, 60, 180};
 constexpr Color ALICE_COLOR{255, 105, 180};
 
-} // namespace fnwf::GameSettings
+}  // namespace fnwf::GameSettings

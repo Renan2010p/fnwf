@@ -1,11 +1,12 @@
 project('fnwf', 'cpp',
-  version : '2.0.0',
+  version : '2.0.4',
   default_options : [
     'cpp_std=c++23',
-    'warning_level=3',
-    'optimization=2',
+    'warning_level=2',
+    'optimization=3',
     'default_library=static',
     'buildtype=release',
+    'cpp_args=-pipe',
   ]
 )
 
@@ -58,5 +59,6 @@ executable('fnwf',
     sdl2_image_dep,
     sdl2_mixer_dep,
   ],
+  cpp_pch : 'src/pch.hpp',
   install : true
 )

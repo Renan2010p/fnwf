@@ -1,9 +1,9 @@
 #pragma once
 
+#include <fstream>
 #include <string>
 
-namespace fnwf
-{
+namespace fnwf {
 
 struct GameSettingsData
 {
@@ -26,6 +26,9 @@ public:
     static auto instance() -> GameSettingsData&;
     static void load();
     static void save();
+
+private:
+    static auto read_bounded_string(std::ifstream& f) -> std::string;
 };
 
-} // namespace fnwf
+}  // namespace fnwf

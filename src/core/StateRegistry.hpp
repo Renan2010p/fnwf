@@ -8,8 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class StateRegistry
 {
@@ -24,4 +23,4 @@ private:
     std::unordered_map<std::string, Factory> m_factories;
 };
 
-} // namespace fnwf
+}  // namespace fnwf

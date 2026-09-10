@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace fnwf
-{
+namespace fnwf {
 
 struct GameData
 {
@@ -19,9 +18,11 @@ class SaveManager
 {
 public:
     static auto load_data() -> GameData;
-    static void save_progress(int completed_nights, bool has_seen_story,
-                              bool infinite_power, bool fast_nights,
+    static void save_progress(int completed_nights,
+                              bool has_seen_story,
+                              bool infinite_power,
+                              bool fast_nights,
                               const std::vector<std::string>& achievements);
 };
 
-} // namespace fnwf
+}  // namespace fnwf

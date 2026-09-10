@@ -1,8 +1,7 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace fnwf {
 
@@ -13,7 +12,9 @@ public:
     void handle_event(const Event& ev) override;
     void update(double dt) override;
     void draw(Engine& eng) override;
-    bool is_done() const override { return done; }
+    bool is_done() const override {
+        return done;
+    }
 
 private:
     struct Message
@@ -21,13 +22,14 @@ private:
         std::string type{};
         std::string user{};
         std::string avatar{};
-        std::array<int,3> color{};
+        std::array<int, 3> color{};
         std::string text{};
     };
 
     void build_messages();
     void update_scroll_target();
-    auto wrap_text(const std::string& text, int max_width, int font_size) -> std::vector<std::string>;
+    auto wrap_text(const std::string& text, int max_width, int font_size)
+        -> std::vector<std::string>;
     void draw_discord_ui(Engine& eng);
 
     Engine& m_eng;
@@ -47,4 +49,4 @@ private:
     double timer{0.0};
 };
 
-}
+}  // namespace fnwf

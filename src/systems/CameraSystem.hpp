@@ -5,8 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace fnwf
-{
+namespace fnwf {
 
 class CameraSystem
 {
@@ -14,7 +13,9 @@ public:
     CameraSystem(Engine& eng);
 
     void update(double dt);
-    void draw(Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions, int foxy_stage);
+    void draw(Engine& eng,
+              const std::unordered_map<std::string, std::string>& anim_positions,
+              int foxy_stage);
     void toggle();
     void toggle_mask();
     void force_remove_mask();
@@ -34,18 +35,42 @@ public:
 
 private:
     auto ease_out_cubic(double v) const -> double;
-    auto get_bottom_toggle_rects() const -> std::pair<std::array<int,4>, std::array<int,4>>;
+    auto get_bottom_toggle_rects() const -> std::pair<std::array<int, 4>, std::array<int, 4>>;
 
     void draw_mask_overlay(Engine& eng);
-    void draw_monitor(Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions, int foxy_stage);
+    void draw_monitor(Engine& eng,
+                      const std::unordered_map<std::string, std::string>& anim_positions,
+                      int foxy_stage);
     void draw_monitor_animation(Engine& eng);
-    void draw_camera_view(Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions, int foxy_stage);
-    void draw_show_stage(Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_dining_area(Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_backstage(Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& anim_positions);
-    void draw_hallway(Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& anim_positions, const std::string& cam_id);
-    void draw_hall_corner(Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& anim_positions, const std::string& cam_id);
-    void draw_supply_closet(Engine& eng, int cx, int cy, const std::unordered_map<std::string, std::string>& anim_positions);
+    void draw_camera_view(Engine& eng,
+                          const std::unordered_map<std::string, std::string>& anim_positions,
+                          int foxy_stage);
+    void draw_show_stage(Engine& eng,
+                         int cx,
+                         int cy,
+                         const std::unordered_map<std::string, std::string>& anim_positions);
+    void draw_dining_area(Engine& eng,
+                          int cx,
+                          int cy,
+                          const std::unordered_map<std::string, std::string>& anim_positions);
+    void draw_backstage(Engine& eng,
+                        int cx,
+                        int cy,
+                        const std::unordered_map<std::string, std::string>& anim_positions);
+    void draw_hallway(Engine& eng,
+                      int cx,
+                      int cy,
+                      const std::unordered_map<std::string, std::string>& anim_positions,
+                      const std::string& cam_id);
+    void draw_hall_corner(Engine& eng,
+                          int cx,
+                          int cy,
+                          const std::unordered_map<std::string, std::string>& anim_positions,
+                          const std::string& cam_id);
+    void draw_supply_closet(Engine& eng,
+                            int cx,
+                            int cy,
+                            const std::unordered_map<std::string, std::string>& anim_positions);
     void draw_sonk_cove(Engine& eng, int cx, int cy, int foxy_stage);
     void draw_map(Engine& eng, const std::unordered_map<std::string, std::string>& anim_positions);
 
@@ -70,7 +95,7 @@ private:
     TextureHandle map_base_tex{};
     bool map_base_dirty{true};
 
-    std::unordered_map<std::string, std::array<int,4>> cam_buttons{};
+    std::unordered_map<std::string, std::array<int, 4>> cam_buttons{};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

@@ -2,8 +2,7 @@
 
 #include "engine/Engine.hpp"
 
-namespace fnwf
-{
+namespace fnwf {
 
 class PowerSystem
 {
@@ -18,4 +17,4 @@ public:
     double dead_timer{0.0};
 };
 
-} // namespace fnwf
+}  // namespace fnwf

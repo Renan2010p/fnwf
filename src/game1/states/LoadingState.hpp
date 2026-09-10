@@ -1,9 +1,8 @@
 #pragma once
 #include "core/GameState.hpp"
-#include "engine/Engine.hpp"
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace fnwf {
 
@@ -13,12 +12,18 @@ public:
     using StateFactory = std::function<std::unique_ptr<GameState>(Engine&)>;
 
     LoadingState(Engine& eng);
-    void set_factory(StateFactory f) { next_factory = std::move(f); }
+    void set_factory(StateFactory f) {
+        next_factory = std::move(f);
+    }
     void handle_event(const Event& ev) override;
     void update(double dt) override;
     void draw(Engine& eng) override;
-    bool is_done() const override { return done; }
-    auto get_next_state() -> std::unique_ptr<GameState> { return std::move(next_state); }
+    bool is_done() const override {
+        return done;
+    }
+    auto get_next_state() -> std::unique_ptr<GameState> {
+        return std::move(next_state);
+    }
 
 private:
     Engine& m_eng;
@@ -35,4 +40,4 @@ private:
     static const std::vector<std::string> TIPS;
 };
 
-}
+}  // namespace fnwf
