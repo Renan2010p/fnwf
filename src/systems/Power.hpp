@@ -8,8 +8,8 @@ class PowerSystem
 {
 public:
     PowerSystem();
-    void update(double dt, int door_usage, bool camera_open);
-    void draw(Engine& eng);
+    auto update(double dt, int door_usage, bool camera_open) -> void;
+    auto draw(Engine& eng) -> void;
 
     double power{100.0};
     int usage_level{1};

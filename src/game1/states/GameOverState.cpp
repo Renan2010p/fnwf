@@ -11,11 +11,11 @@ namespace fnwf {
 GameOverState::GameOverState(bool is_win_, int night_, Engine& eng)
     : m_eng(eng), is_win(is_win_), night(night_) {}
 
-bool GameOverState::is_done() const {
+auto GameOverState::is_done() const -> bool {
     return timer > 3.0;
 }
 
-void GameOverState::update(double dt) {
+auto GameOverState::update(double dt) -> void {
     timer += dt;
     if (timer > 0.5) {
         show_text = true;
@@ -23,21 +23,21 @@ void GameOverState::update(double dt) {
     }
 }
 
-void GameOverState::handle_event(const Event& ev) {
+auto GameOverState::handle_event(const Event& ev) -> void {
     if (timer < 2.0)
         return;
     if (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown)
         m_result = is_win ? "next" : "menu";
 }
 
-void GameOverState::draw(Engine& eng) {
+auto GameOverState::draw(Engine& eng) -> void {
     if (is_win)
         draw_win(eng);
     else
         draw_game_over(eng);
 }
 
-void GameOverState::draw_game_over(Engine& eng) {
+auto GameOverState::draw_game_over(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(5, 0, 0, 255);
     DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.08f);
@@ -107,7 +107,7 @@ void GameOverState::draw_game_over(Engine& eng) {
                         true);
 }
 
-void GameOverState::draw_win(Engine& eng) {
+auto GameOverState::draw_win(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(0, 0, 0, 255);
     if (!show_text)

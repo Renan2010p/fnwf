@@ -38,11 +38,11 @@ ExtrasState::ExtrasState(
                           Localization::get_text("night_7_ach_desc")}};
 }
 
-void ExtrasState::update(double dt) {
+auto ExtrasState::update(double dt) -> void {
     timer += dt;
 }
 
-void ExtrasState::handle_event(const Event& ev) {
+auto ExtrasState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown) {
         int k = ev.key;
         if (k == 27) {
@@ -86,7 +86,7 @@ void ExtrasState::handle_event(const Event& ev) {
     }
 }
 
-void ExtrasState::draw(Engine& eng) {
+auto ExtrasState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(5, 5, 10, 255);
     DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.01f);
@@ -113,7 +113,7 @@ void ExtrasState::draw(Engine& eng) {
     DrawUtils::scanlines(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
 }
 
-void ExtrasState::draw_animatronics(Engine& eng) {
+auto ExtrasState::draw_animatronics(Engine& eng) -> void {
     using namespace GameSettings;
     auto& a = animatronics[anim_idx - 1];
     auto it = sprites.find(a.sprite);
@@ -171,7 +171,7 @@ void ExtrasState::draw_animatronics(Engine& eng) {
                     180);
 }
 
-void ExtrasState::draw_credits(Engine& eng) {
+auto ExtrasState::draw_credits(Engine& eng) -> void {
     using namespace GameSettings;
     int y = 200;
     DrawUtils::text(eng,
@@ -217,7 +217,7 @@ void ExtrasState::draw_credits(Engine& eng) {
                     true);
 }
 
-void ExtrasState::draw_cheats(Engine& eng) {
+auto ExtrasState::draw_cheats(Engine& eng) -> void {
     using namespace GameSettings;
     auto cl = std::vector<std::pair<std::string, bool*>>{
         {Localization::get_text("cheat_energy"), &infinite_power},
@@ -236,7 +236,7 @@ void ExtrasState::draw_cheats(Engine& eng) {
     }
 }
 
-void ExtrasState::draw_achievements(Engine& eng) {
+auto ExtrasState::draw_achievements(Engine& eng) -> void {
     using namespace GameSettings;
     for (int i = 0; i < (int)achievements_list.size(); ++i) {
         auto& ach = achievements_list[i];

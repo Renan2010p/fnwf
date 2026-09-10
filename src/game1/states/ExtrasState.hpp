@@ -14,10 +14,10 @@ public:
                 bool fast_nights,
                 const std::vector<std::string>& achievements,
                 Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
     auto result() const -> const std::string& override {
@@ -28,10 +28,10 @@ public:
     }
 
 private:
-    void draw_animatronics(Engine& eng);
-    void draw_credits(Engine& eng);
-    void draw_cheats(Engine& eng);
-    void draw_achievements(Engine& eng);
+    auto draw_animatronics(Engine& eng) -> void;
+    auto draw_credits(Engine& eng) -> void;
+    auto draw_cheats(Engine& eng) -> void;
+    auto draw_achievements(Engine& eng) -> void;
 
     Engine& m_eng;
     double timer{0.0};

@@ -7,26 +7,26 @@ namespace fnwf {
 class Engine;
 
 namespace SoundManager {
-void set_engine(Engine* eng);
-void play_sound(const std::string& name, int loops = 0, int channel = -1);
-void stop_channel(int channel);
-void stop_all_sounds();
-void play_menu_ambient();
-void stop_menu_ambient();
-void play_ambient_loop();
-void stop_ambient();
-void play_scary_stinger();
-void play_camera_switch();
-void play_door_sound();
-void play_light_sound();
-void play_jumpscare_sound();
-void play_footstep_random();
-void play_window_scare();
-void play_mask_breathing();
-void stop_mask_breathing();
-void set_master_volume(int vol);
-void set_sfx_volume(int vol);
-void set_music_volume(int vol);
+auto set_engine(Engine* eng) -> void;
+auto play_sound(const std::string& name, int loops = 0, int channel = -1) -> void;
+auto stop_channel(int channel) -> void;
+auto stop_all_sounds() -> void;
+auto play_menu_ambient() -> void;
+auto stop_menu_ambient() -> void;
+auto play_ambient_loop() -> void;
+auto stop_ambient() -> void;
+auto play_scary_stinger() -> void;
+auto play_camera_switch() -> void;
+auto play_door_sound() -> void;
+auto play_light_sound() -> void;
+auto play_jumpscare_sound() -> void;
+auto play_footstep_random() -> void;
+auto play_window_scare() -> void;
+auto play_mask_breathing() -> void;
+auto stop_mask_breathing() -> void;
+auto set_master_volume(int vol) -> void;
+auto set_sfx_volume(int vol) -> void;
+auto set_music_volume(int vol) -> void;
 }  // namespace SoundManager
 
 }  // namespace fnwf

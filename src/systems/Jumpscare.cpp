@@ -8,7 +8,7 @@ namespace fnwf {
 
 JumpscareSystem::JumpscareSystem() = default;
 
-void JumpscareSystem::trigger(const std::string& animatronic_name) {
+auto JumpscareSystem::trigger(const std::string& animatronic_name) -> void {
     if (active)
         return;
     active = true;
@@ -17,7 +17,7 @@ void JumpscareSystem::trigger(const std::string& animatronic_name) {
     done = false;
 }
 
-void JumpscareSystem::update(double dt) {
+auto JumpscareSystem::update(double dt) -> void {
     if (!active)
         return;
     timer += dt;
@@ -25,7 +25,7 @@ void JumpscareSystem::update(double dt) {
         done = true;
 }
 
-void JumpscareSystem::draw(Engine& eng) {
+auto JumpscareSystem::draw(Engine& eng) -> void {
     if (!active)
         return;
     float prog = std::min(1.0f, static_cast<float>(timer / duration));
@@ -62,7 +62,7 @@ void JumpscareSystem::draw(Engine& eng) {
     eng.draw_rect(0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 200, 0, 0, red_a);
 }
 
-void JumpscareSystem::reset() {
+auto JumpscareSystem::reset() -> void {
     active = false;
     animatronic.clear();
     timer = 0.0;

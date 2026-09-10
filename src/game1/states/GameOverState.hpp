@@ -7,10 +7,10 @@ class GameOverState : public GameState
 {
 public:
     GameOverState(bool is_win, int night, Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override;
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override;
     auto result() const -> const std::string& override {
         return m_result;
     }
@@ -22,8 +22,8 @@ public:
     }
 
 private:
-    void draw_game_over(Engine& eng);
-    void draw_win(Engine& eng);
+    auto draw_game_over(Engine& eng) -> void;
+    auto draw_win(Engine& eng) -> void;
 
     Engine& m_eng;
     bool is_win{false};

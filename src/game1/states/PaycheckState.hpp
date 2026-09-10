@@ -7,10 +7,10 @@ class PaycheckState : public GameState
 {
 public:
     PaycheckState(Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
 

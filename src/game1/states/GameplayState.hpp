@@ -16,19 +16,19 @@ class GameplayState : public GameState
 {
 public:
     GameplayState(Engine& eng, int night, const std::vector<int>* custom_ai = nullptr);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override;
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override;
     auto result() const -> const std::string& override {
         return m_result;
     }
 
 private:
-    void update_power_out(double dt);
-    void draw_hud(Engine& eng);
-    void draw_power_out(Engine& eng);
-    void draw_fade(Engine& eng);
+    auto update_power_out(double dt) -> void;
+    auto draw_hud(Engine& eng) -> void;
+    auto draw_power_out(Engine& eng) -> void;
+    auto draw_fade(Engine& eng) -> void;
 
     Engine& m_eng;
     int night{1};

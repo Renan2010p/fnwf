@@ -44,11 +44,11 @@ static const std::unordered_map<std::string, std::string> s_filename_map = {
     {"power_out", "animatronic_na_porta.ogg"},
 };
 
-void SoundManager::set_engine(Engine* eng) {
+auto SoundManager::set_engine(Engine* eng) -> void {
     s_eng = eng;
 }
 
-void SoundManager::play_sound(const std::string& name, int loops, int channel) {
+auto SoundManager::play_sound(const std::string& name, int loops, int channel) -> void {
     if (!s_eng)
         return;
     auto it = s_cache.find(name);
@@ -65,89 +65,89 @@ void SoundManager::play_sound(const std::string& name, int loops, int channel) {
     s_eng->play_sound(it->second, loops, channel);
 }
 
-void SoundManager::stop_channel(int channel) {
+auto SoundManager::stop_channel(int channel) -> void {
     if (s_eng)
         s_eng->stop_channel(channel);
 }
-void SoundManager::stop_all_sounds() {
+auto SoundManager::stop_all_sounds() -> void {
     if (s_eng)
         s_eng->stop_all_sounds();
 }
 
-void SoundManager::play_menu_ambient() {
+auto SoundManager::play_menu_ambient() -> void {
     s_menu_channel = 0;
     play_sound("menu_ambient", -1, 0);
 }
 
-void SoundManager::stop_menu_ambient() {
+auto SoundManager::stop_menu_ambient() -> void {
     if (s_menu_channel != -1)
         stop_channel(s_menu_channel);
 }
-void SoundManager::play_ambient_loop() {
+auto SoundManager::play_ambient_loop() -> void {
     play_sound("ambient", -1, 1);
 }
-void SoundManager::stop_ambient() {
+auto SoundManager::stop_ambient() -> void {
     stop_channel(1);
 }
-void SoundManager::play_scary_stinger() {
+auto SoundManager::play_scary_stinger() -> void {
     play_sound("stinger", 0, -1);
 }
-void SoundManager::play_camera_switch() {
+auto SoundManager::play_camera_switch() -> void {
     play_sound("blip", 0, -1);
 }
-void SoundManager::play_door_sound() {
+auto SoundManager::play_door_sound() -> void {
     play_sound("door");
 }
-void SoundManager::play_light_sound() {
+auto SoundManager::play_light_sound() -> void {
     play_sound("light");
 }
-void SoundManager::play_jumpscare_sound() {
+auto SoundManager::play_jumpscare_sound() -> void {
     play_sound("jumpscare");
 }
-void SoundManager::play_window_scare() {
+auto SoundManager::play_window_scare() -> void {
     play_sound("window_scare");
 }
 
-void SoundManager::play_footstep_random() {
+auto SoundManager::play_footstep_random() -> void {
     int idx = Rng::int_range(1, 4);
     play_sound("footsteps_" + std::to_string(idx), 0, -1);
 }
 
-void SoundManager::play_mask_breathing() {
+auto SoundManager::play_mask_breathing() -> void {
     if (s_breathing_channel == -1) {
         s_breathing_channel = 5;
         play_sound("breathing", -1, 5);
     }
 }
 
-void SoundManager::stop_mask_breathing() {
+auto SoundManager::stop_mask_breathing() -> void {
     if (s_breathing_channel != -1) {
         stop_channel(s_breathing_channel);
         s_breathing_channel = -1;
     }
 }
 
-static int effective_sfx_volume() {
+static auto effective_sfx_volume() -> int {
     return (s_master_vol * s_sfx_vol) / 100;
 }
-static int effective_music_volume() {
+static auto effective_music_volume() -> int {
     return (s_master_vol * s_music_vol) / 100;
 }
 
-void SoundManager::set_master_volume(int vol) {
+auto SoundManager::set_master_volume(int vol) -> void {
     s_master_vol = vol;
     Mix_VolumeMusic((effective_music_volume() * MIX_MAX_VOLUME) / 100);
     for (int ch = 0; ch < 16; ++ch)
         Mix_Volume(ch, (effective_sfx_volume() * MIX_MAX_VOLUME) / 100);
 }
 
-void SoundManager::set_sfx_volume(int vol) {
+auto SoundManager::set_sfx_volume(int vol) -> void {
     s_sfx_vol = vol;
     for (int ch = 0; ch < 16; ++ch)
         Mix_Volume(ch, (effective_sfx_volume() * MIX_MAX_VOLUME) / 100);
 }
 
-void SoundManager::set_music_volume(int vol) {
+auto SoundManager::set_music_volume(int vol) -> void {
     s_music_vol = vol;
     Mix_VolumeMusic((effective_music_volume() * MIX_MAX_VOLUME) / 100);
 }

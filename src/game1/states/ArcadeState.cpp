@@ -25,11 +25,11 @@ ArcadeState::ArcadeState(Engine& eng)
     SoundManager::set_engine(&eng);
 }
 
-bool ArcadeState::is_done() const {
+auto ArcadeState::is_done() const -> bool {
     return !m_result.empty() && fade_alpha >= 255;
 }
 
-void ArcadeState::update_difficulty() {
+auto ArcadeState::update_difficulty() -> void {
     int new_level = static_cast<int>(time_survived / 30.0);
     if (new_level <= difficulty_level)
         return;
@@ -57,7 +57,7 @@ void ArcadeState::update_difficulty() {
     base_power_drain = 0.12 + difficulty_level * 0.008;
 }
 
-void ArcadeState::update(double dt) {
+auto ArcadeState::update(double dt) -> void {
     fx_timer += dt;
 
     if (fading_in) {
@@ -156,7 +156,7 @@ void ArcadeState::update(double dt) {
     danger_level = std::max(0.0, std::min(1.0, danger));
 }
 
-void ArcadeState::update_power_out(double dt) {
+auto ArcadeState::update_power_out(double dt) -> void {
     if (!_power_out_snd) {
         SoundManager::stop_ambient();
         SoundManager::play_sound("power_out");
@@ -186,7 +186,7 @@ void ArcadeState::update_power_out(double dt) {
     }
 }
 
-void ArcadeState::handle_event(const Event& ev) {
+auto ArcadeState::handle_event(const Event& ev) -> void {
     if (jumpscare.active || power.is_dead || fading_in || fading_out)
         return;
 
@@ -273,7 +273,7 @@ void ArcadeState::handle_event(const Event& ev) {
     }
 }
 
-void ArcadeState::draw(Engine& eng) {
+auto ArcadeState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     bool high_fx = (DrawUtils::get_render_quality() == "high");
 
@@ -359,7 +359,7 @@ void ArcadeState::draw(Engine& eng) {
     draw_fade(eng);
 }
 
-void ArcadeState::draw_hud(Engine& eng) {
+auto ArcadeState::draw_hud(Engine& eng) -> void {
     using namespace GameSettings;
 
     int minutes = static_cast<int>(time_survived) / 60;
@@ -418,7 +418,7 @@ void ArcadeState::draw_hud(Engine& eng) {
     }
 }
 
-void ArcadeState::draw_power_out(Engine& eng) {
+auto ArcadeState::draw_power_out(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(0, 0, 0, 255);
     if (power_out_phase >= 1) {
@@ -442,7 +442,7 @@ void ArcadeState::draw_power_out(Engine& eng) {
     }
 }
 
-void ArcadeState::draw_fade(Engine& eng) {
+auto ArcadeState::draw_fade(Engine& eng) -> void {
     if (fade_alpha > 0)
         eng.draw_rect(
             0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 0, 0, 0, fade_alpha);

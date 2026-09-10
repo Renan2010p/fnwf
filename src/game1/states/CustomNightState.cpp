@@ -8,11 +8,11 @@
 
 namespace fnwf {
 
-static float lerp_f(float a, float b, float t) {
+static auto lerp_f(float a, float b, float t) -> float {
     return a + (b - a) * std::min(1.0f, std::max(0.0f, t));
 }
 
-static int digit_from_event(const Event& ev) {
+static auto digit_from_event(const Event& ev) -> int {
     int k = ev.key;
     if (k >= '0' && k <= '9')
         return k - '0';
@@ -58,7 +58,7 @@ auto CustomNightState::get_ai_cap() const -> int {
     return secret_mode_unlocked ? 40 : 20;
 }
 
-void CustomNightState::unlock_secret_mode() {
+auto CustomNightState::unlock_secret_mode() -> void {
     if (!secret_mode_unlocked) {
         secret_mode_unlocked = true;
         presets.push_back({Localization::get_text("preset_secret"), {40, 40, 40, 40}, true});
@@ -67,7 +67,7 @@ void CustomNightState::unlock_secret_mode() {
     const_cast<CustomNightState*>(this)->apply_preset(current_preset);
 }
 
-void CustomNightState::apply_preset(int index) {
+auto CustomNightState::apply_preset(int index) -> void {
     if (index >= 0 && index < (int)presets.size()) {
         current_preset = index;
         if (presets[index].has_levels) {
@@ -78,13 +78,13 @@ void CustomNightState::apply_preset(int index) {
     }
 }
 
-void CustomNightState::cycle_preset(int direction) {
+auto CustomNightState::cycle_preset(int direction) -> void {
     int new_idx = ((current_preset + direction) % (int)presets.size() + (int)presets.size()) %
                   (int)presets.size();
     apply_preset(new_idx);
 }
 
-void CustomNightState::rebuild_layout() {
+auto CustomNightState::rebuild_layout() -> void {
     int card_w = 280, card_h = 430, gap = 42;
     int total_w = 4 * card_w + 3 * gap;
     int start_x = GameSettings::SCREEN_WIDTH / 2 - total_w / 2;
@@ -107,7 +107,7 @@ void CustomNightState::rebuild_layout() {
     ready_rect = {cx - 180, 642, 360, 54};
 }
 
-void CustomNightState::update(double dt) {
+auto CustomNightState::update(double dt) -> void {
     timer += dt;
     for (int i = 0; i < 4; ++i) {
         bool is_sel = (i + 1 == selected);
@@ -118,7 +118,7 @@ void CustomNightState::update(double dt) {
     }
 }
 
-void CustomNightState::handle_event(const Event& ev) {
+auto CustomNightState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown) {
         int k = ev.key;
         int digit = digit_from_event(ev);
@@ -224,7 +224,7 @@ void CustomNightState::handle_event(const Event& ev) {
     }
 }
 
-void CustomNightState::draw(Engine& eng) {
+auto CustomNightState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(6, 9, 18, 255);
     for (int i = 0; i < SCREEN_HEIGHT; i += 90) {

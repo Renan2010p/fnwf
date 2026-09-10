@@ -18,7 +18,7 @@ StoryState::StoryState(int night_, Engine& eng) : m_eng(eng), night(night_) {
     build_messages();
 }
 
-void StoryState::build_messages() {
+auto StoryState::build_messages() -> void {
     messages.clear();
     auto m = [&](const std::string& k) -> std::string {
         std::string key = "story_n" + std::to_string(night) + "_" + k;
@@ -119,7 +119,7 @@ auto StoryState::wrap_text(const std::string& text, int max_width, int font_size
     return lines;
 }
 
-void StoryState::update_scroll_target() {
+auto StoryState::update_scroll_target() -> void {
     int cwl = GameSettings::SCREEN_WIDTH - 240 - 100;
     int th = 15;
     std::string prev;
@@ -142,7 +142,7 @@ void StoryState::update_scroll_target() {
         target_scroll = th - va;
 }
 
-void StoryState::update(double dt) {
+auto StoryState::update(double dt) -> void {
     timer += dt;
     if (phase == 0) {
         fade_alpha = std::max(0, fade_alpha - (int)(250 * dt));
@@ -159,7 +159,7 @@ void StoryState::update(double dt) {
     scroll_y = scroll_y + (target_scroll - scroll_y) * 6.0 * dt;
 }
 
-void StoryState::handle_event(const Event& ev) {
+auto StoryState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown) {
         if (ev.type == EventType::KeyDown && ev.key != 13 && ev.key != 32)
             return;
@@ -179,7 +179,7 @@ void StoryState::handle_event(const Event& ev) {
     }
 }
 
-void StoryState::draw(Engine& eng) {
+auto StoryState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(54, 57, 63, 255);
     if (phase >= 1)
@@ -200,7 +200,7 @@ void StoryState::draw(Engine& eng) {
         eng.draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 54, 57, 63, fade_alpha);
 }
 
-void StoryState::draw_discord_ui(Engine& eng) {
+auto StoryState::draw_discord_ui(Engine& eng) -> void {
     using namespace GameSettings;
     int sw = 240;
     eng.draw_rect(0, 0, sw, SCREEN_HEIGHT, 47, 49, 54, 255);

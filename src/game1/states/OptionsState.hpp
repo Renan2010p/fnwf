@@ -22,10 +22,10 @@ class OptionsState : public GameState
 {
 public:
     OptionsState(Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
     auto result() const -> const std::string& override {
@@ -33,9 +33,9 @@ public:
     }
 
 private:
-    void rebuild_options();
-    void apply_settings();
-    void handle_click(int mx, int my);
+    auto rebuild_options() -> void;
+    auto apply_settings() -> void;
+    auto handle_click(int mx, int my) -> void;
 
     Engine& m_eng;
     double timer{0.0};

@@ -9,7 +9,7 @@ namespace fnwf {
 
 SixAMState::SixAMState(int night_, Engine& eng) : m_eng(eng), night(night_) {}
 
-void SixAMState::update(double dt) {
+auto SixAMState::update(double dt) -> void {
     timer += dt;
     if (!show_six && timer > 2.0) {
         hour = 6;
@@ -23,12 +23,12 @@ void SixAMState::update(double dt) {
         done = true;
 }
 
-void SixAMState::handle_event(const Event& ev) {
+auto SixAMState::handle_event(const Event& ev) -> void {
     if (timer > 2.0 && (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown))
         done = true;
 }
 
-void SixAMState::draw(Engine& eng) {
+auto SixAMState::draw(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(0, 0, 0, 255);
     int cx = SCREEN_WIDTH / 2, cy = SCREEN_HEIGHT / 2;

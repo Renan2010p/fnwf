@@ -9,7 +9,7 @@ namespace fnwf {
 
 PowerSystem::PowerSystem() = default;
 
-void PowerSystem::update(double dt, int door_usage, bool camera_open) {
+auto PowerSystem::update(double dt, int door_usage, bool camera_open) -> void {
     if (is_dead) {
         dead_timer += dt;
         return;
@@ -25,7 +25,7 @@ void PowerSystem::update(double dt, int door_usage, bool camera_open) {
     }
 }
 
-void PowerSystem::draw(Engine& eng) {
+auto PowerSystem::draw(Engine& eng) -> void {
     auto x = 24;
     auto y = GameSettings::SCREEN_HEIGHT - 78;
     int pct = std::max(0, static_cast<int>(power));

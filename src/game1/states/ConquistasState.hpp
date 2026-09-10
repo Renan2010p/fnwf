@@ -9,10 +9,10 @@ class ConquistasState : public GameState
 {
 public:
     ConquistasState(const std::vector<std::string>& achievements, Engine& eng);
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
     auto result() const -> const std::string& override {

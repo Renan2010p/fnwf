@@ -10,8 +10,8 @@ class DoorSystem
 {
 public:
     DoorSystem();
-    void update(double dt);
-    void draw_buttons(Engine& eng, bool camera_open);
+    auto update(double dt) -> void;
+    auto draw_buttons(Engine& eng, bool camera_open) -> void;
     auto handle_click(int mx, int my) -> std::string;
     auto get_power_usage() -> int;
 

@@ -9,7 +9,7 @@ namespace fnwf {
 
 DoorSystem::DoorSystem() = default;
 
-void DoorSystem::update(double dt) {
+auto DoorSystem::update(double dt) -> void {
     double tl = left_closed ? 1.0 : 0.0;
     if (left_anim < tl)
         left_anim = std::min(tl, left_anim + anim_speed * dt);
@@ -23,7 +23,7 @@ void DoorSystem::update(double dt) {
         right_anim = std::max(tr, right_anim - anim_speed * dt);
 }
 
-void DoorSystem::draw_buttons(Engine& eng, bool camera_open) {
+auto DoorSystem::draw_buttons(Engine& eng, bool camera_open) -> void {
     if (camera_open)
         return;
     button_rects.clear();

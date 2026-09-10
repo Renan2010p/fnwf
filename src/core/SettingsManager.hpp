@@ -24,8 +24,8 @@ class SettingsManager
 {
 public:
     static auto instance() -> GameSettingsData&;
-    static void load();
-    static void save();
+    static auto load() -> void;
+    static auto save() -> void;
 
 private:
     static auto read_bounded_string(std::ifstream& f) -> std::string;

@@ -12,13 +12,13 @@ public:
     using StateFactory = std::function<std::unique_ptr<GameState>(Engine&)>;
 
     LoadingState(Engine& eng);
-    void set_factory(StateFactory f) {
+    auto set_factory(StateFactory f) -> void {
         next_factory = std::move(f);
     }
-    void handle_event(const Event& ev) override;
-    void update(double dt) override;
-    void draw(Engine& eng) override;
-    bool is_done() const override {
+    auto handle_event(const Event& ev) -> void override;
+    auto update(double dt) -> void override;
+    auto draw(Engine& eng) -> void override;
+    auto is_done() const -> bool override {
         return done;
     }
     auto get_next_state() -> std::unique_ptr<GameState> {

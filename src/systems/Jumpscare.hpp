@@ -9,13 +9,13 @@ class JumpscareSystem
 {
 public:
     JumpscareSystem();
-    void trigger(const std::string& animatronic_name);
-    void update(double dt);
-    void draw(Engine& eng);
+    auto trigger(const std::string& animatronic_name) -> void;
+    auto update(double dt) -> void;
+    auto draw(Engine& eng) -> void;
     auto is_done() const -> bool {
         return done;
     }
-    void reset();
+    auto reset() -> void;
 
     bool active{false};
     std::string animatronic{};
