@@ -7,23 +7,82 @@ on:
     branches: [main]
 
 jobs:
-  build-linux:
+  build-linux-x86_64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y meson ninja-build g++ pkg-config \
-            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev \
-            ffmpeg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
 
       - name: Build
         run: |
-          meson setup build --buildtype=debug
+          meson setup build --buildtype=release
           meson compile -C build
 
-      - name: Run
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
         run: |
-          timeout 3 ./build/fnwf || true
+          sudo dpkg --add-architecture arm64
+          sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+          echo 'deb [arch=arm64] http://ports.ubuntu.com/ports noble main restricted universe multiverse' | sudo tee /etc/apt/sources.list.d/arm64.list
+          echo 'deb [arch=arm64] http://ports.ubuntu.com/ports noble-updates main restricted universe multiverse' | sudo tee -a /etc/apt/sources.list.d/arm64.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq meson ninja-build g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            pkg-config-aarch64-linux-gnu \
+            libsdl2-dev:arm64 libsdl2-ttf-dev:arm64 libsdl2-image-dev:arm64 libsdl2-mixer-dev:arm64
+
+      - name: Build
+        run: |
+          cat > /tmp/cross.ini << 'EOF'
+          [binaries]
+          c = 'aarch64-linux-gnu-gcc'
+          cpp = 'aarch64-linux-gnu-g++'
+          ar = 'aarch64-linux-gnu-ar'
+          strip = 'aarch64-linux-gnu-strip'
+          pkgconfig = 'pkg-config'
+
+          [host_machine]
+          system = 'linux'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+          EOF
+          meson setup build --cross-file /tmp/cross.ini --buildtype=release
+          meson compile -C build
+
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_ttf
+            mingw-w64-x86_64-SDL2_image
+            mingw-w64-x86_64-SDL2_mixer
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            meson ninja git
+
+      - name: Build
+        run: |
+          meson setup build --buildtype=release
+          meson compile -C build

@@ -8,20 +8,19 @@ permissions:
   contents: write
 
 jobs:
-  build-linux:
+  # ============================================================
+  #  LINUX x86_64
+  # ============================================================
+  build-linux-x86_64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y meson ninja-build g++ pkg-config \
-            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev \
-            ffmpeg zip
-
-      - name: Generate sounds
-        run: bash generate_sounds.sh
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
 
       - name: Build
         run: |
@@ -30,27 +29,80 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p release/fnwf-linux
-          cp build/fnwf release/fnwf-linux/
-          cp -r assets release/fnwf-linux/
-          cp LICENSE release/fnwf-linux/
-          cp README.txt release/fnwf-linux/
-          cp run.sh release/fnwf-linux/
-          chmod +x release/fnwf-linux/run.sh release/fnwf-linux/fnwf
-
-          ldd build/fnwf | grep -o '/[^ ]*SDL[^ ]*' | while read lib; do
-            cp "$lib" release/fnwf-linux/ 2>/dev/null || true
-          done
-
-          cd release
-          tar czf fnwf-linux-${{ github.ref_name }}.tar.gz fnwf-linux/
+          VERSION="${GITHUB_REF_NAME#v}"
+          RELEASE="fnwf-classic-v${VERSION}-linux-x86_64"
+          mkdir -p "release/${RELEASE}"
+          cp build/fnwf "release/${RELEASE}/fnwf"
+          cp -r assets "release/${RELEASE}/"
+          cp README.txt "release/${RELEASE}/"
+          chmod +x "release/${RELEASE}/fnwf"
+          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
+          echo "ASSET=${RELEASE}.tar.gz" >> "$GITHUB_ENV"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-linux
-          path: release/fnwf-linux-${{ github.ref_name }}.tar.gz
+          name: fnwf-linux-x86_64
+          path: release/fnwf-classic-v*-linux-x86_64.tar.gz
 
+  # ============================================================
+  #  LINUX ARM64
+  # ============================================================
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo dpkg --add-architecture arm64
+          echo 'deb [arch=arm64] http://ports.ubuntu.com/ports noble main restricted universe multiverse' | sudo tee /etc/apt/sources.list.d/arm64.list
+          echo 'deb [arch=arm64] http://ports.ubuntu.com/ports noble-updates main restricted universe multiverse' | sudo tee -a /etc/apt/sources.list.d/arm64.list
+          sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64 arm64/' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq meson ninja-build g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            pkg-config-aarch64-linux-gnu \
+            libsdl2-dev:arm64 libsdl2-ttf-dev:arm64 libsdl2-image-dev:arm64 libsdl2-mixer-dev:arm64
+
+      - name: Build
+        run: |
+          cat > /tmp/cross.ini << 'EOF'
+          [binaries]
+          c = 'aarch64-linux-gnu-gcc'
+          cpp = 'aarch64-linux-gnu-g++'
+          ar = 'aarch64-linux-gnu-ar'
+          strip = 'aarch64-linux-gnu-strip'
+          pkgconfig = 'pkg-config'
+
+          [host_machine]
+          system = 'linux'
+          cpu_family = 'aarch64'
+          cpu = 'aarch64'
+          endian = 'little'
+          EOF
+          meson setup build --cross-file /tmp/cross.ini --buildtype=release
+          meson compile -C build
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          RELEASE="fnwf-classic-v${VERSION}-linux-arm64"
+          mkdir -p "release/${RELEASE}"
+          aarch64-linux-gnu-strip build/fnwf -o "release/${RELEASE}/fnwf" || cp build/fnwf "release/${RELEASE}/fnwf"
+          cp -r assets "release/${RELEASE}/"
+          cp README.txt "release/${RELEASE}/"
+          chmod +x "release/${RELEASE}/fnwf"
+          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-linux-arm64
+          path: release/fnwf-classic-v*-linux-arm64.tar.gz
+
+  # ============================================================
+  #  WINDOWS x86_64
+  # ============================================================
   build-windows:
     runs-on: windows-latest
     defaults:
@@ -73,14 +125,7 @@ jobs:
             mingw-w64-x86_64-SDL2_mixer
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-ffmpeg
-            meson
-            ninja
-            git
-            zip
-
-      - name: Generate sounds
-        run: bash generate_sounds.sh
+            meson ninja git zip
 
       - name: Build
         run: |
@@ -89,41 +134,87 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p release/fnwf-windows
-          cp build/fnwf.exe release/fnwf-windows/
-          cp -r assets release/fnwf-windows/
-          cp LICENSE release/fnwf-windows/
-          cp README.txt release/fnwf-windows/
-
-          # Copy SDL2 DLLs
-          for dll in $(ldd build/fnwf.exe | grep -o '/mingw64/bin/[^ ]*\.dll'); do
-            cp "$dll" release/fnwf-windows/ 2>/dev/null || true
+          VERSION="${GITHUB_REF_NAME#v}"
+          RELEASE="fnwf-classic-v${VERSION}-windows-x86_64"
+          mkdir -p "release/${RELEASE}"
+          cp build/fnwf.exe "release/${RELEASE}/"
+          cp -r assets "release/${RELEASE}/"
+          cp README.txt "release/${RELEASE}/"
+          for dll in \
+            /mingw64/bin/SDL2.dll \
+            /mingw64/bin/SDL2_ttf.dll \
+            /mingw64/bin/SDL2_image.dll \
+            /mingw64/bin/SDL2_mixer.dll \
+            /mingw64/bin/libfreetype-6.dll \
+            /mingw64/bin/libpng16-16.dll \
+            /mingw64/bin/zlib1.dll \
+            /mingw64/bin/libharfbuzz-0.dll \
+            /mingw64/bin/libbrotlidec.dll \
+            /mingw64/bin/libbrotlicommon.dll \
+            /mingw64/bin/libbz2-1.dll \
+            /mingw64/bin/libtiff-6.dll \
+            /mingw64/bin/libwebp-7.dll \
+            /mingw64/bin/libjpeg-8.dll \
+            /mingw64/bin/libogg-0.dll \
+            /mingw64/bin/libvorbis-0.dll \
+            /mingw64/bin/libvorbisfile-3.dll \
+            /mingw64/bin/libopus-0.dll \
+            /mingw64/bin/libFLAC-12.dll \
+            /mingw64/bin/libmpg123-0.dll \
+            /mingw64/bin/libsndfile-1.dll \
+            /mingw64/bin/libogg-0.dll; do
+            cp "$dll" "release/${RELEASE}/" 2>/dev/null || true
           done
-          # Also grab them directly
-          cp /mingw64/bin/SDL2.dll release/fnwf-windows/ 2>/dev/null || true
-          cp /mingw64/bin/SDL2_ttf.dll release/fnwf-windows/ 2>/dev/null || true
-          cp /mingw64/bin/SDL2_image.dll release/fnwf-windows/ 2>/dev/null || true
-          cp /mingw64/bin/SDL2_mixer.dll release/fnwf-windows/ 2>/dev/null || true
-
-          cd release
-          zip -r fnwf-windows-${{ github.ref_name }}.zip fnwf-windows/
+          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-windows
-          path: release/fnwf-windows-${{ github.ref_name }}.zip
+          name: fnwf-windows-x86_64
+          path: release/fnwf-classic-v*-windows-x86_64.tar.gz
 
+  # ============================================================
+  #  CREATE GITHUB RELEASE
+  # ============================================================
   release:
-    needs: [build-linux, build-windows]
+    needs: [build-linux-x86_64, build-linux-arm64, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh *.tar.gz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            fnwf-linux/fnwf-linux-*.tar.gz
-            fnwf-windows/fnwf-windows-*.zip
+            fnwf-classic-v*-linux-x86_64.tar.gz
+            fnwf-classic-v*-linux-arm64.tar.gz
+            fnwf-classic-v*-windows-x86_64.tar.gz
           generate_release_notes: true
+          body: |
+            ## Five Nights With Friends — Classic Edition ${{ github.ref_name }}
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | Linux x86_64 | `fnwf-classic-${{ github.ref_name }}-linux-x86_64.tar.gz` |
+            | Linux ARM64 | `fnwf-classic-${{ github.ref_name }}-linux-arm64.tar.gz` |
+            | Windows x86_64 | `fnwf-classic-${{ github.ref_name }}-windows-x86_64.tar.gz` |
+
+            ### Linux
+            ```bash
+            tar xzf fnwf-classic-*.tar.gz
+            cd fnwf-classic-*
+            ./fnwf
+            ```
+
+            ### Windows
+            ```bash
+            tar xzf fnwf-classic-*.tar.gz
+            cd fnwf-classic-*
+            fnwf.exe
+            ```
