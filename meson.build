@@ -1,5 +1,5 @@
 project('fnwf', 'cpp',
-  version : '2.0.6',
+  version : '2.0.7',
   default_options : [
     'cpp_std=c++23',
     'warning_level=2',
@@ -16,62 +16,119 @@ sdl2_ttf_dep = dependency('SDL2_ttf', required : true)
 sdl2_image_dep = dependency('SDL2_image', required : true)
 sdl2_mixer_dep = dependency('SDL2_mixer', required : true)
 
-# === Hardening flags (release) ===
+# === Hardening flags ===
 hardening_flags = [
-  '-D_FORTIFY_SOURCE=3',          # Buffer overflow detection at runtime
-  '-fstack-protector-strong',     # Stack canary protection
-  '-fstack-clash-protection',     # Stack clash attack prevention
-  '-fcf-protection=full',         # Control-flow enforcement (CET)
-  '-fPIE',                        # Position-independent executable
-  '-Wformat',                     # Format string warnings
-  '-Wformat-security',            # Format string security checks
-  '-Werror=format-security',      # Treat format security as error
+  '-D_FORTIFY_SOURCE=3',
+  '-fstack-protector-strong',
+  '-fstack-clash-protection',
+  '-fcf-protection=full',
+  '-fPIE',
+  '-Wformat',
+  '-Wformat-security',
+  '-Werror=format-security',
 ]
 
-# === Extra optimization flags ===
+# === Aggressive optimization flags (x86-64-v2 baseline) ===
 opt_flags = [
-  '-ftree-vectorize',             # Auto-vectorization
-  '-fomit-frame-pointer',         # Free up a register
-  '-ffunction-sections',          # Dead code elimination
-  '-fdata-sections',              # Dead data elimination
-  '-DNDEBUG',                     # Disable assert()
+  # --- Architecture: x86-64-v2 (SSE4.2, SSSE3, POPCNT, CMPXCHG16B) ---
+  '-march=x86-64-v2',
+  '-mtune=generic',
+
+  # --- Core optimizations ---
+  '-O3',
+  '-flto=auto',                     # Link-time optimization (parallel)
+  '-fwhole-program',                 # WPO for static binary
+  '-fno-exceptions',                 # Smaller binary, no unwind tables
+  '-DNDEBUG',                        # Disable assert()
+
+  # --- Inlining ---
+  '-finline-functions',
+  '-finline-limit=300',              # Aggressive inlining threshold
+  '-fvisibility-inlines-hidden',     # Hide inline symbols
+  '-fdevirtualize',                  # Devirtualize indirect calls
+  '-fdevirtualize-at-ltrans',        # Devirtualize during LTO
+
+  # --- Loop optimizations ---
+  '-ftree-vectorize',                # Auto-vectorization (SSE/AVX)
+  '-ftree-loop-vectorize',           # Vectorize loops
+  '-ftree-loop-distribute-patterns', # Optimize loop patterns (memcpy, memset)
+  '-funroll-loops',                  # Unroll loops
+  '-floop-nest-optimize',            # Graphite loop optimizer
+  '-floop-parallelize-all',          # Parallelize all loops
+
+  # --- Code generation ---
+  '-fomit-frame-pointer',            # Free up RBP register
+  '-ffunction-sections',             # Each function in own section
+  '-fdata-sections',                 # Each data item in own section
+  '-fmerge-all-constants',           # Merge identical constants
+  '-fno-math-errno',                 # Skip errno on math funcs (faster sqrt, etc)
+  '-fno-signed-zeros',               # Ignore signed zero (-0.0 == 0.0)
+  '-fno-trapping-math',              # Assume no FP traps
+  '-ffinite-math-only',              # Assume no NaN/Inf (faster FP)
+  '-funsafe-math-optimizations',     # Reorder FP ops (faster, less IEEE)
+  '-freciprocal-math',               # Use 1/x instead of division
+
+  # --- Interprocedural ---
+  '-fipa-pta',                       # Interprocedural pointer analysis
+  '-fipa-cp',                        # Interprocedural constant propagation
+  '-fipa-sra',                       # Scalar replacement of aggregates
+  '-fipa-profile',                   # Use profile data for inlining
+
+  # --- Register allocation ---
+  '-frename-registers',              # Rename registers for better pipelining
+  '-fmodulo-sched',                  # Software pipelining
+
+  # --- Memory ---
+  '-ftree-pre',                      # Partial redundancy elimination
+  '-ftree-partial-pre',              # Aggressive PRE
+  '-ftree-sra',                      # Scalar replacement of aggregates
+  '-fstore-merging',                 # Merge adjacent stores
+  '-faggressive-loop-optimizations', # Assume no loop vectorization problems
+
+  # '-fprofile-use' can be enabled after PGO training for +10-15% speedup
 ]
 
-# === Linker hardening flags ===
+# === Linker flags ===
 linker_flags = [
-  '-Wl,-z,relro',                 # Read-only relocations
-  '-Wl,-z,now',                   # Full RELRO (lazy binding disabled)
-  '-Wl,-z,noexecstack',           # Non-executable stack
-  '-Wl,--gc-sections',            # Garbage collect unused sections
-  '-Wl,--as-needed',              # Only link needed libraries
+  '-Wl,-z,relro',
+  '-Wl,-z,now',
+  '-Wl,-z,noexecstack',
+  '-Wl,--gc-sections',
+  '-Wl,--as-needed',
+  '-flto=auto',                      # LTO at link stage
+  '-fuse-linker-plugin',             # Use linker plugin for better WPO
+  '-Wl,-O3',                         # Linker optimization level
+  '-Wl,--hash-style=both',           # Faster symbol lookup
+  '-Wl,--compress-debug-sections=zlib', # Smaller debug info
 ]
 
-# === Debug build with sanitizers (meson setup build/debug -Dbuildtype=debug) ===
+# === Debug build with sanitizers ===
 sanitizer_flags = [
-  '-fsanitize=address',           # Memory errors (buffer overflow, use-after-free)
-  '-fsanitize=undefined',         # Undefined behavior detection
-  '-fsanitize=leak',              # Memory leak detection
-  '-fsanitize=alignment',         # Alignment checking
-  '-fsanitize=float-cast-overflow', # Float cast overflow
-  '-fsanitize=float-divide-by-zero', # Float divide by zero
-  '-fsanitize=integer-divide-by-zero', # Int divide by zero
-  '-fsanitize=nonnull-attribute', # Nonnull argument violation
-  '-fsanitize=return',            # Return value mismatch
-  '-fsanitize=signed-integer-overflow', # Signed overflow
-  '-fsanitize=unreachable',       # Unreachable code
-  '-fno-omit-frame-pointer',      # Keep frame pointers for better stack traces
-  '-g',                           # Debug symbols for sanitizer output
+  '-fsanitize=address',
+  '-fsanitize=undefined',
+  '-fsanitize=leak',
+  '-fsanitize=alignment',
+  '-fsanitize=float-cast-overflow',
+  '-fsanitize=float-divide-by-zero',
+  '-fsanitize=integer-divide-by-zero',
+  '-fsanitize=nonnull-attribute',
+  '-fsanitize=return',
+  '-fsanitize=signed-integer-overflow',
+  '-fsanitize=unreachable',
+  '-fno-omit-frame-pointer',
+  '-g',
+  '-O1',
 ]
 
-# === Apply flags based on buildtype ===
+# === Apply flags ===
 if get_option('buildtype') == 'debug'
   add_project_arguments(sanitizer_flags, language : 'cpp')
   add_project_link_arguments(sanitizer_flags, language : 'cpp')
-  message('BUILD MODE: Debug with sanitizers (ASan + UBSan + LSan)')
+  message('BUILD: Debug + sanitizers (ASan + UBSan + LSan)')
 else
   add_project_arguments(hardening_flags + opt_flags, language : 'cpp')
   add_project_link_arguments(linker_flags, language : 'cpp')
-  message('BUILD MODE: Release with hardening + optimizations')
+  message('BUILD: Release + aggressive x86-64-v2 optimizations + LTO')
 endif
 
 # === Sources ===
