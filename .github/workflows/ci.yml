@@ -30,37 +30,39 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo dpkg --add-architecture arm64
-
-          sudo sed -i 's/^Architectures: amd64$/Architectures: amd64 arm64/' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
-
-          cat <<EOF | sudo tee /etc/apt/sources.list.d/arm64-ports.list
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-backports main restricted universe multiverse
-          EOF
-
           sudo apt-get update -qq
-          sudo apt-get install -y -qq meson ninja-build g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-            pkg-config-aarch64-linux-gnu \
-            libsdl2-dev:arm64 libsdl2-ttf-dev:arm64 libsdl2-image-dev:arm64 libsdl2-mixer-dev:arm64
+          sudo apt-get install -y -qq meson ninja-build \
+            g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
+          # Remove x86_64 gnu stubs that confuse the aarch64 compiler
+          sudo rm -rf /usr/include/x86_64-linux-gnu/gnu/
+          # Create empty immintrin.h for ARM64 (SDL2 includes it unconditionally)
+          sudo touch /usr/aarch64-linux-gnu/include/immintrin.h
 
       - name: Build
         run: |
-          cat > /tmp/cross.ini << 'EOF'
+          cat > /tmp/cross.ini << 'XEOF'
           [binaries]
           c = 'aarch64-linux-gnu-gcc'
           cpp = 'aarch64-linux-gnu-g++'
           ar = 'aarch64-linux-gnu-ar'
           strip = 'aarch64-linux-gnu-strip'
-          pkgconfig = 'pkg-config'
+          pkg-config = 'pkg-config'
 
           [host_machine]
           system = 'linux'
           cpu_family = 'aarch64'
           cpu = 'aarch64'
           endian = 'little'
-          EOF
+
+          [built-in options]
+          c_args = ['-march=armv8-a']
+          cpp_args = ['-march=armv8-a']
+
+          [properties]
+          needs_exe_wrapper = false
+          XEOF
+          export PKG_CONFIG_LIBDIR=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
           meson setup build --cross-file /tmp/cross.ini --buildtype=release
           meson compile -C build
 
@@ -72,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup MSYS2
+      - name: Install dependencies
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
