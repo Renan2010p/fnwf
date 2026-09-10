@@ -16,93 +16,98 @@ sdl2_ttf_dep = dependency('SDL2_ttf', required : true)
 sdl2_image_dep = dependency('SDL2_image', required : true)
 sdl2_mixer_dep = dependency('SDL2_mixer', required : true)
 
-# === Hardening flags ===
-hardening_flags = [
+# === Common flags (all architectures) ===
+common_flags = [
   '-D_FORTIFY_SOURCE=3',
   '-fstack-protector-strong',
   '-fstack-clash-protection',
-  '-fcf-protection=full',
   '-fPIE',
   '-Wformat',
   '-Wformat-security',
   '-Werror=format-security',
+  '-O3',
+  '-flto=auto',
+  '-fwhole-program',
+  '-fno-exceptions',
+  '-DNDEBUG',
+  '-finline-functions',
+  '-finline-limit=300',
+  '-fvisibility-inlines-hidden',
+  '-fdevirtualize',
+  '-fdevirtualize-at-ltrans',
+  '-ftree-vectorize',
+  '-ftree-loop-vectorize',
+  '-ftree-loop-distribute-patterns',
+  '-funroll-loops',
+  '-floop-nest-optimize',
+  '-floop-parallelize-all',
+  '-fomit-frame-pointer',
+  '-ffunction-sections',
+  '-fdata-sections',
+  '-fmerge-all-constants',
+  '-fno-math-errno',
+  '-fno-signed-zeros',
+  '-fno-trapping-math',
+  '-ffinite-math-only',
+  '-funsafe-math-optimizations',
+  '-freciprocal-math',
+  '-fipa-pta',
+  '-fipa-cp',
+  '-fipa-sra',
+  '-fipa-profile',
+  '-frename-registers',
+  '-fmodulo-sched',
+  '-ftree-pre',
+  '-ftree-partial-pre',
+  '-ftree-sra',
+  '-fstore-merging',
+  '-faggressive-loop-optimizations',
 ]
 
-# === Aggressive optimization flags (x86-64-v2 baseline) ===
-opt_flags = [
-  # --- Architecture: x86-64-v2 (SSE4.2, SSSE3, POPCNT, CMPXCHG16B) ---
+# === x86-only flags ===
+x86_flags = [
   '-march=x86-64-v2',
   '-mtune=generic',
-
-  # --- Core optimizations ---
-  '-O3',
-  '-flto=auto',                     # Link-time optimization (parallel)
-  '-fwhole-program',                 # WPO for static binary
-  '-fno-exceptions',                 # Smaller binary, no unwind tables
-  '-DNDEBUG',                        # Disable assert()
-
-  # --- Inlining ---
-  '-finline-functions',
-  '-finline-limit=300',              # Aggressive inlining threshold
-  '-fvisibility-inlines-hidden',     # Hide inline symbols
-  '-fdevirtualize',                  # Devirtualize indirect calls
-  '-fdevirtualize-at-ltrans',        # Devirtualize during LTO
-
-  # --- Loop optimizations ---
-  '-ftree-vectorize',                # Auto-vectorization (SSE/AVX)
-  '-ftree-loop-vectorize',           # Vectorize loops
-  '-ftree-loop-distribute-patterns', # Optimize loop patterns (memcpy, memset)
-  '-funroll-loops',                  # Unroll loops
-  '-floop-nest-optimize',            # Graphite loop optimizer
-  '-floop-parallelize-all',          # Parallelize all loops
-
-  # --- Code generation ---
-  '-fomit-frame-pointer',            # Free up RBP register
-  '-ffunction-sections',             # Each function in own section
-  '-fdata-sections',                 # Each data item in own section
-  '-fmerge-all-constants',           # Merge identical constants
-  '-fno-math-errno',                 # Skip errno on math funcs (faster sqrt, etc)
-  '-fno-signed-zeros',               # Ignore signed zero (-0.0 == 0.0)
-  '-fno-trapping-math',              # Assume no FP traps
-  '-ffinite-math-only',              # Assume no NaN/Inf (faster FP)
-  '-funsafe-math-optimizations',     # Reorder FP ops (faster, less IEEE)
-  '-freciprocal-math',               # Use 1/x instead of division
-
-  # --- Interprocedural ---
-  '-fipa-pta',                       # Interprocedural pointer analysis
-  '-fipa-cp',                        # Interprocedural constant propagation
-  '-fipa-sra',                       # Scalar replacement of aggregates
-  '-fipa-profile',                   # Use profile data for inlining
-
-  # --- Register allocation ---
-  '-frename-registers',              # Rename registers for better pipelining
-  '-fmodulo-sched',                  # Software pipelining
-
-  # --- Memory ---
-  '-ftree-pre',                      # Partial redundancy elimination
-  '-ftree-partial-pre',              # Aggressive PRE
-  '-ftree-sra',                      # Scalar replacement of aggregates
-  '-fstore-merging',                 # Merge adjacent stores
-  '-faggressive-loop-optimizations', # Assume no loop vectorization problems
-
-  # '-fprofile-use' can be enabled after PGO training for +10-15% speedup
+  '-fcf-protection=full',
 ]
 
-# === Linker flags ===
-linker_flags = [
-  '-Wl,-z,relro',
-  '-Wl,-z,now',
-  '-Wl,-z,noexecstack',
-  '-Wl,--gc-sections',
-  '-Wl,--as-needed',
-  '-flto=auto',                      # LTO at link stage
-  '-fuse-linker-plugin',             # Use linker plugin for better WPO
-  '-Wl,-O3',                         # Linker optimization level
-  '-Wl,--hash-style=both',           # Faster symbol lookup
-  '-Wl,--compress-debug-sections=zlib', # Smaller debug info
+# === ARM64-only flags ===
+arm64_flags = [
+  '-march=armv8-a',
 ]
 
-# === Debug build with sanitizers ===
+# === Select arch flags ===
+if host_machine.cpu_family() == 'aarch64'
+  arch_flags = arm64_flags
+else
+  arch_flags = x86_flags
+endif
+
+# === Linker flags (Linux only — Windows/MinGW doesn't support -z flags) ===
+linker_flags = []
+if host_machine.system() == 'linux'
+  linker_flags = [
+    '-Wl,-z,relro',
+    '-Wl,-z,now',
+    '-Wl,-z,noexecstack',
+    '-Wl,--gc-sections',
+    '-Wl,--as-needed',
+    '-flto=auto',
+    '-fuse-linker-plugin',
+    '-Wl,-O3',
+    '-Wl,--hash-style=both',
+    '-Wl,--compress-debug-sections=zlib',
+  ]
+elif host_machine.system() == 'windows'
+  linker_flags = [
+    '-static-libgcc',
+    '-static-libstdc++',
+    '-Wl,--gc-sections',
+    '-Wl,-O3',
+  ]
+endif
+
+# === Debug sanitizer flags ===
 sanitizer_flags = [
   '-fsanitize=address',
   '-fsanitize=undefined',
@@ -126,9 +131,9 @@ if get_option('buildtype') == 'debug'
   add_project_link_arguments(sanitizer_flags, language : 'cpp')
   message('BUILD: Debug + sanitizers (ASan + UBSan + LSan)')
 else
-  add_project_arguments(hardening_flags + opt_flags, language : 'cpp')
+  add_project_arguments(common_flags + arch_flags, language : 'cpp')
   add_project_link_arguments(linker_flags, language : 'cpp')
-  message('BUILD: Release + aggressive x86-64-v2 optimizations + LTO')
+  message('BUILD: Release + aggressive optimizations (cpu_family=@0@)'.format(host_machine.cpu_family()))
 endif
 
 # === Sources ===
@@ -176,23 +181,25 @@ fnwf = executable('fnwf',
     sdl2_image_dep,
     sdl2_mixer_dep,
   ],
-  cpp_pch : 'src/pch.hpp',
+  cpp_pch : meson.is_cross_build() ? '' : 'src/pch.hpp',
   install : true
 )
 
-# === Release packaging ===
-release_name = 'fnwf-classic-v@0@-linux-x86_64'.format(meson.project_version())
+# === Release packaging (Linux only — Windows packages via CI workflow) ===
+if host_machine.system() == 'linux'
+  release_name = 'fnwf-classic-v@0@-linux-x86_64'.format(meson.project_version())
 
-custom_target('package',
-  input : fnwf,
-  output : release_name + '.tar.gz',
-  command : [
-    find_program('scripts/package.sh'),
-    '@INPUT@',
-    '@OUTDIR@',
-    meson.project_version(),
-    meson.project_source_root(),
-    'linux-x86_64',
-  ],
-  build_by_default : true,
-)
+  custom_target('package',
+    input : fnwf,
+    output : release_name + '.tar.gz',
+    command : [
+      find_program('scripts/package.sh'),
+      '@INPUT@',
+      '@OUTDIR@',
+      meson.project_version(),
+      meson.project_source_root(),
+      'linux-x86_64',
+    ],
+    build_by_default : true,
+  )
+endif
