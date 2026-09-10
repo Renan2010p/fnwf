@@ -56,9 +56,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo dpkg --add-architecture arm64
-          echo 'deb [arch=arm64] http://ports.ubuntu.com/ports noble main restricted universe multiverse' | sudo tee /etc/apt/sources.list.d/arm64.list
-          echo 'deb [arch=arm64] http://ports.ubuntu.com/ports noble-updates main restricted universe multiverse' | sudo tee -a /etc/apt/sources.list.d/arm64.list
-          sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64 arm64/' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+
+          # Ubuntu 24.04 uses DEB822 format — add arm64 to existing sources
+          sudo sed -i 's/^Architectures: amd64$/Architectures: amd64 arm64/' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+
+          # Add Ubuntu ports for arm64 packages
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/arm64-ports.list
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-backports main restricted universe multiverse
+          EOF
+
           sudo apt-get update -qq
           sudo apt-get install -y -qq meson ninja-build g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
             pkg-config-aarch64-linux-gnu \
