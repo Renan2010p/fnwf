@@ -1,5 +1,5 @@
 project('fnwf', 'cpp',
-  version : '2.0.8',
+  version : '2.0.9',
   default_options : [
     'cpp_std=c++23',
     'warning_level=2',
@@ -192,6 +192,7 @@ custom_target('package',
     '@OUTDIR@',
     meson.project_version(),
     meson.project_source_root(),
+    'linux-x86_64',
   ],
   build_by_default : true,
 )
