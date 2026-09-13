@@ -313,6 +313,10 @@ auto GameplayState::handle_event(const Event& ev) -> void {
 
         if (key == ' ' && !cameras.is_open)
             cameras.toggle_mask();
+        if (key == 9 && !cameras.is_open) {  // Tab = monitor
+            cameras.toggle();
+            SoundManager::play_sound("camera");
+        }
         if (key == 27) {
             SoundManager::stop_all_sounds();
             m_result = "menu";
