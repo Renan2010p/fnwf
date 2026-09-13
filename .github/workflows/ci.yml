@@ -46,7 +46,7 @@ jobs:
           name: fnwf-linux-x86_64
           path: release/fnwf-classic-*-linux-x86_64.tar.gz
 
-  build-windows:
+  build-windows-x86_64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
