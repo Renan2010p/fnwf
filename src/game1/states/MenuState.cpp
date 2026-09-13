@@ -1,8 +1,6 @@
 #include "game1/states/MenuState.hpp"
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
-#include "core/MobileUI.hpp"
-#include "core/Rng.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 #include <algorithm>
@@ -137,7 +135,7 @@ auto MenuState::draw(Engine& eng) -> void {
             eng, options[i].label, 68, y - 5, 22, bri, bri, bri + (int)(20 * (is_sel ? 1 : 0)));
     }
     DrawUtils::text(eng,
-                    MobileUI::is_mobile() ? "TOCA PRA SELECIONAR" : "[ UP / DOWN ] SELECT     [ ENTER ] PLAY     [ ESC ] BACK",
+                    "[ UP / DOWN ] SELECT     [ ENTER ] PLAY     [ ESC ] BACK",
                     60,
                     GameSettings::SCREEN_HEIGHT - 58,
                     13,

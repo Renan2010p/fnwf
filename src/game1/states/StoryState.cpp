@@ -1,7 +1,6 @@
 #include "game1/states/StoryState.hpp"
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
-#include "core/MobileUI.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 #include <algorithm>
@@ -191,8 +190,8 @@ auto StoryState::draw(Engine& eng) -> void {
         bool blink = ((int)(timer * 2) % 2) == 0;
         if (blink) {
             std::string txt = (visible_messages < (int)messages.size())
-                                  ? (MobileUI::is_mobile() ? "TOCA PRA AVANCAR" : Localization::get_text("story_skip"))
-                                  : (MobileUI::is_mobile() ? "TOCA PRA COMECAR" : Localization::get_text("story_start_night"));
+                                  ? Localization::get_text("story_skip")
+                                  : Localization::get_text("story_start_night");
             DrawUtils::text(
                 eng, txt, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 20, 12, 130, 130, 140, 255, true);
         }

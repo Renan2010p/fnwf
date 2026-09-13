@@ -15,8 +15,6 @@ GameplayState::GameplayState(Engine& eng, int night_, const std::vector<int>* cu
     secret_mode = animatronics.is_secret_mode();
     night_duration = GameSettings::HOUR_DURATION * 6;
     SoundManager::set_engine(&eng);
-    if (MobileUI::is_mobile())
-        setup_mobile_buttons();
 }
 
 auto GameplayState::is_done() const -> bool {
@@ -140,7 +138,6 @@ auto GameplayState::update(double dt) -> void {
     if (oxygen <= 35)
         danger += 0.1;
     danger_level = std::max(0.0, std::min(1.0, danger));
-    update_mobile_states();
 }
 
 auto GameplayState::update_power_out(double dt) -> void {
@@ -183,63 +180,6 @@ auto GameplayState::handle_event(const Event& ev) -> void {
 
     if (ev.type == EventType::MouseButtonDown) {
         int mx = ev.x, my = ev.y;
-
-        // Mobile touch buttons
-        if (MobileUI::is_mobile()) {
-            auto action = mobile_ui.handle_touch(mx, my);
-            if (!action.empty()) {
-                if (action == "left_door") {
-                    doors.left_closed = !doors.left_closed;
-                    SoundManager::play_sound("door");
-                    return;
-                }
-                if (action == "right_door") {
-                    doors.right_closed = !doors.right_closed;
-                    SoundManager::play_sound("door");
-                    return;
-                }
-                if (action == "left_light") {
-                    doors.left_light = !doors.left_light;
-                    SoundManager::play_sound("light");
-                    if (doors.left_light && !animatronics.get_at_left_door().empty())
-                        SoundManager::play_sound("animatronic_door");
-                    return;
-                }
-                if (action == "right_light") {
-                    doors.right_light = !doors.right_light;
-                    SoundManager::play_sound("light");
-                    if (doors.right_light && !animatronics.get_at_right_door().empty())
-                        SoundManager::play_sound("animatronic_door");
-                    return;
-                }
-                if (action == "vent") {
-                    office.vent_light = !office.vent_light;
-                    SoundManager::play_sound("light");
-                    if (office.vent_light && !animatronics.get_at_vent().empty())
-                        SoundManager::play_sound("animatronic_door");
-                    return;
-                }
-                if (action == "monitor") {
-                    if (!cameras.is_mask_open && !cameras.is_mask_animating)
-                        cameras.toggle();
-                    SoundManager::play_sound("camera");
-                    return;
-                }
-                if (action == "mask") {
-                    if (!cameras.is_open && !cameras.is_animating)
-                        cameras.toggle_mask();
-                    return;
-                }
-                if (action.substr(0, 4) == "cam_") {
-                    if (cameras.is_fully_open()) {
-                        std::string cam_id = action.substr(4);
-                        cameras.switch_camera(cam_id);
-                        SoundManager::play_sound("camera");
-                    }
-                    return;
-                }
-            }
-        }
 
         if (cameras.check_toggle_click(mx, my)) {
             SoundManager::play_sound("camera");
@@ -417,8 +357,6 @@ auto GameplayState::draw(Engine& eng) -> void {
     if (blackout_alpha > 0)
         eng.draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0, (int)blackout_alpha);
 
-    mobile_ui.draw(eng);
-
     draw_fade(eng);
 }
 
@@ -492,72 +430,6 @@ auto GameplayState::draw_fade(Engine& eng) -> void {
     if (fade_alpha > 0)
         eng.draw_rect(
             0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 0, 0, 0, fade_alpha);
-}
-
-auto GameplayState::setup_mobile_buttons() -> void {
-    using namespace GameSettings;
-    int bw = 80, bh = 48, gap = 6;
-    int fs = 11;
-
-    // Left panel - bottom left
-    int lx = 10;
-    int ly = SCREEN_HEIGHT - bh * 2 - gap * 2 - 20;
-    mobile_ui.add_button("left_door", Localization::get_text("door_left"),
-                         lx, ly, bw, bh, fs, 80, 75, 70, 200, 40, 40);
-    mobile_ui.add_button("left_light", Localization::get_text("light"),
-                         lx, ly + bh + gap, bw, bh, fs, 30, 60, 30, 30, 180, 60);
-
-    // Right panel - bottom right
-    int rx = SCREEN_WIDTH - bw - 10;
-    mobile_ui.add_button("right_door", Localization::get_text("door_right"),
-                         rx, ly, bw, bh, fs, 80, 75, 70, 200, 40, 40);
-    mobile_ui.add_button("right_light", Localization::get_text("light"),
-                         rx, ly + bh + gap, bw, bh, fs, 30, 60, 30, 30, 180, 60);
-
-    // Bottom center - monitor + mask
-    int center_w = 110;
-    int cx1 = SCREEN_WIDTH / 2 - center_w - gap;
-    int cx2 = SCREEN_WIDTH / 2 + gap;
-    int cy = SCREEN_HEIGHT - bh - 10;
-    mobile_ui.add_button("monitor", "MONITOR",
-                         cx1, cy, center_w, bh, fs, 20, 100, 50, 20, 200, 80);
-    mobile_ui.add_button("mask", "MASCARA",
-                         cx2, cy, center_w, bh, fs, 100, 40, 100, 180, 105, 180);
-
-    // Vent light - bottom center above monitor
-    int vw = 90;
-    mobile_ui.add_button("vent", Localization::get_text("vent_light"),
-                         SCREEN_WIDTH / 2 - vw / 2, cy - bh - gap, vw, bh, fs,
-                         120, 120, 140, 200, 200, 220);
-
-    // Camera buttons - top right grid (3x3)
-    int cw = 42, ch = 34, cg = 3;
-    int grid_x = SCREEN_WIDTH - cw * 3 - cg * 2 - 10;
-    int grid_y = 10;
-    const char* cam_labels[] = {"1A", "1B", "1C", "2A", "2B", "3", "4A", "4B", "5"};
-    for (int i = 0; i < 9; ++i) {
-        int row = i / 3, col = i % 3;
-        mobile_ui.add_button("cam_" + std::string(cam_labels[i]), cam_labels[i],
-                             grid_x + col * (cw + cg), grid_y + row * (ch + cg),
-                             cw, ch, 10, 40, 80, 40, 60, 180, 60);
-    }
-}
-
-auto GameplayState::update_mobile_states() -> void {
-    if (!MobileUI::is_mobile())
-        return;
-    mobile_ui.set_active("left_door", doors.left_closed);
-    mobile_ui.set_active("right_door", doors.right_closed);
-    mobile_ui.set_active("left_light", doors.left_light);
-    mobile_ui.set_active("right_light", doors.right_light);
-    mobile_ui.set_active("monitor", cameras.is_open);
-    mobile_ui.set_active("mask", cameras.is_mask_open);
-
-    bool cam_visible = cameras.is_visible();
-    for (int i = 0; i < 9; ++i) {
-        const char* ids[] = {"1A", "1B", "1C", "2A", "2B", "3", "4A", "4B", "5"};
-        mobile_ui.set_visible("cam_" + std::string(ids[i]), cam_visible);
-    }
 }
 
 }  // namespace fnwf

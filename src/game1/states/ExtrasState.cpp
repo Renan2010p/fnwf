@@ -1,7 +1,6 @@
 #include "game1/states/ExtrasState.hpp"
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
-#include "core/MobileUI.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 #include <algorithm>
@@ -86,22 +85,20 @@ auto ExtrasState::handle_event(const Event& ev) -> void {
         }
     }
     if (ev.type == EventType::MouseButtonDown) {
-        if (MobileUI::is_mobile()) {
-            if (ev.y >= GameSettings::SCREEN_HEIGHT - 50) {
-                m_result = "menu";
-                done = true;
-                SoundManager::play_sound("select");
-                return;
-            }
-            if (ev.x < GameSettings::SCREEN_WIDTH / 2) {
-                category = ((category - 2 + (int)categories.size()) % (int)categories.size()) + 1;
-                selected = 1;
-                SoundManager::play_sound("blip");
-            } else {
-                category = (category % (int)categories.size()) + 1;
-                selected = 1;
-                SoundManager::play_sound("blip");
-            }
+        if (ev.y >= GameSettings::SCREEN_HEIGHT - 50) {
+            m_result = "menu";
+            done = true;
+            SoundManager::play_sound("select");
+            return;
+        }
+        if (ev.x < GameSettings::SCREEN_WIDTH / 2) {
+            category = ((category - 2 + (int)categories.size()) % (int)categories.size()) + 1;
+            selected = 1;
+            SoundManager::play_sound("blip");
+        } else {
+            category = (category % (int)categories.size()) + 1;
+            selected = 1;
+            SoundManager::play_sound("blip");
         }
     }
 }
@@ -130,12 +127,6 @@ auto ExtrasState::draw(Engine& eng) -> void {
 
     DrawUtils::text(
         eng, Localization::get_text("extras_help"), 80, SCREEN_HEIGHT - 40, 14, 150, 150, 160);
-    if (MobileUI::is_mobile()) {
-        eng.draw_rect(SCREEN_WIDTH / 2 - 80, SCREEN_HEIGHT - 44, 160, 36, 80, 80, 90, 180);
-        eng.draw_rect(SCREEN_WIDTH / 2 - 80, SCREEN_HEIGHT - 44, 160, 36, 200, 200, 210, 60, false);
-        DrawUtils::text(eng, Localization::get_text("back"),
-                        SCREEN_WIDTH / 2, SCREEN_HEIGHT - 28, 14, 255, 255, 255, 220, true);
-    }
     DrawUtils::scanlines(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
 }
 
