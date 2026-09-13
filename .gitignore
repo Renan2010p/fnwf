@@ -1,5 +1,6 @@
 bin/
 build/
+build_web/
 *.gcda
 *.gcno
 *.o

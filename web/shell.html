@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="screen-orientation" content="landscape">
+<title>Five Nights With Friends</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  canvas#canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    background: #000;
+    touch-action: none;
+  }
+  #loading {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #0a0a0c; color: #aaa;
+    font-family: monospace; font-size: 14px;
+    z-index: 10;
+    cursor: pointer;
+  }
+  #loading h1 { color: #fff; font-size: 22px; margin-bottom: 16px; }
+  #progress-bar {
+    width: 260px; height: 6px;
+    background: #222; border-radius: 3px; overflow: hidden;
+    margin-top: 12px;
+  }
+  #progress-fill {
+    width: 0%; height: 100%;
+    background: #4a9; transition: width 0.2s;
+  }
+  #status { margin-top: 10px; font-size: 12px; color: #666; }
+</style>
+</head>
+<body>
+<div id="loading">
+  <h1>FIVE NIGHTS WITH FRIENDS</h1>
+  <div>Classic Edition</div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="status">Loading...</div>
+</div>
+
+<script>
+(function() {
+  var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  var wentFullscreen = false;
+
+  function tryFullscreen() {
+    if (wentFullscreen) return;
+    var el = document.documentElement;
+    var rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (rfs) {
+      rfs.call(el).then(function() {
+        wentFullscreen = true;
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(function(){});
+        }
+      }).catch(function() {});
+    }
+    if (!wentFullscreen) {
+      wentFullscreen = true;
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(function(){});
+      }
+    }
+  }
+
+  // On mobile: any touch/click triggers fullscreen
+  if (isMobile) {
+    document.addEventListener('touchstart', tryFullscreen, { once: false });
+    document.addEventListener('click', tryFullscreen, { once: false });
+  }
+
+  // iOS: hide URL bar
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.scrollTo(0, 1); }, 200);
+  });
+
+  // Prevent pull-to-refresh, zoom, double-tap zoom
+  document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+  document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+  document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+  var lastTap = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = Date.now();
+    if (now - lastTap < 300) e.preventDefault();
+    lastTap = now;
+  }, { passive: false });
+  document.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+})();
+</script>
+
+<script>
+  var Module = {
+    preRun: [],
+    postRun: [],
+    print: function(text) { console.log(text); },
+    printErr: function(text) { console.error(text); },
+    canvas: (function() {
+      var canvas = document.createElement('canvas');
+      canvas.id = 'canvas';
+      document.body.appendChild(canvas);
+      return canvas;
+    })(),
+    setStatus: function(text) {
+      if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+      if (text === Module.setStatus.last.text) return;
+      var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+      if (m) {
+        var pct = (parseInt(m[2]) / parseInt(m[4]) * 100);
+        document.getElementById('progress-fill').style.width = pct + '%';
+        document.getElementById('status').textContent = 'Loading assets... ' + Math.round(pct) + '%';
+      } else if (text) {
+        document.getElementById('status').textContent = text;
+      } else {
+        document.getElementById('loading').style.display = 'none';
+      }
+      Module.setStatus.last = { time: Date.now(), text: text };
+    },
+    monitorRunDependencies: function(left) {
+      Module.setStatus(left ? 'Preparing... (' + left + ' remaining)' : '');
+    }
+  };
+  Module.setStatus('Starting...');
+  window.onerror = function() {
+    Module.setStatus('Exception thrown, see JavaScript console');
+  };
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>
