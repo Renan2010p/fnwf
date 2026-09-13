@@ -23,6 +23,20 @@ jobs:
           meson setup build --buildtype=release
           meson compile -C build
 
+      - name: Package
+        run: |
+          mkdir -p release/fnwf-linux-x86_64
+          cp build/fnwf release/fnwf-linux-x86_64/
+          cp -r assets release/fnwf-linux-x86_64/
+          chmod +x release/fnwf-linux-x86_64/fnwf
+          cd release && tar czf fnwf-linux-x86_64.tar.gz fnwf-linux-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-linux-x86_64
+          path: release/fnwf-linux-x86_64.tar.gz
+
   build-windows:
     runs-on: windows-latest
     defaults:
@@ -45,9 +59,46 @@ jobs:
             mingw-w64-x86_64-SDL2_mixer
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
-            meson ninja git
+            meson ninja git zip
 
       - name: Build
         run: |
           meson setup build --buildtype=release
           meson compile -C build
+
+      - name: Package
+        run: |
+          mkdir -p release/fnwf-windows-x86_64
+          cp build/fnwf.exe release/fnwf-windows-x86_64/
+          cp -r assets release/fnwf-windows-x86_64/
+          for dll in \
+            /mingw64/bin/SDL2.dll \
+            /mingw64/bin/SDL2_ttf.dll \
+            /mingw64/bin/SDL2_image.dll \
+            /mingw64/bin/SDL2_mixer.dll \
+            /mingw64/bin/libfreetype-6.dll \
+            /mingw64/bin/libpng16-16.dll \
+            /mingw64/bin/zlib1.dll \
+            /mingw64/bin/libharfbuzz-0.dll \
+            /mingw64/bin/libbrotlidec.dll \
+            /mingw64/bin/libbrotlicommon.dll \
+            /mingw64/bin/libbz2-1.dll \
+            /mingw64/bin/libtiff-6.dll \
+            /mingw64/bin/libwebp-7.dll \
+            /mingw64/bin/libjpeg-8.dll \
+            /mingw64/bin/libogg-0.dll \
+            /mingw64/bin/libvorbis-0.dll \
+            /mingw64/bin/libvorbisfile-3.dll \
+            /mingw64/bin/libopus-0.dll \
+            /mingw64/bin/libFLAC-12.dll \
+            /mingw64/bin/libmpg123-0.dll \
+            /mingw64/bin/libsndfile-1.dll; do
+            cp "$dll" release/fnwf-windows-x86_64/ 2>/dev/null || true
+          done
+          cd release && tar czf fnwf-windows-x86_64.tar.gz fnwf-windows-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-windows-x86_64
+          path: release/fnwf-windows-x86_64.tar.gz
