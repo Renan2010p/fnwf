@@ -16,77 +16,63 @@ sdl2_ttf_dep = dependency('SDL2_ttf', required : true)
 sdl2_image_dep = dependency('SDL2_image', required : true)
 sdl2_mixer_dep = dependency('SDL2_mixer', required : true)
 
-# === Common flags (all architectures) ===
-common_flags = [
-  '-D_FORTIFY_SOURCE=3',
-  '-fstack-protector-strong',
-  '-fstack-clash-protection',
-  '-fPIE',
-  '-Wformat',
-  '-Wformat-security',
-  '-Werror=format-security',
-  '-O3',
-  '-flto=auto',
-  '-fwhole-program',
-  '-fno-exceptions',
-  '-DNDEBUG',
-  '-finline-functions',
-  '-finline-limit=300',
-  '-fvisibility-inlines-hidden',
-  '-fdevirtualize',
-  '-fdevirtualize-at-ltrans',
-  '-ftree-vectorize',
-  '-ftree-loop-vectorize',
-  '-ftree-loop-distribute-patterns',
-  '-funroll-loops',
-  '-floop-nest-optimize',
-  '-floop-parallelize-all',
-  '-fomit-frame-pointer',
-  '-ffunction-sections',
-  '-fdata-sections',
-  '-fmerge-all-constants',
-  '-fno-math-errno',
-  '-fno-signed-zeros',
-  '-fno-trapping-math',
-  '-ffinite-math-only',
-  '-funsafe-math-optimizations',
-  '-freciprocal-math',
-  '-fipa-pta',
-  '-fipa-cp',
-  '-fipa-sra',
-  '-fipa-profile',
-  '-frename-registers',
-  '-fmodulo-sched',
-  '-ftree-pre',
-  '-ftree-partial-pre',
-  '-ftree-sra',
-  '-fstore-merging',
-  '-faggressive-loop-optimizations',
-]
-
-# === x86-only flags ===
-x86_flags = [
-  '-march=x86-64-v2',
-  '-mtune=generic',
-  '-fcf-protection=full',
-]
-
-# === ARM64-only flags ===
-arm64_flags = [
-  '-march=armv8-a',
-]
-
-# === Select arch flags ===
-if host_machine.cpu_family() == 'aarch64'
-  arch_flags = arm64_flags
-else
-  arch_flags = x86_flags
-endif
-
-# === Linker flags (Linux only — Windows/MinGW doesn't support -z flags) ===
-linker_flags = []
+# === Platform-specific flags ===
 if host_machine.system() == 'linux'
-  linker_flags = [
+  add_project_arguments([
+    '-D_FORTIFY_SOURCE=3',
+    '-fstack-protector-strong',
+    '-fstack-clash-protection',
+    '-fPIE',
+    '-Wformat',
+    '-Wformat-security',
+    '-Werror=format-security',
+    '-O3',
+    '-flto=auto',
+    '-fwhole-program',
+    '-fno-exceptions',
+    '-DNDEBUG',
+    '-finline-functions',
+    '-finline-limit=300',
+    '-fvisibility-inlines-hidden',
+    '-fdevirtualize',
+    '-fdevirtualize-at-ltrans',
+    '-ftree-vectorize',
+    '-ftree-loop-vectorize',
+    '-ftree-loop-distribute-patterns',
+    '-funroll-loops',
+    '-floop-nest-optimize',
+    '-floop-parallelize-all',
+    '-fomit-frame-pointer',
+    '-ffunction-sections',
+    '-fdata-sections',
+    '-fmerge-all-constants',
+    '-fno-math-errno',
+    '-fno-signed-zeros',
+    '-fno-trapping-math',
+    '-ffinite-math-only',
+    '-funsafe-math-optimizations',
+    '-freciprocal-math',
+    '-fipa-pta',
+    '-fipa-cp',
+    '-fipa-sra',
+    '-fipa-profile',
+    '-frename-registers',
+    '-fmodulo-sched',
+    '-ftree-pre',
+    '-ftree-partial-pre',
+    '-ftree-sra',
+    '-fstore-merging',
+    '-faggressive-loop-optimizations',
+  ], language : 'cpp')
+
+  # x86_64 arch flags
+  if host_machine.cpu_family() == 'aarch64'
+    add_project_arguments(['-march=armv8-a'], language : 'cpp')
+  else
+    add_project_arguments(['-march=x86-64-v2', '-mtune=generic', '-fcf-protection=full'], language : 'cpp')
+  endif
+
+  add_project_link_arguments([
     '-Wl,-z,relro',
     '-Wl,-z,now',
     '-Wl,-z,noexecstack',
@@ -97,43 +83,27 @@ if host_machine.system() == 'linux'
     '-Wl,-O3',
     '-Wl,--hash-style=both',
     '-Wl,--compress-debug-sections=zlib',
-  ]
+  ], language : 'cpp')
+
+  message('BUILD: Linux release (cpu_family=@0@)'.format(host_machine.cpu_family()))
+
 elif host_machine.system() == 'windows'
-  linker_flags = [
+  add_project_arguments([
+    '-O2',
+    '-DNDEBUG',
+    '-fomit-frame-pointer',
+    '-ffunction-sections',
+    '-fdata-sections',
+  ], language : 'cpp')
+
+  add_project_link_arguments([
     '-static-libgcc',
     '-static-libstdc++',
     '-Wl,--gc-sections',
     '-Wl,-O3',
-  ]
-endif
+  ], language : 'cpp')
 
-# === Debug sanitizer flags ===
-sanitizer_flags = [
-  '-fsanitize=address',
-  '-fsanitize=undefined',
-  '-fsanitize=leak',
-  '-fsanitize=alignment',
-  '-fsanitize=float-cast-overflow',
-  '-fsanitize=float-divide-by-zero',
-  '-fsanitize=integer-divide-by-zero',
-  '-fsanitize=nonnull-attribute',
-  '-fsanitize=return',
-  '-fsanitize=signed-integer-overflow',
-  '-fsanitize=unreachable',
-  '-fno-omit-frame-pointer',
-  '-g',
-  '-O1',
-]
-
-# === Apply flags ===
-if get_option('buildtype') == 'debug'
-  add_project_arguments(sanitizer_flags, language : 'cpp')
-  add_project_link_arguments(sanitizer_flags, language : 'cpp')
-  message('BUILD: Debug + sanitizers (ASan + UBSan + LSan)')
-else
-  add_project_arguments(common_flags + arch_flags, language : 'cpp')
-  add_project_link_arguments(linker_flags, language : 'cpp')
-  message('BUILD: Release + aggressive optimizations (cpu_family=@0@)'.format(host_machine.cpu_family()))
+  message('BUILD: Windows release (MinGW64)')
 endif
 
 # === Sources ===
@@ -142,6 +112,7 @@ fnwf_sources = files(
   'src/engine/Engine.cpp',
   'src/core/DrawUtils.cpp',
   'src/core/Localization.cpp',
+  'src/core/MobileUI.cpp',
   'src/core/SaveManager.cpp',
   'src/core/SettingsManager.cpp',
   'src/core/StateMachine.cpp',
@@ -181,25 +152,5 @@ fnwf = executable('fnwf',
     sdl2_image_dep,
     sdl2_mixer_dep,
   ],
-  cpp_pch : meson.is_cross_build() ? '' : 'src/pch.hpp',
   install : true
 )
-
-# === Release packaging (Linux only — Windows packages via CI workflow) ===
-if host_machine.system() == 'linux'
-  release_name = 'fnwf-classic-v@0@-linux-x86_64'.format(meson.project_version())
-
-  custom_target('package',
-    input : fnwf,
-    output : release_name + '.tar.gz',
-    command : [
-      find_program('scripts/package.sh'),
-      '@INPUT@',
-      '@OUTDIR@',
-      meson.project_version(),
-      meson.project_source_root(),
-      'linux-x86_64',
-    ],
-    build_by_default : true,
-  )
-endif
