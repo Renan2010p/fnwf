@@ -1,13 +1,12 @@
 #pragma once
 
+#include "core/GameState.hpp"
 #include "engine/Engine.hpp"
 #include <functional>
 #include <memory>
 #include <string>
 
 namespace fnwf {
-
-class GameState;
 
 class StateMachine
 {

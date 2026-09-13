@@ -1,5 +1,6 @@
 #pragma once
 #include "core/GameState.hpp"
+#include "core/MobileUI.hpp"
 #include "systems/Animatronics.hpp"
 #include "systems/CameraSystem.hpp"
 #include "systems/Doors.hpp"
@@ -73,6 +74,10 @@ private:
     bool _win_triggered{false};
     bool _power_out_snd{false};
     bool secret_mode{false};
+
+    MobileUI mobile_ui{};
+    auto setup_mobile_buttons() -> void;
+    auto update_mobile_states() -> void;
 };
 
 }  // namespace fnwf

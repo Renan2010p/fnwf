@@ -1,6 +1,7 @@
 #include "game1/states/ConquistasState.hpp"
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
+#include "core/MobileUI.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 
@@ -34,6 +35,11 @@ auto ConquistasState::handle_event(const Event& ev) -> void {
             m_result = "menu";
             SoundManager::play_sound("select");
         }
+    }
+    if (ev.type == EventType::MouseButtonDown) {
+        done = true;
+        m_result = "menu";
+        SoundManager::play_sound("select");
     }
 }
 
