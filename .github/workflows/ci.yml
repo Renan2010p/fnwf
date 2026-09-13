@@ -48,14 +48,12 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
 
       - name: Get version
         id: version
+        shell: bash
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
           SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
@@ -78,11 +76,13 @@ jobs:
             meson ninja git zip
 
       - name: Build
+        shell: msys2 {0}
         run: |
           meson setup build --buildtype=release
           meson compile -C build
 
       - name: Package
+        shell: msys2 {0}
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           RELEASE="fnwf-classic-${TAG}-windows-x86_64"
