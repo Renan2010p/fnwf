@@ -183,12 +183,14 @@
     controls.classList.add('active');
 
     function sendKey(keyCode, code, key) {
-      var canvas = document.getElementById('canvas');
-      if (!canvas) return;
-      canvas.dispatchEvent(new KeyboardEvent('keydown', { keyCode: keyCode, code: code, key: key, bubbles: true }));
-      setTimeout(function() {
-        canvas.dispatchEvent(new KeyboardEvent('keyup', { keyCode: keyCode, code: code, key: key, bubbles: true }));
-      }, 80);
+      var target = document.getElementById('canvas') || window;
+      ['keydown', 'keyup'].forEach(function(type, i) {
+        setTimeout(function() {
+          window.dispatchEvent(new KeyboardEvent(type, { keyCode: keyCode, code: code, key: key, bubbles: true }));
+          document.dispatchEvent(new KeyboardEvent(type, { keyCode: keyCode, code: code, key: key, bubbles: true }));
+          target.dispatchEvent(new KeyboardEvent(type, { keyCode: keyCode, code: code, key: key, bubbles: true }));
+        }, i * 80);
+      });
     }
 
     var keyMap = {
