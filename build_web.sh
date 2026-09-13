@@ -68,11 +68,11 @@ em++ \
     --preload-file assets \
     -lc++ -lc++abi \
     --shell-file web/shell.html \
-    -o "$OUT_DIR/fnwf.html" \
+    -o "$OUT_DIR/index.html" \
     2>&1
 
 echo ""
 echo "=== Build complete ==="
-echo "Output: $OUT_DIR/fnwf.html"
+echo "Output: $OUT_DIR/index.html"
 echo "To test: cd $OUT_DIR && python3 -m http.server 8080"
 echo "Then open http://localhost:8080 in your browser"

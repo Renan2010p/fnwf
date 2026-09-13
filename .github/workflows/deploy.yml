@@ -82,7 +82,7 @@ jobs:
               --preload-file assets \
               -lc++ -lc++abi \
               --shell-file web/shell.html \
-              -o build_web/fnwf.html
+              -o build_web/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
