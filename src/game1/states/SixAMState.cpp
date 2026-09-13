@@ -1,7 +1,6 @@
 #include "game1/states/SixAMState.hpp"
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
-#include "core/MobileUI.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 #include <string>
@@ -38,7 +37,7 @@ auto SixAMState::draw(Engine& eng) -> void {
 
     if (timer > 8.0 && ((int)(timer * 2) % 2 == 1))
         DrawUtils::text(eng,
-                        MobileUI::is_mobile() ? "TOCA PRA CONTINUAR" : Localization::get_text("press_any_key"),
+                        Localization::get_text("press_any_key"),
                         cx,
                         SCREEN_HEIGHT - 50,
                         16,

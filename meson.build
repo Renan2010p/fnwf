@@ -112,7 +112,6 @@ fnwf_sources = files(
   'src/engine/Engine.cpp',
   'src/core/DrawUtils.cpp',
   'src/core/Localization.cpp',
-  'src/core/MobileUI.cpp',
   'src/core/SaveManager.cpp',
   'src/core/SettingsManager.cpp',
   'src/core/StateMachine.cpp',

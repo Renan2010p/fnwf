@@ -2,7 +2,6 @@
 #include "core/DrawUtils.hpp"
 #include "core/GameState.hpp"
 #include "core/Localization.hpp"
-#include "core/MobileUI.hpp"
 #include "core/SaveManager.hpp"
 #include "core/SettingsManager.hpp"
 #include "core/SoundManager.hpp"
@@ -338,15 +337,6 @@ auto main(int argc, char** argv) -> int {
     auto& settings = fnwf::SettingsManager::instance();
     fnwf::Localization::set_language(settings.language);
     fnwf::DrawUtils::set_render_quality(settings.quality);
-
-#ifdef __EMSCRIPTEN__
-    int is_touch = EM_ASM_INT({
-        return ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 1 : 0;
-    });
-    fnwf::MobileUI::set_mobile(is_touch == 1);
-#else
-    fnwf::MobileUI::set_mobile(false);
-#endif
 
     g.eng = &eng;
     g.test_office = test_office;
