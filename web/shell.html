@@ -47,6 +47,53 @@
     background: #4a9; transition: width 0.2s;
   }
   #status { margin-top: 10px; font-size: 12px; color: #666; }
+
+  #touch-controls {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 140px;
+    z-index: 20;
+    pointer-events: none;
+  }
+  #touch-controls.active { display: flex; }
+
+  .touch-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 10px;
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .touch-row {
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .touch-btn {
+    width: 64px; height: 48px;
+    border: 1px solid rgba(200,200,220,0.4);
+    border-radius: 6px;
+    background: rgba(60,60,80,0.7);
+    color: #ccc;
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-btn:active, .touch-btn.on {
+    background: rgba(80,140,220,0.85);
+    color: #fff;
+    border-color: rgba(120,180,255,0.7);
+  }
+  .touch-btn.wide { width: 96px; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -55,6 +102,33 @@
   <div>Classic Edition</div>
   <div id="progress-bar"><div id="progress-fill"></div></div>
   <div id="status">Loading...</div>
+</div>
+
+<div id="touch-controls">
+  <!-- Left side: doors + lights -->
+  <div class="touch-col">
+    <div class="touch-row">
+      <div class="touch-btn" data-key="q">DOOR L</div>
+      <div class="touch-btn" data-key="a">LIGHT L</div>
+    </div>
+  </div>
+
+  <!-- Center: monitor + mask + vent -->
+  <div class="touch-col">
+    <div class="touch-btn" data-key="l">VENT</div>
+    <div class="touch-row">
+      <div class="touch-btn wide" data-key="p">MONITOR</div>
+      <div class="touch-btn wide" data-key=" ">MASK</div>
+    </div>
+  </div>
+
+  <!-- Right side: doors + lights -->
+  <div class="touch-col">
+    <div class="touch-row">
+      <div class="touch-btn" data-key="e">DOOR R</div>
+      <div class="touch-btn" data-key="d">LIGHT R</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -82,18 +156,15 @@
     }
   }
 
-  // On mobile: any touch/click triggers fullscreen
   if (isMobile) {
     document.addEventListener('touchstart', tryFullscreen, { once: false });
     document.addEventListener('click', tryFullscreen, { once: false });
   }
 
-  // iOS: hide URL bar
   window.addEventListener('load', function() {
     setTimeout(function() { window.scrollTo(0, 1); }, 200);
   });
 
-  // Prevent pull-to-refresh, zoom, double-tap zoom
   document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
   document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
   document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
@@ -105,6 +176,53 @@
     lastTap = now;
   }, { passive: false });
   document.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+
+  // Touch controls — simulate keyboard via SDL2 Emscripten
+  if (isMobile) {
+    var controls = document.getElementById('touch-controls');
+    controls.classList.add('active');
+
+    function sendKey(keyCode, code, key) {
+      var canvas = document.getElementById('canvas');
+      if (!canvas) return;
+      canvas.dispatchEvent(new KeyboardEvent('keydown', { keyCode: keyCode, code: code, key: key, bubbles: true }));
+      setTimeout(function() {
+        canvas.dispatchEvent(new KeyboardEvent('keyup', { keyCode: keyCode, code: code, key: key, bubbles: true }));
+      }, 80);
+    }
+
+    var keyMap = {
+      'q': { code: 81, code_str: 'KeyQ', key: 'q' },
+      'e': { code: 69, code_str: 'KeyE', key: 'e' },
+      'a': { code: 65, code_str: 'KeyA', key: 'a' },
+      'd': { code: 68, code_str: 'KeyD', key: 'd' },
+      'l': { code: 76, code_str: 'KeyL', key: 'l' },
+      'p': { code: 9, code_str: 'Tab', key: 'Tab' },
+      ' ': { code: 32, code_str: 'Space', key: ' ' }
+    };
+
+    var btns = document.querySelectorAll('.touch-btn');
+    for (var i = 0; i < btns.length; i++) {
+      (function(btn) {
+        var k = btn.getAttribute('data-key');
+        var info = keyMap[k];
+        if (!info) return;
+
+        btn.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          btn.classList.add('on');
+          sendKey(info.code, info.code_str, info.key);
+        }, { passive: false });
+
+        btn.addEventListener('touchend', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          btn.classList.remove('on');
+        }, { passive: false });
+      })(btns[i]);
+    }
+  }
 })();
 </script>
 
