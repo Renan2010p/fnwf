@@ -12,6 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get version
+        id: version
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
@@ -25,17 +32,19 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p release/fnwf-linux-x86_64
-          cp build/fnwf release/fnwf-linux-x86_64/
-          cp -r assets release/fnwf-linux-x86_64/
-          chmod +x release/fnwf-linux-x86_64/fnwf
-          cd release && tar czf fnwf-linux-x86_64.tar.gz fnwf-linux-x86_64
+          TAG="${{ steps.version.outputs.tag }}"
+          RELEASE="fnwf-classic-${TAG}-linux-x86_64"
+          mkdir -p "release/${RELEASE}"
+          cp build/fnwf "release/${RELEASE}/"
+          cp -r assets "release/${RELEASE}/"
+          chmod +x "release/${RELEASE}/fnwf"
+          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: fnwf-linux-x86_64
-          path: release/fnwf-linux-x86_64.tar.gz
+          path: release/fnwf-classic-*-linux-x86_64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -44,6 +53,13 @@ jobs:
         shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         uses: msys2/setup-msys2@v2
@@ -68,9 +84,11 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p release/fnwf-windows-x86_64
-          cp build/fnwf.exe release/fnwf-windows-x86_64/
-          cp -r assets release/fnwf-windows-x86_64/
+          TAG="${{ steps.version.outputs.tag }}"
+          RELEASE="fnwf-classic-${TAG}-windows-x86_64"
+          mkdir -p "release/${RELEASE}"
+          cp build/fnwf.exe "release/${RELEASE}/"
+          cp -r assets "release/${RELEASE}/"
           for dll in \
             /mingw64/bin/SDL2.dll \
             /mingw64/bin/SDL2_ttf.dll \
@@ -93,12 +111,12 @@ jobs:
             /mingw64/bin/libFLAC-12.dll \
             /mingw64/bin/libmpg123-0.dll \
             /mingw64/bin/libsndfile-1.dll; do
-            cp "$dll" release/fnwf-windows-x86_64/ 2>/dev/null || true
+            cp "$dll" "release/${RELEASE}/" 2>/dev/null || true
           done
-          cd release && tar czf fnwf-windows-x86_64.tar.gz fnwf-windows-x86_64
+          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: fnwf-windows-x86_64
-          path: release/fnwf-windows-x86_64.tar.gz
+          path: release/fnwf-classic-*-windows-x86_64.tar.gz
