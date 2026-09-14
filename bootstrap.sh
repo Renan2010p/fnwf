@@ -96,6 +96,10 @@ build_mixer() {
 
     echo "=== Building SDL2_mixer $ver ==="
     cd "$SRC/SDL2_mixer-$ver"
+    if [ ! -d external/ogg ]; then
+        echo "=== Downloading libogg for SDL2_mixer ==="
+        git clone --depth 1 https://github.com/xiph/ogg.git external/ogg
+    fi
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
         -DCMAKE_PREFIX_PATH="$PREFIX" \
