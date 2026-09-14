@@ -60,7 +60,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports
           cmake --build build
-          cmake --install build
+          sudo cmake --install build
 
       - name: Build game for PS2
         run: |
