@@ -96,6 +96,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_PREFIX_PATH=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_C_FLAGS="-G0 -O2" \
+            -DCMAKE_CXX_FLAGS="-G0 -O2" \
             -DSDL2MIXER_VENDORED=OFF \
             -DSDL2MIXER_SAMPLES=OFF \
             -DSDL2MIXER_OGG=ON -DSDL2MIXER_VORBIS=STB \
