@@ -1,5 +1,5 @@
 project('fnwf', 'cpp',
-  version : '2.1.0',
+  version : '2.0.11',
   default_options : [
     'cpp_std=c++23',
     'warning_level=2',
