@@ -64,9 +64,15 @@ jobs:
 
       - name: Build game for PS2
         run: |
+          # Resolve $PS2SDK in cross file (linker can't expand env vars)
+          sed -i "s|\$PS2SDK|${PS2SDK}|g" cross/ps2.ini
+
           export PKG_CONFIG_PATH=${PS2SDK}/ports/lib/pkgconfig:${PKG_CONFIG_PATH:-}
           meson setup build_ps2/game --cross-file cross/ps2.ini
           meson compile -C build_ps2/game
+
+          # Restore cross file
+          git checkout cross/ps2.ini
 
       - name: Package
         run: |
