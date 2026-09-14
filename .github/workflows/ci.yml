@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Get version
         id: version
@@ -23,9 +25,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
-            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
+            libgl1-mesa-dev libasound2-dev libpulse-dev libdbus-1-dev \
+            libudev-dev libpipewire-0.3-dev libdecor-0-dev
 
-      - name: Build
+      - name: Build (SDL2 from source)
         run: |
           meson setup build --buildtype=release
           meson compile -C build
@@ -50,6 +53,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Get version
         id: version
@@ -67,15 +72,12 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-SDL2
-            mingw-w64-x86_64-SDL2_ttf
-            mingw-w64-x86_64-SDL2_image
-            mingw-w64-x86_64-SDL2_mixer
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
-            meson ninja git zip
+            mingw-w64-x86_64-libgl
+            git zip
 
-      - name: Build
+      - name: Build (SDL2 from source)
         shell: msys2 {0}
         run: |
           meson setup build --buildtype=release
@@ -89,30 +91,6 @@ jobs:
           mkdir -p "release/${RELEASE}"
           cp build/fnwf.exe "release/${RELEASE}/"
           cp -r assets "release/${RELEASE}/"
-          for dll in \
-            /mingw64/bin/SDL2.dll \
-            /mingw64/bin/SDL2_ttf.dll \
-            /mingw64/bin/SDL2_image.dll \
-            /mingw64/bin/SDL2_mixer.dll \
-            /mingw64/bin/libfreetype-6.dll \
-            /mingw64/bin/libpng16-16.dll \
-            /mingw64/bin/zlib1.dll \
-            /mingw64/bin/libharfbuzz-0.dll \
-            /mingw64/bin/libbrotlidec.dll \
-            /mingw64/bin/libbrotlicommon.dll \
-            /mingw64/bin/libbz2-1.dll \
-            /mingw64/bin/libtiff-6.dll \
-            /mingw64/bin/libwebp-7.dll \
-            /mingw64/bin/libjpeg-8.dll \
-            /mingw64/bin/libogg-0.dll \
-            /mingw64/bin/libvorbis-0.dll \
-            /mingw64/bin/libvorbisfile-3.dll \
-            /mingw64/bin/libopus-0.dll \
-            /mingw64/bin/libFLAC-12.dll \
-            /mingw64/bin/libmpg123-0.dll \
-            /mingw64/bin/libsndfile-1.dll; do
-            cp "$dll" "release/${RELEASE}/" 2>/dev/null || true
-          done
           cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
 
       - name: Upload artifact
