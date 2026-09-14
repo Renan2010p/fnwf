@@ -229,7 +229,7 @@ auto DrawUtils::rounded_texture(Engine& eng,
                                 std::uint8_t bg_g,
                                 std::uint8_t bg_b,
                                 std::uint8_t alpha) -> void {
-    radius = std::max(1, radius);
+    radius = std::max<std::int32_t>(1, radius);
     eng.draw_texture(tex, x, y, w, h, -1, -1, -1, -1, alpha);
 
     for (std::int32_t i = 0; i <= radius; ++i) {
