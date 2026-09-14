@@ -64,6 +64,11 @@ build_ttf() {
         -DBUILD_SHARED_LIBS=OFF
     cmake --build build -j "$JOBS"
     cmake --install build
+    if [ -f build/external/freetype/libfreetype.a ]; then
+        cp build/external/freetype/libfreetype.a "$PREFIX/lib/"
+        find build/external/freetype -name "freetype2.pc" -exec cp {} "$PREFIX/lib/pkgconfig/" \; 2>/dev/null || true
+        echo "=== Installed vendored freetype ==="
+    fi
     cd /
 }
 
