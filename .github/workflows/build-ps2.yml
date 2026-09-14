@@ -1,0 +1,78 @@
+name: Build PS2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ps2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
+
+      - name: Install ps2dev
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq wget curl cmake git
+          git clone --depth 1 https://github.com/ps2dev/ps2dev.git /opt/ps2dev
+          export PS2DEV=/opt/ps2dev
+          export PS2SDK=${PS2DEV}/ps2sdk
+          export PATH=${PS2DEV}/ee/bin:${PS2DEV}/bin:${PS2SDK}/bin:${PATH}
+          cd /opt/ps2dev
+          ./build-all.sh
+          echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
+          echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
+          echo "${PS2DEV}/ee/bin" >> $GITHUB_PATH
+          echo "${PS2DEV}/bin" >> $GITHUB_PATH
+          echo "${PS2SDK}/bin" >> $GITHUB_PATH
+
+      - name: Install Meson
+        run: |
+          pip3 install meson ninja
+
+      - name: Build SDL2 for PS2
+        run: |
+          export PS2DEV=/opt/ps2dev
+          export PS2SDK=${PS2DEV}/ps2sdk
+          export PATH=${PS2DEV}/ee/bin:${PS2DEV}/bin:${PS2SDK}/bin:${PATH}
+
+          SDL2_VER="2.30.8"
+          mkdir -p build_ps2
+          curl -sL -o build_ps2/SDL2.tar.gz \
+            "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VER}/SDL2-${SDL2_VER}.tar.gz"
+          tar xzf build_ps2/SDL2.tar.gz -C build_ps2
+          cd build_ps2/SDL2-${SDL2_VER}
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake
+          cmake --build build
+          cmake --install build
+
+      - name: Build game for PS2
+        run: |
+          export PS2DEV=/opt/ps2dev
+          export PS2SDK=${PS2DEV}/ps2sdk
+          export PATH=${PS2DEV}/ee/bin:${PS2DEV}/bin:${PS2SDK}/bin:${PATH}
+
+          meson setup build_ps2/game --cross-file cross/ps2.ini
+          meson compile -C build_ps2/game
+
+      - name: Package
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          mkdir -p "release_ps2"
+          cp build_ps2/game/fnwf.elf release_ps2/ 2>/dev/null || \
+          cp build_ps2/game/fnwf release_ps2/fnwf.elf
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-ps2
+          path: release_ps2/fnwf.elf
