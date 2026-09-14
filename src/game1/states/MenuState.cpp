@@ -1,6 +1,7 @@
 #include "game1/states/MenuState.hpp"
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
+#include "core/Rng.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 #include <algorithm>
