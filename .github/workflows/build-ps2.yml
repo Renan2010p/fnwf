@@ -83,7 +83,7 @@ jobs:
           cd ../..
 
           # Build libtremor (integer Vorbis decoder for PS2)
-          curl -sL -o build_ps2/tremor.tar.gz \
+          curl -fsSL -o build_ps2/tremor.tar.gz \
             "https://github.com/xiph/tremor/archive/refs/heads/master.tar.gz"
           tar xzf build_ps2/tremor.tar.gz -C build_ps2
           cd build_ps2/tremor-master
