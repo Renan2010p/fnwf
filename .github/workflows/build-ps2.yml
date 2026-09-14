@@ -58,7 +58,8 @@ jobs:
           cd build_ps2/SDL2-${SDL2_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
-            -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports
+            -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
           sudo cmake --install build
 
@@ -70,21 +71,27 @@ jobs:
             "https://github.com/libsdl-org/SDL_mixer/releases/download/release-${MIXER_VER}/SDL2_mixer-${MIXER_VER}.tar.gz"
           tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
           cd build_ps2/SDL2_mixer-${MIXER_VER}
+
+          # Download libogg for vendored OGG support
+          git clone --depth 1 https://github.com/xiph/ogg.git external/ogg
+
+          # Hide pre-built SDL2_mixer so cmake doesn't get confused
+          sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
+
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
-            -DSDL_MIXER_FLAC=OFF \
-            -DSDL_MIXER_MOD=OFF \
-            -DSDL_MIXER_MP3=OFF \
-            -DSDL_MIXER_MIDI=OFF \
-            -DSDL_MIXER_XMP=OFF \
-            -DSDL_MIXER_CMD=OFF \
-            -DSDL_MIXER_WAV=OFF \
-            -DSDL_MIXER_OGG=ON \
-            -DSDL_MIXER_VORBIS=ON \
-            -DSDL_MIXER_FLUIDSYNTH=OFF \
-            -DSDL_MIXER_GSOUND=OFF \
-            -DSDL_MIXER_USE_INTERNAL=OFF
+            -DCMAKE_PREFIX_PATH=${PS2SDK}/ports \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DSDL2MIXER_VENDORED=ON \
+            -DSDL2MIXER_SAMPLES=OFF \
+            -DSDL2MIXER_OGG=ON -DSDL2MIXER_VORBIS=ON \
+            -DSDL2MIXER_FLAC=OFF -DSDL2MIXER_OPUS=OFF \
+            -DSDL2MIXER_MOD=OFF -DSDL2MIXER_MIDI=OFF \
+            -DSDL2MIXER_MP3=OFF -DSDL2MIXER_XMP=OFF \
+            -DSDL2MIXER_CMD=OFF -DSDL2MIXER_WAVPACK=OFF \
+            -DSDL2MIXER_GME=OFF -DSDL2MIXER_WAVE=ON \
+            -DBUILD_SHARED_LIBS=OFF
           cmake --build build
           sudo cmake --install build
 
