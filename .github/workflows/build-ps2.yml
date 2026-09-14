@@ -50,6 +50,11 @@ jobs:
           curl -sL -o build_ps2/SDL2.tar.gz \
             "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VER}/SDL2-${SDL2_VER}.tar.gz"
           tar xzf build_ps2/SDL2.tar.gz -C build_ps2
+
+          # Patch SDL2 PS2 renderer to match gsKit API (vsync handler takes int param)
+          sed -i 's/static int vsync_handler(void)/static int vsync_handler(int dummy)/' \
+            build_ps2/SDL2-${SDL2_VER}/src/render/ps2/SDL_render_ps2.c
+
           cd build_ps2/SDL2-${SDL2_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
