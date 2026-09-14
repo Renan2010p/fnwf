@@ -30,6 +30,7 @@ build_sdl2() {
     cd "$SRC/SDL2-$ver"
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
         -DSDL_SHARED=OFF -DSDL_STATIC=ON \
         -DSDL_TEST=OFF -DSDL_TESTS=OFF \
         -DSDL_EXAMPLES=OFF -DSDL_FRAMEWORK=OFF \
@@ -57,8 +58,10 @@ build_ttf() {
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
         -DCMAKE_PREFIX_PATH="$PREFIX" \
-        -DSDL2TTF_SHARED=OFF -DSDL2TTF_STATIC=ON \
-        -DSDL2TTF_SAMPLES=OFF -DSDL2TTF_VENDORED=ON
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DSDL2TTF_VENDORED=ON \
+        -DSDL2TTF_SAMPLES=OFF \
+        -DBUILD_SHARED_LIBS=OFF
     cmake --build build -j "$JOBS"
     cmake --install build
     cd /
@@ -75,10 +78,11 @@ build_image() {
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
         -DCMAKE_PREFIX_PATH="$PREFIX" \
-        -DSDL2IMAGE_SHARED=OFF -DSDL2IMAGE_STATIC=ON \
-        -DSDL2IMAGE_SAMPLES=OFF \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
         -DSDL2IMAGE_VENDORED=ON \
-        -DSDL2IMAGE_PNG=ON -DSDL2IMAGE_JPG=ON -DSDL2IMAGE_BMP=ON
+        -DSDL2IMAGE_SAMPLES=OFF \
+        -DSDL2IMAGE_PNG=ON -DSDL2IMAGE_JPG=ON -DSDL2IMAGE_BMP=ON \
+        -DBUILD_SHARED_LIBS=OFF
     cmake --build build -j "$JOBS"
     cmake --install build
     cd /
@@ -95,10 +99,11 @@ build_mixer() {
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
         -DCMAKE_PREFIX_PATH="$PREFIX" \
-        -DSDL2MIXER_SHARED=OFF -DSDL2MIXER_STATIC=ON \
-        -DSDL2MIXER_SAMPLES=OFF \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
         -DSDL2MIXER_VENDORED=ON \
-        -DSDL2MIXER_OGG=ON -DSDL2MIXER_MP3=ON -DSDL2MIXER_FLAC=ON
+        -DSDL2MIXER_SAMPLES=OFF \
+        -DSDL2MIXER_OGG=ON -DSDL2MIXER_MP3=ON -DSDL2MIXER_FLAC=ON \
+        -DBUILD_SHARED_LIBS=OFF
     cmake --build build -j "$JOBS"
     cmake --install build
     cd /
