@@ -103,11 +103,11 @@ jobs:
           body: |
             ## Five Nights With Friends — ${{ github.ref_name }}
 
-            Binarios auto-contidos (SDL2 linkado estatico).
-            So copiar e rodar, sem dependencias.
+            Self-contained binaries (SDL2 statically linked).
+            Just copy and run — no dependencies needed.
 
-            | Plataforma | Arquivo |
-            |------------|---------|
+            | Platform | File |
+            |----------|------|
             | Linux x86_64 | `fnwf-classic-${{ github.ref_name }}-linux-x86_64.tar.gz` |
             | Windows x86_64 | `fnwf-classic-${{ github.ref_name }}-windows-x86_64.tar.gz` |
 
