@@ -82,7 +82,19 @@ jobs:
           sudo cmake --install build
           cd ../..
 
-          # Build SDL2_mixer with system ogg (not vendored)
+          # Build libtremor (integer Vorbis decoder for PS2)
+          git clone --depth 1 https://github.com/xiph/tremor.git build_ps2/tremor
+          cd build_ps2/tremor
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
+            -DCMAKE_PREFIX_PATH=${PS2SDK}/ports \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build
+          sudo cmake --install build
+          cd ../..
+
+          # Build SDL2_mixer with system ogg/tremor (not vendored)
           curl -sL -o build_ps2/SDL2_mixer.tar.gz \
             "https://github.com/libsdl-org/SDL_mixer/releases/download/release-${MIXER_VER}/SDL2_mixer-${MIXER_VER}.tar.gz"
           tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
