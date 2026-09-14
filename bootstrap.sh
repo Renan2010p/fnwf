@@ -17,7 +17,7 @@ download() {
         curl -sL -o "$file" "$url"
     fi
     echo "=== Extracting $name ==="
-    tar xzf "$file" -C "$SRC"
+    tar xzf "$file" -C "$SRC" --warning=no-unknown-keyword || tar xzf "$file" -C "$SRC" || true
 }
 
 build_sdl2() {
