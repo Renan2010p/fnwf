@@ -25,7 +25,9 @@ jobs:
           sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
             cmake curl ca-certificates \
             libgl1-mesa-dev libasound2-dev libpulse-dev libdbus-1-dev \
-            libudev-dev libpipewire-0.3-dev libdecor-0-dev
+            libudev-dev libpipewire-0.3-dev libdecor-0-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev
 
       - name: Build SDL2 from source
         run: |
