@@ -2,7 +2,7 @@
 directory = SDL2-2.30.8
 source_url = https://github.com/libsdl-org/SDL/releases/download/release-2.30.8/SDL2-2.30.8.tar.gz
 source_filename = SDL2-2.30.8.tar.gz
-source_hash = 90e3e916df1b511c2e10a4d0d54a271b6ffb3c5f1f4f62e18d8ea1f8e9e0c7c1
+source_hash = 380c295ea76b9bd72d90075793971c8bcb232ba0a69a9b14da4ae8f603350058
 patch_directory = sdl2
 
 [provide]
