@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Get version
         id: version
@@ -21,15 +19,23 @@ jobs:
           SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
+      - name: Install build tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
+            cmake curl ca-certificates \
             libgl1-mesa-dev libasound2-dev libpulse-dev libdbus-1-dev \
             libudev-dev libpipewire-0.3-dev libdecor-0-dev
 
-      - name: Build (SDL2 from source)
+      - name: Build SDL2 from source
         run: |
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+
+      - name: Build game
+        run: |
+          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
           meson setup build --buildtype=release
           meson compile -C build
 
@@ -53,8 +59,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Get version
         id: version
@@ -64,7 +68,7 @@ jobs:
           SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
+      - name: Install build tools
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -72,14 +76,23 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-cmake
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-libgl
-            git zip
+            git zip curl
 
-      - name: Build (SDL2 from source)
+      - name: Build SDL2 from source
         shell: msys2 {0}
         run: |
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+
+      - name: Build game
+        shell: msys2 {0}
+        run: |
+          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
           meson setup build --buildtype=release
           meson compile -C build
 

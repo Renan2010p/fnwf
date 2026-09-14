@@ -2,125 +2,57 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 permissions:
   contents: write
 
 jobs:
-  build-linux-x86_64:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
-      - name: Install dependencies
+      - name: Get version
+        id: version
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          echo "tag=v${VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Install build tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
+            cmake curl ca-certificates \
             libgl1-mesa-dev libasound2-dev libpulse-dev libdbus-1-dev \
             libudev-dev libpipewire-0.3-dev libdecor-0-dev
 
-      - name: Build (SDL2 from source)
+      - name: Build SDL2 from source
         run: |
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+
+      - name: Build game
+        run: |
+          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
           meson setup build --buildtype=release
           meson compile -C build
 
       - name: Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          RELEASE="fnwf-classic-v${VERSION}-linux-x86_64"
+          VER="${{ steps.version.outputs.tag }}"
+          RELEASE="fnwf-classic-${VER}-linux-x86_64"
           mkdir -p "release/${RELEASE}"
           cp build/fnwf "release/${RELEASE}/"
           cp -r assets "release/${RELEASE}/"
           chmod +x "release/${RELEASE}/fnwf"
           cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-linux-x86_64
-          path: release/fnwf-classic-v*-linux-x86_64.tar.gz
-
-  build-windows-x86_64:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Install dependencies
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-meson
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-libgl
-            git zip
-
-      - name: Build (SDL2 from source)
-        shell: msys2 {0}
-        run: |
-          meson setup build --buildtype=release
-          meson compile -C build
-
-      - name: Package
-        shell: msys2 {0}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          RELEASE="fnwf-classic-v${VERSION}-windows-x86_64"
-          mkdir -p "release/${RELEASE}"
-          cp build/fnwf.exe "release/${RELEASE}/"
-          cp -r assets "release/${RELEASE}/"
-          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-windows-x86_64
-          path: release/fnwf-classic-v*-windows-x86_64.tar.gz
-
-  release:
-    needs: [build-linux-x86_64, build-windows-x86_64]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-
-      - name: Create GitHub Release
+      - name: Create release and upload
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            fnwf-classic-v*-linux-x86_64.tar.gz
-            fnwf-classic-v*-windows-x86_64.tar.gz
-          generate_release_notes: true
-          body: |
-            ## Five Nights With Friends — ${{ github.ref_name }}
-
-            Self-contained binaries (SDL2 statically linked).
-            Just copy and run — no dependencies needed.
-
-            | Platform | File |
-            |----------|------|
-            | Linux x86_64 | `fnwf-classic-${{ github.ref_name }}-linux-x86_64.tar.gz` |
-            | Windows x86_64 | `fnwf-classic-${{ github.ref_name }}-windows-x86_64.tar.gz` |
-
-            ### Linux
-            ```bash
-            tar xzf fnwf-classic-*.tar.gz
-            cd fnwf-classic-*
-            ./fnwf
-            ```
-
-            ### Windows
-            ```bash
-            tar xzf fnwf-classic-*.tar.gz
-            cd fnwf-classic-*
-            fnwf.exe
-            ```
+          name: "FNWF ${{ steps.version.outputs.tag }}"
+          files: release/fnwf-classic-*-linux-x86_64.tar.gz
+          draft: false
+          prerelease: false
