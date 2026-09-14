@@ -16,6 +16,7 @@ sdl2_dep = dependency('sdl2', required : false)
 sdl2_ttf_dep = dependency('SDL2_ttf', required : false)
 sdl2_image_dep = dependency('SDL2_image', required : false)
 sdl2_mixer_dep = dependency('SDL2_mixer', required : false)
+freetype2_dep = dependency('freetype2', required : false)
 
 # If any SDL2 dep not found, build all from source via subproject
 if not sdl2_dep.found() or not sdl2_ttf_dep.found() or not sdl2_image_dep.found() or not sdl2_mixer_dep.found()
@@ -159,6 +160,7 @@ fnwf = executable('fnwf',
     sdl2_ttf_dep,
     sdl2_image_dep,
     sdl2_mixer_dep,
+    freetype2_dep,
   ],
   install : true
 )
