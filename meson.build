@@ -1,5 +1,5 @@
 project('fnwf', 'cpp',
-  version : '2.0.10',
+  version : '2.1.0',
   default_options : [
     'cpp_std=c++23',
     'warning_level=2',
@@ -10,11 +10,22 @@ project('fnwf', 'cpp',
   ]
 )
 
-# === Dependencies ===
-sdl2_dep = dependency('sdl2', required : true)
-sdl2_ttf_dep = dependency('SDL2_ttf', required : true)
-sdl2_image_dep = dependency('SDL2_image', required : true)
-sdl2_mixer_dep = dependency('SDL2_mixer', required : true)
+# === Dependencies (static linking) ===
+# Try system SDL2 first, fallback to building from source
+sdl2_dep = dependency('sdl2', required : false)
+sdl2_ttf_dep = dependency('SDL2_ttf', required : false)
+sdl2_image_dep = dependency('SDL2_image', required : false)
+sdl2_mixer_dep = dependency('SDL2_mixer', required : false)
+
+# If any SDL2 dep not found, build all from source via subproject
+if not sdl2_dep.found() or not sdl2_ttf_dep.found() or not sdl2_image_dep.found() or not sdl2_mixer_dep.found()
+  message('SDL2 not found or incomplete — building from source...')
+  sdl2_proj = subproject('sdl2', default_options : ['tests=disabled'])
+  sdl2_dep = sdl2_proj.get_variable('sdl2_dep')
+  sdl2_ttf_dep = subproject('sdl2_ttf').get_variable('sdl2_ttf_dep')
+  sdl2_image_dep = subproject('sdl2_image').get_variable('sdl2_image_dep')
+  sdl2_mixer_dep = subproject('sdl2_mixer').get_variable('sdl2_mixer_dep')
+endif
 
 # === Platform-specific flags ===
 if host_machine.system() == 'linux'
@@ -55,7 +66,6 @@ if host_machine.system() == 'linux'
     '-fipa-pta',
     '-fipa-cp',
     '-fipa-sra',
-    '-fipa-profile',
     '-frename-registers',
     '-fmodulo-sched',
     '-ftree-pre',
@@ -65,7 +75,6 @@ if host_machine.system() == 'linux'
     '-faggressive-loop-optimizations',
   ], language : 'cpp')
 
-  # x86_64 arch flags
   if host_machine.cpu_family() == 'aarch64'
     add_project_arguments(['-march=armv8-a'], language : 'cpp')
   else
@@ -82,10 +91,9 @@ if host_machine.system() == 'linux'
     '-fuse-linker-plugin',
     '-Wl,-O3',
     '-Wl,--hash-style=both',
-    '-Wl,--compress-debug-sections=zlib',
   ], language : 'cpp')
 
-  message('BUILD: Linux release (cpu_family=@0@)'.format(host_machine.cpu_family()))
+  message('BUILD: Linux static (cpu_family=@0@)'.format(host_machine.cpu_family()))
 
 elif host_machine.system() == 'windows'
   add_project_arguments([
@@ -99,11 +107,12 @@ elif host_machine.system() == 'windows'
   add_project_link_arguments([
     '-static-libgcc',
     '-static-libstdc++',
+    '-static',
     '-Wl,--gc-sections',
     '-Wl,-O3',
   ], language : 'cpp')
 
-  message('BUILD: Windows release (MinGW64)')
+  message('BUILD: Windows static (MinGW64)')
 endif
 
 # === Sources ===
