@@ -2,7 +2,7 @@
 directory = SDL2_mixer-2.8.0
 source_url = https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.0/SDL2_mixer-2.8.0.tar.gz
 source_filename = SDL2_mixer-2.8.0.tar.gz
-source_hash = a72b76d9505c6411df7e95ecd27e8d29f6e6c2e45b4e4d81f0d51b3d24a6c4c4
+source_hash = 1cfb34c87b26dbdbc7afd68c4f545c0116ab5f90bbfecc5aebe2a9cb4bb31549
 
 [provide]
 SDL2_mixer = sdl2_mixer_dep

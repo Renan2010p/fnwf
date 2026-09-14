@@ -2,7 +2,7 @@
 directory = SDL2_ttf-2.22.0
 source_url = https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.22.0/SDL2_ttf-2.22.0.tar.gz
 source_filename = SDL2_ttf-2.22.0.tar.gz
-source_hash = 2e83b4625e7f46e2d02a0c4fcad6ed5937b0e59c5b5e58b9e9f3a4333e37e68e
+source_hash = d48cbd1ce475b9e178206bf3b72d56b66d84d44f64ac05803328396234d67723
 
 [provide]
 SDL2_ttf = sdl2_ttf_dep
