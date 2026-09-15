@@ -123,7 +123,8 @@ jobs:
 
           # Codec sources (only what we need)
           for f in ${SRC}/src/codecs/music_ogg_stb.c ${SRC}/src/codecs/music_wav.c \
-                   ${SRC}/src/codecs/load_aiff.c ${SRC}/src/codecs/load_voc.c; do
+                   ${SRC}/src/codecs/mp3utils.c ${SRC}/src/codecs/load_aiff.c \
+                   ${SRC}/src/codecs/load_voc.c; do
             [ -f "$f" ] && SOURCES="$SOURCES $f"
           done
 
