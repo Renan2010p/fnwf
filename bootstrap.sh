@@ -17,7 +17,7 @@ download() {
         curl -sL -o "$file" "$url"
     fi
     echo "=== Extracting $name ==="
-    tar xzf "$file" -C "$SRC" --warning=no-unknown-keyword || tar xzf "$file" -C "$SRC" || true
+    tar xzf "$file" -C "$SRC" 2>/dev/null || tar xzf "$file" -C "$SRC"
 }
 
 build_sdl2() {
@@ -28,20 +28,31 @@ build_sdl2() {
 
     echo "=== Building SDL2 $ver ==="
     cd "$SRC/SDL2-$ver"
-    cmake -B build -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-        -DSDL_SHARED=OFF -DSDL_STATIC=ON \
-        -DSDL_TEST=OFF -DSDL_TESTS=OFF \
-        -DSDL_EXAMPLES=OFF -DSDL_FRAMEWORK=OFF \
-        -DSDL_AUDIO=ON -DSDL_VIDEO=ON -DSDL_RENDER=ON \
-        -DSDL_OPENGLES=OFF -DSDL_VULKAN=OFF -DSDL_METAL=OFF \
-        -DSDL_OFFSCREEN=OFF -DSDL_UNIX_CONSOLE_BUILD=OFF \
-        -DSDL_LIBC=ON -DSDL_SYSTEM_ICONV=OFF \
-        -DSDL_HIDAPI=OFF -DSDL_JOYSTICK=OFF -DSDL_HAPTIC=OFF \
-        -DSDL_SENSOR=OFF -DSDL_POWER=ON -DSDL_FILESYSTEM=ON \
-        -DSDL_THREADS=ON -DSDL_TIMERS=ON -DSDL_FILE=ON \
+    local cmake_opts=(
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX="$PREFIX"
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DSDL_SHARED=OFF -DSDL_STATIC=ON
+        -DSDL_TEST=OFF -DSDL_TESTS=OFF
+        -DSDL_EXAMPLES=OFF -DSDL_FRAMEWORK=OFF
+        -DSDL_AUDIO=ON -DSDL_VIDEO=ON -DSDL_RENDER=ON
+        -DSDL_OPENGLES=OFF -DSDL_VULKAN=OFF
+        -DSDL_METAL=OFF -DSDL_METAL_LIBRARY=
+        -DSDL_OFFSCREEN=ON
+        -DSDL_UNIX_CONSOLE_BUILD=OFF
+        -DSDL_LIBC=ON -DSDL_SYSTEM_ICONV=OFF
+        -DSDL_HIDAPI=OFF
+        -DSDL_JOYSTICK=OFF -DSDL_HAPTIC=OFF
+        -DSDL_SENSOR=OFF
+        -DSDL_POWER=ON -DSDL_FILESYSTEM=ON
+        -DSDL_THREADS=ON -DSDL_TIMERS=ON -DSDL_FILE=ON
         -DSDL_CPUINFO=ON -DSDL_ASSEMBLY=ON
+    )
+    # macOS-specific: disable X11 and wayland
+    if [ "$(uname)" = "Darwin" ]; then
+        cmake_opts+=(-DSDL_OPENGL=ON -DSDL_OPENGLES=OFF)
+    fi
+    cmake -B build "${cmake_opts[@]}"
     cmake --build build -j "$JOBS"
     cmake --install build
     cd /
