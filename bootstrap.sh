@@ -48,9 +48,10 @@ build_sdl2() {
         -DSDL_THREADS=ON -DSDL_TIMERS=ON -DSDL_FILE=ON
         -DSDL_CPUINFO=ON -DSDL_ASSEMBLY=ON
     )
-    # macOS-specific: disable X11 and wayland
+    # macOS-specific: disable X11, wayland, and Metal (SDK incompatibility)
     if [ "$(uname)" = "Darwin" ]; then
         cmake_opts+=(-DSDL_OPENGL=ON -DSDL_OPENGLES=OFF)
+        cmake_opts+=(-DSDL_RENDER_METAL=OFF)
     fi
     cmake -B build "${cmake_opts[@]}"
     cmake --build build -j "$JOBS"
