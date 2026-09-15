@@ -100,28 +100,44 @@ jobs:
           OBJDIR=build_ps2/mixer-objs
           mkdir -p $OBJDIR
 
-          # Include paths
+          # Include paths (src and src/codecs per CMakeLists.txt)
           SDL2_INC=${PS2SDK}/ports/include/SDL2
           MIXER_INC=${SRC}/include
           OGG_INC=${PS2SDK}/ports/include
-          STB_INC=${SRC}/thirdparty
 
-          CFLAGS="-D_EE -G0 -O2 -I${SDL2_INC} -I${MIXER_INC} -I${SRC}/src -I${OGG_INC} -I${STB_INC}"
+          DEFS="-DBUILD_SDL -DSDL_BUILD_MAJOR_VERSION=2 -DSDL_BUILD_MINOR_VERSION=8 -DSDL_BUILD_MICRO_VERSION=0 -DMUSIC_OGG -DOGG_USE_STB -DMUSIC_WAV"
+          CFLAGS="-D_EE -G0 -O2 ${DEFS} -I${SDL2_INC} -I${MIXER_INC} -I${SRC}/src -I${SRC}/src/codecs -I${OGG_INC}"
 
           echo "=== Compiling SDL2_mixer sources with -G0 ==="
           echo "CFLAGS: $CFLAGS"
           echo "CC: mips64r5900el-ps2-elf-gcc"
 
-          # Compile all needed source files
-          SOURCES=$(find ${SRC}/src -maxdepth 1 -name '*.c' | sort)
-          echo "Source files:"
-          echo "$SOURCES"
+          # Core sources
+          SOURCES=""
+          for f in ${SRC}/src/mixer.c ${SRC}/src/music.c ${SRC}/src/utils.c \
+                   ${SRC}/src/effect_position.c ${SRC}/src/effect_stereoreverse.c \
+                   ${SRC}/src/effects_internal.c; do
+            SOURCES="$SOURCES $f"
+          done
 
+          # Codec sources (only what we need)
+          for f in ${SRC}/src/codecs/music_ogg_stb.c ${SRC}/src/codecs/music_wav.c \
+                   ${SRC}/src/codecs/load_aiff.c ${SRC}/src/codecs/load_voc.c; do
+            [ -f "$f" ] && SOURCES="$SOURCES $f"
+          done
+
+          echo "Source files:$SOURCES"
+
+          FAIL=0
           for f in $SOURCES; do
             base=$(basename "$f" .c)
             echo "Compiling $f ..."
-            mips64r5900el-ps2-elf-gcc $CFLAGS -c "$f" -o "${OBJDIR}/${base}.o"
+            if ! mips64r5900el-ps2-elf-gcc $CFLAGS -c "$f" -o "${OBJDIR}/${base}.o"; then
+              echo "ERROR: Failed to compile $f"
+              FAIL=1
+            fi
           done
+          if [ "$FAIL" -eq 1 ]; then exit 1; fi
 
           # Create static library
           echo "=== Creating libSDL2_mixer.a ==="
