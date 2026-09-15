@@ -21,10 +21,10 @@ public:
     virtual void shutdown() {}
 
     // Show a message box (platform-specific)
-    virtual void show_message(const std::string& title, const std::string& message) {}
+    virtual void show_message(const std::string& /*title*/, const std::string& /*message*/) {}
 
     // Open a URL in the default browser
-    virtual void open_url(const std::string& url) {}
+    virtual void open_url(const std::string& /*url*/) {}
 
     // Check if running on mobile/touch device
     virtual bool is_touch_device() const { return false; }
