@@ -274,23 +274,35 @@ public:
     }
 
     bool is_gamepad_connected(int index = 0) const override {
+#ifdef SDL_JOYSTICK
         return SDL_JoystickIsConnected(index);
+#else
+        return false;
+#endif
     }
 
     float get_gamepad_axis(int index, int axis) const override {
+#ifdef SDL_JOYSTICK
         auto* joy = SDL_JoystickOpen(index);
         if (!joy) return 0.0f;
         float value = static_cast<float>(SDL_JoystickGetAxis(joy, axis)) / 32767.0f;
         SDL_JoystickClose(joy);
         return value;
+#else
+        return 0.0f;
+#endif
     }
 
     bool is_gamepad_button_pressed(int index, int button) const override {
+#ifdef SDL_JOYSTICK
         auto* joy = SDL_JoystickOpen(index);
         if (!joy) return false;
         bool pressed = SDL_JoystickGetButton(joy, button);
         SDL_JoystickClose(joy);
         return pressed;
+#else
+        return false;
+#endif
     }
 
     bool is_action_pressed(const std::vector<Key>& actions) const override {

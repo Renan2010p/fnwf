@@ -9,22 +9,22 @@ namespace fnwf {
 // Abstract key codes that work across platforms
 enum class Key : uint32_t {
     Unknown = 0,
-    // Alphabet
+    // Alphabet (1-26)
     A = 0x00000001, B, C, D, E, F, G, H, I, J, K, L, M,
     N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
-    // Numbers
-    Num0 = 0x00000010, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9,
-    // Function keys
-    F1 = 0x00000100, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
-    // Navigation
-    Escape = 0x00001000, Return, Backspace, Tab, Space,
-    ArrowLeft = 0x00002000, ArrowRight, ArrowUp, ArrowDown,
-    // modifiers
-    LShift = 0x00004000, RShift, LCtrl, RCtrl, LAlt, RAlt,
-    // Misc
-    Delete = 0x00008000, Home, End, Insert,
-    // Mouse buttons
-    MouseButtonLeft = 0x00010000, MouseButtonRight, MouseButtonMiddle,
+    // Numbers (0x100-0x109) — no conflict with A-Z
+    Num0 = 0x00000100, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9,
+    // Function keys (0x200-0x20B)
+    F1 = 0x00000200, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+    // Navigation (0x300-0x304)
+    Escape = 0x00000300, Return = 0x00000301, Backspace = 0x00000302, Tab = 0x00000303, Space = 0x00000304,
+    ArrowLeft = 0x00000305, ArrowRight = 0x00000306, ArrowUp = 0x00000307, ArrowDown = 0x00000308,
+    // modifiers (0x400-0x405)
+    LShift = 0x00000400, RShift = 0x00000401, LCtrl = 0x00000402, RCtrl = 0x00000403, LAlt = 0x00000404, RAlt = 0x00000405,
+    // Misc (0x500-0x503)
+    Delete = 0x00000500, Home = 0x00000501, End = 0x00000502, Insert = 0x00000503,
+    // Mouse buttons (0x600-0x602)
+    MouseButtonLeft = 0x00000600, MouseButtonRight = 0x00000601, MouseButtonMiddle = 0x00000602,
 };
 
 // Unified event structure
