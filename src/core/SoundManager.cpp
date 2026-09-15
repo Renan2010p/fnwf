@@ -2,6 +2,7 @@
 #include "core/Rng.hpp"
 #include "core/SettingsManager.hpp"
 #include "engine/Engine.hpp"
+#include "game1/GameSettings.hpp"
 #include <SDL_mixer.h>
 #include <unordered_map>
 
@@ -55,7 +56,7 @@ auto SoundManager::play_sound(const std::string& name, int loops, int channel) -
     if (it == s_cache.end()) {
         auto fname_it = s_filename_map.find(name);
         std::string fname = (fname_it != s_filename_map.end()) ? fname_it->second : name + ".ogg";
-        std::string path = "assets/audio/" + fname;
+        std::string path = std::string(GameSettings::ASSETS_DIR) + "/audio/" + fname;
         auto snd = s_eng->load_sound(path);
         if (!snd)
             return;
