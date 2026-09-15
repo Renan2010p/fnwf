@@ -35,10 +35,7 @@
 #endif
 
 #ifdef PS2
-extern "C" {
-int SifLoadFileInit(void);
-int SifLoadModule(const char *path, int arg_len, const char *args);
-}
+SDL_PS2_SKIP_IOP_RESET();
 #endif
 
 // --- Global state for Emscripten main loop ---
@@ -336,12 +333,6 @@ auto main(int argc, char** argv) -> int {
         std::fprintf(stderr, "Engine init failed: %s\n", init_res.error().c_str());
         return 1;
     }
-
-#ifdef PS2
-    SifLoadFileInit();
-    SifLoadModule("rom0:CDVDMAN", 0, NULL);
-    SifLoadModule("rom0:CDVDFSV", 0, NULL);
-#endif
     eng.set_logical_size(fnwf::GameSettings::SCREEN_WIDTH, fnwf::GameSettings::SCREEN_HEIGHT);
 
     fnwf::SoundManager::set_engine(&eng);
