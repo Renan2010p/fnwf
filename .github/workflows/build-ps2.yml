@@ -106,7 +106,7 @@ jobs:
           OGG_INC=${PS2SDK}/ports/include
           STB_INC=${SRC}/thirdparty
 
-          CFLAGS="-D_EE -G0 -O2 -I${SDL2_INC} -I${MIXER_INC} -I${OGG_INC} -I${STB_INC}"
+          CFLAGS="-D_EE -G0 -O2 -I${SDL2_INC} -I${MIXER_INC} -I${SRC}/src -I${OGG_INC} -I${STB_INC}"
 
           echo "=== Compiling SDL2_mixer sources with -G0 ==="
           echo "CFLAGS: $CFLAGS"
