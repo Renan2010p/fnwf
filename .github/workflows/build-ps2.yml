@@ -34,6 +34,16 @@ jobs:
           sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/gsKit|${PS2DEV:-/opt/ps2dev}/gsKit|g" \
             /opt/ps2dev/gsKit/lib/pkgconfig/*.pc 2>/dev/null || true
 
+          # Create a wrapper toolchain that forces -G0 via CACHE FORCE
+          # (ps2dev.cmake sets CMAKE_C_FLAGS as a normal variable that shadows -D cache entries)
+          cat > /tmp/ps2dev_g0.cmake << 'WRAPPER'
+          include("$ENV{PS2SDK}/ps2dev.cmake")
+          foreach(_lang C CXX ASM)
+            string(APPEND CMAKE_${_lang}_FLAGS " -G0")
+            set(CMAKE_${_lang}_FLAGS "${CMAKE_${_lang}_FLAGS}" CACHE STRING "" FORCE)
+          endforeach()
+          WRAPPER
+
           echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
           echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
           echo "/opt/ps2dev/ee/bin" >> $GITHUB_PATH
@@ -79,7 +89,7 @@ jobs:
           tar xzf build_ps2/libogg.tar.gz -C build_ps2
           cd build_ps2/libogg-${OGG_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=/tmp/ps2dev_g0.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -92,14 +102,11 @@ jobs:
           tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
 
           cd build_ps2/SDL2_mixer-${MIXER_VER}
-          CFLAGS="-G0 -O2" CXXFLAGS="-G0 -O2" \
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=/tmp/ps2dev_g0.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_PREFIX_PATH=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DCMAKE_C_FLAGS="-G0 -O2" \
-            -DCMAKE_CXX_FLAGS="-G0 -O2" \
             -DSDL2MIXER_VENDORED=OFF \
             -DSDL2MIXER_SAMPLES=OFF \
             -DSDL2MIXER_OGG=ON -DSDL2MIXER_VORBIS=STB \
