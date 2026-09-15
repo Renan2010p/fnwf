@@ -45,8 +45,8 @@ build_sdl2_ps2() {
     # Create softfloat wrapper: copy ps2dev.cmake and append -msoft-float
     cp "${PS2SDK}/ps2dev.cmake" "${BUILD_DIR}/ps2-softfloat.cmake"
     echo '' >> "${BUILD_DIR}/ps2-softfloat.cmake"
-    echo 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msoft-float")' >> "${BUILD_DIR}/ps2-softfloat.cmake"
-    echo 'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msoft-float")' >> "${BUILD_DIR}/ps2-softfloat.cmake"
+    echo 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msoft-float" CACHE STRING "" FORCE)' >> "${BUILD_DIR}/ps2-softfloat.cmake"
+    echo 'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msoft-float" CACHE STRING "" FORCE)' >> "${BUILD_DIR}/ps2-softfloat.cmake"
 
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="${BUILD_DIR}/ps2-softfloat.cmake" \
