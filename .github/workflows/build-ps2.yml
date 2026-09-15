@@ -148,11 +148,13 @@ jobs:
           echo "=== Checking for GOT relocations ==="
           mips64r5900el-ps2-elf-readelf -r ${OBJDIR}/libSDL2_mixer.a 2>/dev/null | grep -c "R_MIPS_GOT_PAGE\|R_MIPS_CALL16" && echo "ERROR: GOT relocations found!" || echo "OK: No GOT relocations"
 
-          # Install
+          # Install library and headers
           sudo cp ${OBJDIR}/libSDL2_mixer.a ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          sudo cp ${SRC}/include/SDL_mixer.h ${PS2SDK}/ports/include/SDL2/SDL_mixer.h
 
           echo "=== Installed library ==="
           ls -la ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          ls -la ${PS2SDK}/ports/include/SDL2/SDL_mixer.h
 
           # Re-create the pkg-config file
           sudo mkdir -p ${PS2SDK}/ports/lib/pkgconfig
