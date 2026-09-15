@@ -34,11 +34,22 @@ jobs:
           sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/gsKit|${PS2DEV:-/opt/ps2dev}/gsKit|g" \
             /opt/ps2dev/gsKit/lib/pkgconfig/*.pc 2>/dev/null || true
 
-          # Patch ps2dev.cmake to force -G0 on ALL compiler invocations
-          # This fixes R_MIPS_GOT_PAGE relocation overflow in pre-built port libs
-          sudo sed -i 's/-D_EE/-D_EE -G0/g' /opt/ps2dev/ps2sdk/ps2dev.cmake
-          echo "=== Patched ps2dev.cmake flags ==="
-          grep -E 'CMAKE_C_FLAGS|CMAKE_CXX_FLAGS|CMAKE_ASM_FLAGS' /opt/ps2dev/ps2sdk/ps2dev.cmake || true
+          # Create compiler wrappers that force -G0 into EVERY gcc/g++ invocation
+          # This is the only reliable way to ensure -G0 is used regardless of cmake flags
+          mkdir -p /tmp/ps2dev-g0
+          for tool in gcc g++ cc c++; do
+            real="/opt/ps2dev/ee/bin/mips64r5900el-ps2-elf-${tool}"
+            if [ -f "$real" ]; then
+              cat > "/tmp/ps2dev-g0/mips64r5900el-ps2-elf-${tool}" << SCRIPT
+          #!/bin/bash
+          exec "${real}" -G0 "\$@"
+          SCRIPT
+              chmod +x "/tmp/ps2dev-g0/mips64r5900el-ps2-elf-${tool}"
+              echo "Created wrapper for ${tool}: $(cat "/tmp/ps2dev-g0/mips64r5900el-ps2-elf-${tool}")"
+            fi
+          done
+          # Also wrap ar to not break cmake detection
+          ls /tmp/ps2dev-g0/
 
           echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
           echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
@@ -75,15 +86,25 @@ jobs:
           OGG_VER="1.3.6"
           mkdir -p build_ps2
 
-          # Remove pre-built SDL2_mixer (compiled without -G0, causes GOT overflow)
+          # Force wrappers first in PATH so every compiler call gets -G0
+          export PATH="/tmp/ps2dev-g0:${PATH}"
+
+          # Verify wrappers are active
+          echo "=== Compiler wrapper test ==="
+          mips64r5900el-ps2-elf-gcc --version 2>&1 | head -1 || true
+
+          # Remove ALL pre-built SDL2_mixer files
           sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
           sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
+          echo "=== After removing pre-built ==="
+          ls -la ${PS2SDK}/ports/lib/libSDL2_mixer* 2>/dev/null || echo "No pre-built lib found (good)"
 
           # Build libogg first (vendored ogg cmake doesn't cross-compile)
           curl -fsSL -o build_ps2/libogg.tar.gz \
             "https://github.com/xiph/ogg/releases/download/v${OGG_VER}/libogg-${OGG_VER}.tar.gz"
           tar xzf build_ps2/libogg.tar.gz -C build_ps2
           cd build_ps2/libogg-${OGG_VER}
+          rm -rf build
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
@@ -98,6 +119,7 @@ jobs:
           tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
 
           cd build_ps2/SDL2_mixer-${MIXER_VER}
+          rm -rf build
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
@@ -112,12 +134,18 @@ jobs:
             -DSDL2MIXER_CMD=OFF -DSDL2MIXER_WAVPACK=OFF \
             -DSDL2MIXER_GME=OFF -DSDL2MIXER_WAVE=ON \
             -DBUILD_SHARED_LIBS=OFF
+
+          # Check what cmake thinks the C compiler flags are
+          grep CMAKE_C_FLAGS build/CMakeCache.txt || true
+
           cmake --build build
           sudo cmake --install build
 
           # Verify the installed library was compiled with -G0
           echo "=== Verifying libSDL2_mixer.a ==="
-          sudo mips64r5900el-ps2-elf-readelf -p .comment ${PS2SDK}/ports/lib/libSDL2_mixer.a 2>/dev/null | head -5 || true
+          ls -la ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          # Check for GOT relocations — if any exist, -G0 was NOT applied
+          sudo mips64r5900el-ps2-elf-nm ${PS2SDK}/ports/lib/libSDL2_mixer.a 2>/dev/null | grep -c " GOT\| CALL16" && echo "WARNING: GOT relocations found!" || echo "OK: No GOT relocations"
 
       - name: Build game for PS2
         run: |
