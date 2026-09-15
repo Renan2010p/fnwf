@@ -57,10 +57,10 @@ public:
         ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #elif defined(__APPLE__)
         std::string cmd = "open \"" + url + "\"";
-        std::system(cmd.c_str());
+        (void)std::system(cmd.c_str());
 #else
         std::string cmd = "xdg-open \"" + url + "\"";
-        std::system(cmd.c_str());
+        (void)std::system(cmd.c_str());
 #endif
     }
 

@@ -273,19 +273,19 @@ public:
         return m_touches;
     }
 
-    bool is_gamepad_connected(int index = 0) const override {
+    bool is_gamepad_connected(int /*index*/ = 0) const override {
 #ifdef SDL_JOYSTICK
-        return SDL_JoystickIsConnected(index);
+        return SDL_JoystickIsConnected(0);
 #else
         return false;
 #endif
     }
 
-    float get_gamepad_axis(int index, int axis) const override {
+    float get_gamepad_axis(int /*index*/, int /*axis*/) const override {
 #ifdef SDL_JOYSTICK
-        auto* joy = SDL_JoystickOpen(index);
+        auto* joy = SDL_JoystickOpen(0);
         if (!joy) return 0.0f;
-        float value = static_cast<float>(SDL_JoystickGetAxis(joy, axis)) / 32767.0f;
+        float value = static_cast<float>(SDL_JoystickGetAxis(joy, 0)) / 32767.0f;
         SDL_JoystickClose(joy);
         return value;
 #else
@@ -293,11 +293,11 @@ public:
 #endif
     }
 
-    bool is_gamepad_button_pressed(int index, int button) const override {
+    bool is_gamepad_button_pressed(int /*index*/, int /*button*/) const override {
 #ifdef SDL_JOYSTICK
-        auto* joy = SDL_JoystickOpen(index);
+        auto* joy = SDL_JoystickOpen(0);
         if (!joy) return false;
-        bool pressed = SDL_JoystickGetButton(joy, button);
+        bool pressed = SDL_JoystickGetButton(joy, 0);
         SDL_JoystickClose(joy);
         return pressed;
 #else
