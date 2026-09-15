@@ -16,7 +16,7 @@ jobs:
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
           SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VER}--dev+${SHORT}" >> "$GITHUB_OUTPUT"
 
       - name: Install ps2dev (pre-built toolchain)
         run: |
@@ -33,22 +33,6 @@ jobs:
             /opt/ps2dev/ps2sdk/ports/lib/pkgconfig/*.pc 2>/dev/null || true
           sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/gsKit|${PS2DEV:-/opt/ps2dev}/gsKit|g" \
             /opt/ps2dev/gsKit/lib/pkgconfig/*.pc 2>/dev/null || true
-
-          # Replace the actual compiler binary with a wrapper that forces -G0
-          # This is necessary because cmake uses absolute paths from the toolchain file,
-          # bypassing any PATH-based wrappers
-          for tool in gcc g++ cc c++; do
-            real="/opt/ps2dev/ee/bin/mips64r5900el-ps2-elf-${tool}"
-            if [ -f "$real" ] && [ ! -f "${real}.real" ]; then
-              sudo mv "$real" "${real}.real"
-              sudo tee "$real" << WRAPPER
-          #!/bin/bash
-          exec "${real}.real" -G0 "\$@"
-          WRAPPER
-              sudo chmod +x "$real"
-              echo "Replaced ${tool} with -G0 wrapper"
-            fi
-          done
 
           echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
           echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
@@ -79,19 +63,10 @@ jobs:
           cmake --build build
           sudo cmake --install build
 
-      - name: Build SDL2_mixer for PS2
+      - name: Build libogg for PS2
         run: |
-          MIXER_VER="2.8.0"
           OGG_VER="1.3.6"
           mkdir -p build_ps2
-
-          # Remove ALL pre-built SDL2_mixer files
-          sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
-          sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
-          echo "=== After removing pre-built ==="
-          ls -la ${PS2SDK}/ports/lib/libSDL2_mixer* 2>/dev/null || echo "No pre-built lib found (good)"
-
-          # Build libogg first (vendored ogg cmake doesn't cross-compile)
           curl -fsSL -o build_ps2/libogg.tar.gz \
             "https://github.com/xiph/ogg/releases/download/v${OGG_VER}/libogg-${OGG_VER}.tar.gz"
           tar xzf build_ps2/libogg.tar.gz -C build_ps2
@@ -103,41 +78,80 @@ jobs:
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
           sudo cmake --install build
-          cd ../..
 
-          # Download and build SDL2_mixer
+      - name: Build SDL2_mixer for PS2 (manual compilation with -G0)
+        env:
+          CC: mips64r5900el-ps2-elf-gcc
+          AR: mips64r5900el-ps2-elf-ar
+        run: |
+          MIXER_VER="2.8.0"
+          mkdir -p build_ps2
+
+          # Remove pre-built SDL2_mixer entirely
+          sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
+
+          # Download SDL2_mixer source
           curl -fsSL -o build_ps2/SDL2_mixer.tar.gz \
             "https://github.com/libsdl-org/SDL_mixer/releases/download/release-${MIXER_VER}/SDL2_mixer-${MIXER_VER}.tar.gz"
           tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
 
-          cd build_ps2/SDL2_mixer-${MIXER_VER}
-          rm -rf build
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
-            -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
-            -DCMAKE_PREFIX_PATH=${PS2SDK}/ports \
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DSDL2MIXER_VENDORED=OFF \
-            -DSDL2MIXER_SAMPLES=OFF \
-            -DSDL2MIXER_OGG=ON -DSDL2MIXER_VORBIS=STB \
-            -DSDL2MIXER_FLAC=OFF -DSDL2MIXER_OPUS=OFF \
-            -DSDL2MIXER_MOD=OFF -DSDL2MIXER_MIDI=OFF \
-            -DSDL2MIXER_MP3=OFF -DSDL2MIXER_XMP=OFF \
-            -DSDL2MIXER_CMD=OFF -DSDL2MIXER_WAVPACK=OFF \
-            -DSDL2MIXER_GME=OFF -DSDL2MIXER_WAVE=ON \
-            -DBUILD_SHARED_LIBS=OFF
+          SRC=build_ps2/SDL2_mixer-${MIXER_VER}
+          OBJDIR=build_ps2/mixer-objs
+          mkdir -p $OBJDIR
 
-          # Check what cmake thinks the C compiler flags are
-          grep CMAKE_C_FLAGS build/CMakeCache.txt || true
+          # Include paths
+          SDL2_INC=${PS2SDK}/ports/include/SDL2
+          MIXER_INC=${SRC}/include
+          OGG_INC=${PS2SDK}/ports/include
+          STB_INC=${SRC}/thirdparty
 
-          cmake --build build
-          sudo cmake --install build
+          CFLAGS="-D_EE -G0 -O2 -I${SDL2_INC} -I${MIXER_INC} -I${OGG_INC} -I${STB_INC}"
 
-          # Verify the installed library was compiled with -G0
-          echo "=== Verifying libSDL2_mixer.a ==="
+          echo "=== Compiling SDL2_mixer sources with -G0 ==="
+          echo "CFLAGS: $CFLAGS"
+          echo "CC: mips64r5900el-ps2-elf-gcc"
+
+          # Compile all needed source files
+          SOURCES=$(find ${SRC}/src -maxdepth 1 -name '*.c' | sort)
+          echo "Source files:"
+          echo "$SOURCES"
+
+          for f in $SOURCES; do
+            base=$(basename "$f" .c)
+            echo "Compiling $f ..."
+            mips64r5900el-ps2-elf-gcc $CFLAGS -c "$f" -o "${OBJDIR}/${base}.o"
+          done
+
+          # Create static library
+          echo "=== Creating libSDL2_mixer.a ==="
+          mips64r5900el-ps2-elf-ar rcs ${OBJDIR}/libSDL2_mixer.a ${OBJDIR}/*.o
+
+          # Verify no GOT relocations
+          echo "=== Checking for GOT relocations ==="
+          mips64r5900el-ps2-elf-readelf -r ${OBJDIR}/libSDL2_mixer.a 2>/dev/null | grep -c "R_MIPS_GOT_PAGE\|R_MIPS_CALL16" && echo "ERROR: GOT relocations found!" || echo "OK: No GOT relocations"
+
+          # Install
+          sudo cp ${OBJDIR}/libSDL2_mixer.a ${PS2SDK}/ports/lib/libSDL2_mixer.a
+
+          echo "=== Installed library ==="
           ls -la ${PS2SDK}/ports/lib/libSDL2_mixer.a
-          # Check for GOT relocations — if any exist, -G0 was NOT applied
-          sudo mips64r5900el-ps2-elf-nm ${PS2SDK}/ports/lib/libSDL2_mixer.a 2>/dev/null | grep -c " GOT\| CALL16" && echo "WARNING: GOT relocations found!" || echo "OK: No GOT relocations"
+
+          # Re-create the pkg-config file
+          sudo mkdir -p ${PS2SDK}/ports/lib/pkgconfig
+          sudo tee ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc << 'PCFILE'
+          prefix=/opt/ps2dev/ps2sdk/ports
+          exec_prefix=${prefix}
+          libdir=${exec_prefix}/lib
+          includedir=${prefix}/include
+
+          Name: SDL2_mixer
+          Description: SDL2 Mixer
+          Version: 2.8.0
+          Requires: sdl2
+          Libs: -L${libdir} -lSDL2_mixer
+          Cflags: -I${includedir}
+          PCFILE
 
       - name: Build game for PS2
         run: |
