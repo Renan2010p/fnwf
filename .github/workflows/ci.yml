@@ -1,76 +1,95 @@
-name: CI
+name: Build & Deploy
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
+  # === Linux x86_64 ===
   build-linux-x86_64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Get version
-        id: version
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
-
-      - name: Install build tools
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
             cmake curl ca-certificates \
-            libgl1-mesa-dev libasound2-dev libpulse-dev libdbus-1-dev \
+            libgl1-mesa-dev libasound2-dev libpulse-dev \
             libudev-dev libpipewire-0.3-dev libdecor-0-dev \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev \
-            libwayland-dev wayland-protocols libxkbcommon-dev
-
-      - name: Build SDL2 from source
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxi-dev libxss-dev libwayland-dev wayland-protocols \
+            libxkbcommon-dev
+      - name: Build
         run: |
           chmod +x bootstrap.sh
           ./bootstrap.sh
-
-      - name: Build game
-        run: |
           export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
           export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
           meson setup build --buildtype=release
-          meson compile -C build
-
+          ninja -C build
       - name: Package
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          RELEASE="fnwf-classic-${TAG}-linux-x86_64"
-          mkdir -p "release/${RELEASE}"
-          cp build/fnwf "release/${RELEASE}/"
-          cp -r assets "release/${RELEASE}/"
-          chmod +x "release/${RELEASE}/fnwf"
-          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
-
-      - name: Upload artifact
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          REL="fnwf-classic-${VER}-linux-x86_64"
+          mkdir -p "release/${REL}"
+          cp build/fnwf "release/${REL}/"
+          cp -r assets "release/${REL}/"
+          chmod +x "release/${REL}/fnwf"
+          cd release && tar czf "${REL}.tar.gz" "${REL}"
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: fnwf-linux-x86_64
           path: release/fnwf-classic-*-linux-x86_64.tar.gz
 
-  build-windows-x86_64:
+  # === Linux ARM64 ===
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross-compile tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            meson ninja-build pkg-config cmake curl ca-certificates
+      - name: Build
+        run: |
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
+          meson setup build --cross-file=cross/aarch64-linux.ini --buildtype=release
+          ninja -C build
+      - name: Package
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          REL="fnwf-classic-${VER}-linux-arm64"
+          mkdir -p "release/${REL}"
+          cp build/fnwf "release/${REL}/"
+          cp -r assets "release/${REL}/"
+          chmod +x "release/${REL}/fnwf"
+          cd release && tar czf "${REL}.tar.gz" "${REL}"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-linux-arm64
+          path: release/fnwf-classic-*-linux-arm64.tar.gz
+
+  # === Windows ===
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "tag=v${VER}-dev+${SHORT}" >> "$GITHUB_OUTPUT"
-
-      - name: Install build tools
+      - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -82,33 +101,147 @@ jobs:
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
             git zip curl
-
-      - name: Build SDL2 from source
+      - name: Build
         shell: msys2 {0}
         run: |
           chmod +x bootstrap.sh
           ./bootstrap.sh
-
-      - name: Build game
-        shell: msys2 {0}
-        run: |
           export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
           export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
           meson setup build --buildtype=release
-          meson compile -C build
-
+          ninja -C build
       - name: Package
         shell: msys2 {0}
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          RELEASE="fnwf-classic-${TAG}-windows-x86_64"
-          mkdir -p "release/${RELEASE}"
-          cp build/fnwf.exe "release/${RELEASE}/"
-          cp -r assets "release/${RELEASE}/"
-          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
-
-      - name: Upload artifact
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          REL="fnwf-classic-${VER}-windows-x86_64"
+          mkdir -p "release/${REL}"
+          cp build/fnwf.exe "release/${REL}/"
+          cp -r assets "release/${REL}/"
+          cd release && tar czf "${REL}.tar.gz" "${REL}"
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: fnwf-windows-x86_64
           path: release/fnwf-classic-*-windows-x86_64.tar.gz
+
+  # === macOS ===
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install meson ninja pkg-config sdl2 freetype
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+      - name: Build
+        run: |
+          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export DYLD_LIBRARY_PATH="$(pwd)/deps/lib:$DYLD_LIBRARY_PATH"
+          meson setup build --buildtype=release
+          ninja -C build
+      - name: Package
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          REL="fnwf-classic-${VER}-macos"
+          mkdir -p "release/${REL}"
+          cp build/fnwf "release/${REL}/"
+          cp -r assets "release/${REL}/"
+          chmod +x "release/${REL}/fnwf"
+          cd release && tar czf "${REL}.tar.gz" "${REL}"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-macos
+          path: release/fnwf-classic-*-macos.tar.gz
+
+  # === WebAssembly ===
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+      - name: Build
+        run: |
+          mkdir -p build_web
+          SOURCES=(
+            src/main.cpp
+            src/engine/Engine.cpp
+            src/core/DrawUtils.cpp
+            src/core/Localization.cpp
+            src/core/SaveManager.cpp
+            src/core/SettingsManager.cpp
+            src/core/StateMachine.cpp
+            src/core/StateRegistry.cpp
+            src/core/SoundManager.cpp
+            src/core/Platform.cpp
+            src/core/InputManager.cpp
+            src/systems/Office.cpp
+            src/systems/CameraSystem.cpp
+            src/systems/Doors.cpp
+            src/systems/Animatronics.cpp
+            src/systems/Power.cpp
+            src/systems/Jumpscare.cpp
+            src/game1/states/*.cpp
+          )
+          em++ \
+            "${SOURCES[@]}" \
+            -std=c++23 -Isrc -O2 \
+            -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_MIXER=2 \
+            -sSDL2_IMAGE_FORMATS='["png"]' \
+            -sSDL2_MIXER_FORMATS='["ogg"]' \
+            -sALLOW_MEMORY_GROWTH=1 \
+            -sINITIAL_MEMORY=134217728 \
+            -sFORCE_FILESYSTEM=1 \
+            --preload-file assets \
+            -lc++ -lc++abi \
+            --shell-file web/shell.html \
+            -o build_web/index.html
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-web
+          path: build_web/
+
+  # === Deploy to GitHub Pages ===
+  deploy:
+    needs: [build-web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fnwf-web
+          path: build_web
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build_web
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # === Create Release ===
+  create-release:
+    needs: [build-linux-x86_64, build-linux-arm64, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          TAG="v${VER}--dev+$(echo "${{ github.sha }}" | cut -c1-7)"
+          gh release create "${TAG}" \
+            --title "Classic ${VER}" \
+            --generate-notes \
+            artifacts/*/*.tar.gz

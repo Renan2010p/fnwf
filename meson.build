@@ -114,6 +114,17 @@ elif host_machine.system() == 'windows'
   ], language : 'cpp')
 
   message('BUILD: Windows static (MinGW64)')
+
+elif host_machine.system() == 'darwin'
+  add_project_arguments([
+    '-O2',
+    '-DNDEBUG',
+    '-fomit-frame-pointer',
+    '-ffunction-sections',
+    '-fdata-sections',
+  ], language : 'cpp')
+
+  message('BUILD: macOS static')
 endif
 
 # === Sources ===
@@ -127,6 +138,8 @@ fnwf_sources = files(
   'src/core/StateMachine.cpp',
   'src/core/StateRegistry.cpp',
   'src/core/SoundManager.cpp',
+  'src/core/Platform.cpp',
+  'src/core/InputManager.cpp',
   'src/systems/Office.cpp',
   'src/systems/CameraSystem.cpp',
   'src/systems/Doors.cpp',
