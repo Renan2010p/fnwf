@@ -43,7 +43,7 @@ build_sdl2_ps2() {
 
     cd "${SDL2_DIR}"
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_TOOLCHAIN_FILE="${PS2SDK}/ps2dev.cmake" \
+        -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/cross/ps2-softfloat.cmake" \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}"
     cmake --build build
     cmake --install build
