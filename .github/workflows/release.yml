@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,10 +51,261 @@ jobs:
           chmod +x "release/${RELEASE}/fnwf"
           cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
 
-      - name: Create release and upload
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-linux-x86_64
+          path: release/fnwf-classic-*-linux-x86_64.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          echo "tag=v${VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Install build tools
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            git zip curl
+
+      - name: Build SDL2 from source
+        shell: msys2 {0}
+        run: |
+          chmod +x bootstrap.sh
+          ./bootstrap.sh
+
+      - name: Build game
+        shell: msys2 {0}
+        run: |
+          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
+          meson setup build --buildtype=release
+          meson compile -C build
+
+      - name: Package
+        shell: msys2 {0}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          RELEASE="fnwf-classic-${TAG}-windows-x86_64"
+          mkdir -p "release/${RELEASE}"
+          cp build/fnwf.exe "release/${RELEASE}/"
+          cp -r assets "release/${RELEASE}/"
+          cd release && tar czf "${RELEASE}.tar.gz" "${RELEASE}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-windows-x86_64
+          path: release/fnwf-classic-*-windows-x86_64.tar.gz
+
+  build-ps2:
+    runs-on: ubuntu-latest
+    env:
+      CC: mips64r5900el-ps2-elf-gcc
+      AR: mips64r5900el-ps2-elf-ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          echo "tag=v${VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Install ps2dev (pre-built toolchain)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq wget curl cmake pkg-config
+          sudo mkdir -p /opt/ps2dev
+          curl -sL -o /tmp/ps2dev.tar.gz \
+            "https://github.com/ps2dev/ps2dev/releases/download/latest/ps2dev-ubuntu-latest.tar.gz"
+          sudo tar xzf /tmp/ps2dev.tar.gz --strip-components 1 -C /opt/ps2dev
+          rm /tmp/ps2dev.tar.gz
+
+          sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/ps2sdk|${PS2SDK:-/opt/ps2dev/ps2sdk}|g" \
+            /opt/ps2dev/ps2sdk/ports/lib/pkgconfig/*.pc 2>/dev/null || true
+          sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/gsKit|${PS2DEV:-/opt/ps2dev}/gsKit|g" \
+            /opt/ps2dev/gsKit/lib/pkgconfig/*.pc 2>/dev/null || true
+
+          echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
+          echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
+          echo "/opt/ps2dev/ee/bin" >> $GITHUB_PATH
+          echo "/opt/ps2dev/bin" >> $GITHUB_PATH
+          echo "/opt/ps2dev/ps2sdk/bin" >> $GITHUB_PATH
+
+      - name: Install Meson
+        run: pip3 install meson ninja
+
+      - name: Build SDL2 for PS2
+        run: |
+          SDL2_VER="2.30.8"
+          mkdir -p build_ps2
+          curl -sL -o build_ps2/SDL2.tar.gz \
+            "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VER}/SDL2-${SDL2_VER}.tar.gz"
+          tar xzf build_ps2/SDL2.tar.gz -C build_ps2
+
+          sed -i 's/static int vsync_handler(void)/static int vsync_handler(int dummy)/' \
+            build_ps2/SDL2-${SDL2_VER}/src/render/ps2/SDL_render_ps2.c
+
+          cd build_ps2/SDL2-${SDL2_VER}
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build
+          sudo cmake --install build
+
+      - name: Build libogg for PS2
+        run: |
+          OGG_VER="1.3.6"
+          mkdir -p build_ps2
+          curl -fsSL -o build_ps2/libogg.tar.gz \
+            "https://github.com/xiph/ogg/releases/download/v${OGG_VER}/libogg-${OGG_VER}.tar.gz"
+          tar xzf build_ps2/libogg.tar.gz -C build_ps2
+          cd build_ps2/libogg-${OGG_VER}
+          rm -rf build
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build
+          sudo cmake --install build
+
+      - name: Build SDL2_mixer for PS2 (manual compilation with -G0)
+        run: |
+          MIXER_VER="2.8.0"
+          mkdir -p build_ps2
+
+          sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
+          sudo rm -f ${PS2SDK}/ports/include/SDL2/SDL_mixer.h
+
+          curl -fsSL -o build_ps2/SDL2_mixer.tar.gz \
+            "https://github.com/libsdl-org/SDL_mixer/releases/download/release-${MIXER_VER}/SDL2_mixer-${MIXER_VER}.tar.gz"
+          tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
+
+          SRC=build_ps2/SDL2_mixer-${MIXER_VER}
+          OBJDIR=build_ps2/mixer-objs
+          mkdir -p $OBJDIR
+
+          SDL2_INC=${PS2SDK}/ports/include/SDL2
+          MIXER_INC=${SRC}/include
+          OGG_INC=${PS2SDK}/ports/include
+
+          DEFS="-DBUILD_SDL -DSDL_BUILD_MAJOR_VERSION=2 -DSDL_BUILD_MINOR_VERSION=8 -DSDL_BUILD_MICRO_VERSION=0 -DMUSIC_OGG -DOGG_USE_STB -DMUSIC_WAV"
+          CFLAGS="-D_EE -G0 -O2 ${DEFS} -I${MIXER_INC} -I${SRC}/src -I${SRC}/src/codecs -I${SDL2_INC} -I${OGG_INC}"
+
+          echo "=== Compiling SDL2_mixer sources with -G0 ==="
+
+          SOURCES=""
+          for f in ${SRC}/src/mixer.c ${SRC}/src/music.c ${SRC}/src/utils.c \
+                   ${SRC}/src/effect_position.c ${SRC}/src/effect_stereoreverse.c \
+                   ${SRC}/src/effects_internal.c; do
+            SOURCES="$SOURCES $f"
+          done
+
+          for f in ${SRC}/src/codecs/music_ogg_stb.c ${SRC}/src/codecs/music_wav.c \
+                   ${SRC}/src/codecs/mp3utils.c ${SRC}/src/codecs/load_aiff.c \
+                   ${SRC}/src/codecs/load_voc.c; do
+            [ -f "$f" ] && SOURCES="$SOURCES $f"
+          done
+
+          FAIL=0
+          for f in $SOURCES; do
+            base=$(basename "$f" .c)
+            echo "Compiling $f ..."
+            if ! mips64r5900el-ps2-elf-gcc $CFLAGS -c "$f" -o "${OBJDIR}/${base}.o"; then
+              echo "ERROR: Failed to compile $f"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -eq 1 ]; then exit 1; fi
+
+          echo "=== Creating libSDL2_mixer.a ==="
+          mips64r5900el-ps2-elf-ar rcs ${OBJDIR}/libSDL2_mixer.a ${OBJDIR}/*.o
+
+          echo "=== Checking for GOT relocations ==="
+          mips64r5900el-ps2-elf-readelf -r ${OBJDIR}/libSDL2_mixer.a 2>/dev/null | grep -c "R_MIPS_GOT_PAGE\|R_MIPS_CALL16" && echo "ERROR: GOT relocations found!" || echo "OK: No GOT relocations"
+
+          sudo cp ${OBJDIR}/libSDL2_mixer.a ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          sudo cp ${SRC}/include/SDL_mixer.h ${PS2SDK}/ports/include/SDL2/SDL_mixer.h
+
+          sudo mkdir -p ${PS2SDK}/ports/lib/pkgconfig
+          sudo tee ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc << 'PCFILE'
+          prefix=/opt/ps2dev/ps2sdk/ports
+          exec_prefix=${prefix}
+          libdir=${exec_prefix}/lib
+          includedir=${prefix}/include
+
+          Name: SDL2_mixer
+          Description: SDL2 Mixer
+          Version: 2.8.0
+          Requires: sdl2
+          Libs: -L${libdir} -lSDL2_mixer
+          Cflags: -I${includedir}
+          PCFILE
+
+      - name: Build game for PS2
+        run: |
+          sed -i "s|\$PS2SDK|${PS2SDK}|g" cross/ps2.ini
+          sed -i "s|\$PS2DEV|${PS2DEV}|g" cross/ps2.ini
+
+          export PKG_CONFIG_PATH=${PS2SDK}/ports/lib/pkgconfig:${PKG_CONFIG_PATH:-}
+          meson setup build_ps2/game --cross-file cross/ps2.ini
+          meson compile -C build_ps2/game
+
+          git checkout cross/ps2.ini
+
+      - name: Package
+        run: |
+          VER="${{ steps.version.outputs.tag }}"
+          RELEASE="fnwf-classic-${VER}-ps2"
+          mkdir -p "release/${RELEASE}"
+          cp build_ps2/game/fnwf.elf "release/${RELEASE}/" 2>/dev/null || \
+          cp build_ps2/game/fnwf "release/${RELEASE}/fnwf.elf"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-ps2
+          path: release/fnwf-classic-*-ps2/
+
+  create-release:
+    needs: [build-linux, build-windows, build-ps2]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create tarballs
+        run: |
+          cd artifacts
+          for dir in */; do
+            name="${dir%/}"
+            tar czf "${name}.tar.gz" -C . "${name}"
+          done
+          ls -la *.tar.gz
+
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: "FNWF ${{ steps.version.outputs.tag }}"
-          files: release/fnwf-classic-*-linux-x86_64.tar.gz
+          name: "FNWF ${{ needs.build-linux.outputs.tag || github.ref_name }}"
+          files: artifacts/*.tar.gz
           draft: false
           prerelease: false
