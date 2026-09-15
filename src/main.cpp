@@ -35,8 +35,10 @@
 #endif
 
 #ifdef PS2
-#include <tamtypes.h>
-#include <loadfile.h>
+extern "C" {
+int SifLoadFileInit(void);
+int SifLoadModule(const char *path, int arg_len, const char *args);
+}
 #endif
 
 // --- Global state for Emscripten main loop ---
