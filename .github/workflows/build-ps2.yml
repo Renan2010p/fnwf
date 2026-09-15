@@ -36,9 +36,9 @@ jobs:
 
           # Patch ps2dev.cmake to force -G0 on ALL compiler invocations
           # This fixes R_MIPS_GOT_PAGE relocation overflow in pre-built port libs
-          sudo sed -i 's/-D_EE/-D_EE -G0/g' ${PS2SDK}/ps2dev.cmake
+          sudo sed -i 's/-D_EE/-D_EE -G0/g' /opt/ps2dev/ps2sdk/ps2dev.cmake
           echo "=== Patched ps2dev.cmake flags ==="
-          grep -E 'CMAKE_C_FLAGS|CMAKE_CXX_FLAGS|CMAKE_ASM_FLAGS' ${PS2SDK}/ps2dev.cmake || true
+          grep -E 'CMAKE_C_FLAGS|CMAKE_CXX_FLAGS|CMAKE_ASM_FLAGS' /opt/ps2dev/ps2sdk/ps2dev.cmake || true
 
           echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
           echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
