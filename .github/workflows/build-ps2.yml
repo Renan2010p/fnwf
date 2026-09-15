@@ -59,7 +59,9 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_C_FLAGS="-fno-builtin -fno-math-errno -ffp-contract=off" \
+            -DCMAKE_CXX_FLAGS="-fno-builtin -fno-math-errno -ffp-contract=off"
           cmake --build build
           sudo cmake --install build
 
