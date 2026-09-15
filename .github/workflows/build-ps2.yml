@@ -221,7 +221,7 @@ jobs:
 
           # Generate ISO9660 disc image for PS2
           echo "=== Creating PS2 ISO ==="
-          genisoimage -iso-level 2 -no-pad -allow-lowercase -input-charset utf-8 \
+          genisoimage -iso-level 2 -no-pad -input-charset utf-8 \
             -o "release_ps2/fnwf-ps2.iso" \
             -V "FNWF" \
             "${DISC_DIR}"

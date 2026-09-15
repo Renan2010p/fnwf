@@ -56,7 +56,7 @@ auto SoundManager::play_sound(const std::string& name, int loops, int channel) -
     if (it == s_cache.end()) {
         auto fname_it = s_filename_map.find(name);
         std::string fname = (fname_it != s_filename_map.end()) ? fname_it->second : name + ".ogg";
-        std::string path = std::string(GameSettings::ASSETS_DIR) + "/audio/" + fname;
+        std::string path = GameSettings::asset_full("audio/" + fname);
         auto snd = s_eng->load_sound(path);
         if (!snd)
             return;
