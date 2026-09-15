@@ -63,6 +63,13 @@ build_game_ps2() {
     # Set environment
     export PATH="${PS2DEV}/ee/bin:${PS2DEV}/bin:${PS2SDK}/bin:${PATH}"
 
+    # Generate embedded assets
+    echo "=== Generating embedded assets ==="
+    python3 "${SCRIPT_DIR}/tools/embed_assets.py" \
+        "${SCRIPT_DIR}/assets" \
+        "${SCRIPT_DIR}/src/generated/embedded_assets.hpp" \
+        "${SCRIPT_DIR}/src/generated/embedded_assets.cpp"
+
     # Build with meson cross file
     rm -rf "${BUILD_DIR}/game"
 
@@ -109,9 +116,6 @@ EOF
     # Copy ELF as FNWF.ELF (PS2 convention: uppercase, 8.3)
     cp "${BUILD_DIR}/game/fnwf.elf" "${DISC_DIR}/FNWF.ELF" 2>/dev/null || \
     cp "${BUILD_DIR}/game/fnwf" "${DISC_DIR}/FNWF.ELF"
-
-    # Copy assets directory
-    cp -r "${SCRIPT_DIR}/assets" "${DISC_DIR}/assets"
 
     # Generate ISO9660 disc image
     echo "=== Creating PS2 ISO ==="

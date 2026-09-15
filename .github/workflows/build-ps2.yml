@@ -172,6 +172,12 @@ jobs:
           Cflags: -I${includedir}
           PCFILE
 
+      - name: Generate embedded assets
+        run: |
+          python3 tools/embed_assets.py assets \
+            src/generated/embedded_assets.hpp \
+            src/generated/embedded_assets.cpp
+
       - name: Build game for PS2
         run: |
           # Resolve $PS2SDK and $PS2DEV in cross file (linker can't expand env vars)
@@ -204,7 +210,7 @@ jobs:
           # Create ISO disc structure
           DISC_DIR="build_ps2/disc"
           rm -rf "${DISC_DIR}"
-          mkdir -p "${DISC_DIR}/assets"
+          mkdir -p "${DISC_DIR}"
 
           # SYSTEM.CNF for PS2 disc boot
           printf 'BOOT2 = cdrom0:\\FNWF.ELF;1\r\nVER = 1.00\r\nVMODE = NTSC\r\n' > "${DISC_DIR}/SYSTEM.CNF"
@@ -214,8 +220,6 @@ jobs:
           cp "${ELF}" "${DISC_DIR}/FNWF.ELF"
           ls -la "${DISC_DIR}/FNWF.ELF"
 
-          # Copy assets directory
-          cp -r assets/* "${DISC_DIR}/assets/"
           echo "=== Disc contents ==="
           find "${DISC_DIR}" -type f | head -30
 

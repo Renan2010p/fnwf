@@ -263,6 +263,12 @@ jobs:
           Cflags: -I${includedir}
           PCFILE
 
+      - name: Generate embedded assets
+        run: |
+          python3 tools/embed_assets.py assets \
+            src/generated/embedded_assets.hpp \
+            src/generated/embedded_assets.cpp
+
       - name: Build game for PS2
         run: |
           sed -i "s|\$PS2SDK|${PS2SDK}|g" cross/ps2.ini
@@ -294,9 +300,6 @@ jobs:
 
           # Copy ELF as FNWF.ELF
           cp "${ELF}" "${DISC_DIR}/FNWF.ELF"
-
-          # Copy assets directory
-          cp -r assets "${DISC_DIR}/assets"
 
           # Generate ISO9660 disc image
           echo "=== Creating PS2 ISO ==="
