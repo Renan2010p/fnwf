@@ -44,9 +44,7 @@ build_sdl2_ps2() {
     cd "${SDL2_DIR}"
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="${PS2SDK}/ps2dev.cmake" \
-        -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-        -DCMAKE_C_FLAGS="-fno-builtin -fno-math-errno -ffp-contract=off" \
-        -DCMAKE_CXX_FLAGS="-fno-builtin -fno-math-errno -ffp-contract=off"
+        -DCMAKE_INSTALL_PREFIX="${PREFIX}"
     cmake --build build
     cmake --install build
     cd "${SCRIPT_DIR}"
