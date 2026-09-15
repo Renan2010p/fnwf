@@ -1,5 +1,6 @@
 #include "engine/Engine.hpp"
 #include "core/DrawUtils.hpp"
+#include "game1/GameSettings.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -319,7 +320,7 @@ auto Engine::draw_text(std::string_view text,
     // Find or create font for this size
     std::int64_t fidx = font_idx;
     if (fidx < 0) {
-        fidx = load_font("assets/font/font.ttf", static_cast<std::uint16_t>(font_size));
+        fidx = load_font(std::string(GameSettings::ASSETS_DIR) + "/font/font.ttf", static_cast<std::uint16_t>(font_size));
         if (fidx < 0) {
             return true;
         }
@@ -391,7 +392,7 @@ auto Engine::draw_text_rotated(std::string_view text,
 
     std::int64_t fidx = font_idx;
     if (fidx < 0) {
-        fidx = load_font("assets/font/font.ttf", static_cast<std::uint16_t>(font_size));
+        fidx = load_font(std::string(GameSettings::ASSETS_DIR) + "/font/font.ttf", static_cast<std::uint16_t>(font_size));
         if (fidx < 0) {
             return true;
         }
