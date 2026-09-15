@@ -34,6 +34,11 @@
 #include <emscripten/html5.h>
 #endif
 
+#ifdef PS2
+#include <sifload.h>
+#include <sifcmd.h>
+#endif
+
 // --- Global state for Emscripten main loop ---
 namespace {
 
@@ -329,6 +334,11 @@ auto main(int argc, char** argv) -> int {
         std::fprintf(stderr, "Engine init failed: %s\n", init_res.error().c_str());
         return 1;
     }
+
+#ifdef PS2
+    SifLoadModule("rom0:CDVDMAN", 0, NULL);
+    SifLoadModule("rom0:CDVDSTMD", 0, NULL);
+#endif
     eng.set_logical_size(fnwf::GameSettings::SCREEN_WIDTH, fnwf::GameSettings::SCREEN_HEIGHT);
 
     fnwf::SoundManager::set_engine(&eng);
