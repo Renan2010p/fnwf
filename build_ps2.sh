@@ -43,6 +43,10 @@ build_sdl2_ps2() {
 
     cd "${SDL2_DIR}"
 
+    # Patch out thread requirement check (PS2 has no pthreads)
+    sed -i 's/message_error("ERROR: Threads are needed/message(STATUS "Threads check skipped/' \
+        cmake/macros.cmake
+
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/cross/ps2-cmake-toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
