@@ -69,6 +69,10 @@ jobs:
           OGG_VER="1.3.6"
           mkdir -p build_ps2
 
+          # Remove pre-built SDL2_mixer (compiled without -G0, causes GOT overflow)
+          sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
+          sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
+
           # Build libogg first (vendored ogg cmake doesn't cross-compile)
           curl -fsSL -o build_ps2/libogg.tar.gz \
             "https://github.com/xiph/ogg/releases/download/v${OGG_VER}/libogg-${OGG_VER}.tar.gz"
@@ -87,10 +91,8 @@ jobs:
             "https://github.com/libsdl-org/SDL_mixer/releases/download/release-${MIXER_VER}/SDL2_mixer-${MIXER_VER}.tar.gz"
           tar xzf build_ps2/SDL2_mixer.tar.gz -C build_ps2
 
-          # Hide pre-built SDL2_mixer
-          sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
-
           cd build_ps2/SDL2_mixer-${MIXER_VER}
+          CFLAGS="-G0 -O2" CXXFLAGS="-G0 -O2" \
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
@@ -109,6 +111,10 @@ jobs:
             -DBUILD_SHARED_LIBS=OFF
           cmake --build build
           sudo cmake --install build
+
+          # Verify the installed library was compiled with -G0
+          echo "=== Verifying libSDL2_mixer.a ==="
+          sudo mips64r5900el-ps2-elf-readelf -p .comment ${PS2SDK}/ports/lib/libSDL2_mixer.a 2>/dev/null | head -5 || true
 
       - name: Build game for PS2
         run: |
