@@ -207,10 +207,8 @@ jobs:
           mkdir -p "${DISC_DIR}/assets"
 
           # SYSTEM.CNF for PS2 disc boot
-          echo "BOOT2 = cdrom0:\FNWF.ELF;1" > "${DISC_DIR}/SYSTEM.CNF"
-          echo "VER = 1.00" >> "${DISC_DIR}/SYSTEM.CNF"
-          echo "VMODE = NTSC" >> "${DISC_DIR}/SYSTEM.CNF"
-          cat "${DISC_DIR}/SYSTEM.CNF"
+          printf 'BOOT2 = cdrom0:\\FNWF.ELF;1\r\nVER = 1.00\r\nVMODE = NTSC\r\n' > "${DISC_DIR}/SYSTEM.CNF"
+          xxd "${DISC_DIR}/SYSTEM.CNF" | head -5
 
           # Copy ELF as FNWF.ELF (PS2 convention: uppercase, 8.3)
           cp "${ELF}" "${DISC_DIR}/FNWF.ELF"
@@ -221,14 +219,22 @@ jobs:
           echo "=== Disc contents ==="
           find "${DISC_DIR}" -type f | head -30
 
-          # Generate ISO9660 disc image (PS2 needs -no-pad, no Joliet)
+          # Generate ISO9660 disc image for PS2
           echo "=== Creating PS2 ISO ==="
+          mkisofs -iso-level 2 -no-pad \
+            -o "release_ps2/fnwf-ps2.iso" \
+            -V "FNWF" \
+            "${DISC_DIR}" 2>&1 || \
           genisoimage -iso-level 2 -no-pad \
             -o "release_ps2/fnwf-ps2.iso" \
             -V "FNWF" \
             "${DISC_DIR}"
           echo "=== ISO result: $? ==="
           ls -la "release_ps2/fnwf-ps2.iso"
+
+          # Verify SYSTEM.CNF is in the ISO
+          echo "=== ISO contents ==="
+          isoinfo -l -i "release_ps2/fnwf-ps2.iso" 2>/dev/null | head -40
 
           # Also keep raw ELF
           cp "${ELF}" release_ps2/fnwf.elf
