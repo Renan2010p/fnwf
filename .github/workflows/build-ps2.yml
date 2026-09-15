@@ -54,13 +54,9 @@ jobs:
           sed -i 's/static int vsync_handler(void)/static int vsync_handler(int dummy)/' \
             build_ps2/SDL2-${SDL2_VER}/src/render/ps2/SDL_render_ps2.c
 
-          # Patch out thread requirement check (PS2 has no pthreads)
-          sed -i 's/message_error("ERROR: Threads are needed/message(STATUS "Threads check skipped/' \
-            build_ps2/SDL2-${SDL2_VER}/cmake/macros.cmake
-
           cd build_ps2/SDL2-${SDL2_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/cross/ps2-cmake-toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -76,7 +72,7 @@ jobs:
           cd build_ps2/libogg-${OGG_VER}
           rm -rf build
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/cross/ps2-cmake-toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -208,11 +204,7 @@ jobs:
           mkdir -p "${DISC_DIR}"
 
           # SYSTEM.CNF for PS2 disc boot
-          cat > "${DISC_DIR}/SYSTEM.CNF" << 'EOF'
-          BOOT2 = cdrom0:\FNWF.ELF;1
-          VER = 1.00
-          VMODE = NTSC
-          EOF
+          printf 'BOOT2 = cdrom0:\\FNWF.ELF;1\r\nVER = 1.00\r\nVMODE = NTSC\r\n' > "${DISC_DIR}/SYSTEM.CNF"
 
           # Copy ELF as FNWF.ELF (PS2 convention: uppercase, 8.3)
           cp "${ELF}" "${DISC_DIR}/FNWF.ELF"
