@@ -34,22 +34,21 @@ jobs:
           sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/gsKit|${PS2DEV:-/opt/ps2dev}/gsKit|g" \
             /opt/ps2dev/gsKit/lib/pkgconfig/*.pc 2>/dev/null || true
 
-          # Create compiler wrappers that force -G0 into EVERY gcc/g++ invocation
-          # This is the only reliable way to ensure -G0 is used regardless of cmake flags
-          mkdir -p /tmp/ps2dev-g0
+          # Replace the actual compiler binary with a wrapper that forces -G0
+          # This is necessary because cmake uses absolute paths from the toolchain file,
+          # bypassing any PATH-based wrappers
           for tool in gcc g++ cc c++; do
             real="/opt/ps2dev/ee/bin/mips64r5900el-ps2-elf-${tool}"
-            if [ -f "$real" ]; then
-              cat > "/tmp/ps2dev-g0/mips64r5900el-ps2-elf-${tool}" << SCRIPT
+            if [ -f "$real" ] && [ ! -f "${real}.real" ]; then
+              sudo mv "$real" "${real}.real"
+              sudo tee "$real" << WRAPPER
           #!/bin/bash
-          exec "${real}" -G0 "\$@"
-          SCRIPT
-              chmod +x "/tmp/ps2dev-g0/mips64r5900el-ps2-elf-${tool}"
-              echo "Created wrapper for ${tool}: $(cat "/tmp/ps2dev-g0/mips64r5900el-ps2-elf-${tool}")"
+          exec "${real}.real" -G0 "\$@"
+          WRAPPER
+              sudo chmod +x "$real"
+              echo "Replaced ${tool} with -G0 wrapper"
             fi
           done
-          # Also wrap ar to not break cmake detection
-          ls /tmp/ps2dev-g0/
 
           echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
           echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
@@ -85,13 +84,6 @@ jobs:
           MIXER_VER="2.8.0"
           OGG_VER="1.3.6"
           mkdir -p build_ps2
-
-          # Force wrappers first in PATH so every compiler call gets -G0
-          export PATH="/tmp/ps2dev-g0:${PATH}"
-
-          # Verify wrappers are active
-          echo "=== Compiler wrapper test ==="
-          mips64r5900el-ps2-elf-gcc --version 2>&1 | head -1 || true
 
           # Remove ALL pre-built SDL2_mixer files
           sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
