@@ -36,7 +36,6 @@ auto WarningState::update(double dt) -> void {
 }
 auto WarningState::draw(Engine& eng) -> void {
     eng.clear(0, 0, 0);
-    eng.draw_rect(0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 40, 0, 0);
     auto cx = GameSettings::SCREEN_WIDTH / 2, cy = GameSettings::SCREEN_HEIGHT / 2;
     auto a = static_cast<int>(alpha);
     DrawUtils::text(

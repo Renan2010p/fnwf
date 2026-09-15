@@ -10,7 +10,7 @@ namespace fnwf {
 auto DrawUtils::load_sprite(Engine& eng, const std::string& name) -> void {
     if (s_sprite_cache.count(name))
         return;
-    std::string path = std::string(GameSettings::ASSETS_DIR) + "/" + name + ".png";
+    std::string path = GameSettings::asset_file(name, ".png");
     auto tex = eng.load_texture(path);
     if (tex) {
         s_sprite_cache[name] = *tex;
@@ -26,7 +26,7 @@ auto DrawUtils::get_sprite(const std::string& name) -> std::optional<TextureHand
 }
 
 auto DrawUtils::set_fonts(Engine& eng) -> void {
-    s_main_font = eng.load_font(std::string(GameSettings::ASSETS_DIR) + "/font/font.ttf", 16);
+    s_main_font = eng.load_font(GameSettings::asset_path("font", ".ttf"), 16);
     if (s_main_font == -1)
         s_main_font = 0;
     s_font_cache[16] = s_main_font;
@@ -37,7 +37,7 @@ auto DrawUtils::get_font_by_size(Engine& eng, std::uint32_t size) -> std::int64_
     if (it != s_font_cache.end()) {
         return it->second;
     }
-    auto idx = eng.load_font(std::string(GameSettings::ASSETS_DIR) + "/font/font.ttf", size);
+    auto idx = eng.load_font(GameSettings::asset_path("font", ".ttf"), size);
     if (idx == -1)
         return s_main_font;
     s_font_cache[size] = idx;

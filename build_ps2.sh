@@ -115,7 +115,7 @@ EOF
 
     # Generate ISO9660 disc image
     echo "=== Creating PS2 ISO ==="
-    genisoimage -iso-level 2 -no-pad -allow-lowercase -input-charset utf-8 \
+    genisoimage -iso-level 2 -no-pad -input-charset utf-8 \
         -o "${OUTPUT_DIR}/fnwf-ps2.iso" \
         -V "FNWF" \
         "${DISC_DIR}"
