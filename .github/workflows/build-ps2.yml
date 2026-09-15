@@ -57,7 +57,7 @@ jobs:
 
           cd build_ps2/SDL2-${SDL2_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=cross/ps2-softfloat.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -73,7 +73,7 @@ jobs:
           cd build_ps2/libogg-${OGG_VER}
           rm -rf build
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=cross/ps2-softfloat.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -107,7 +107,7 @@ jobs:
           OGG_INC=${PS2SDK}/ports/include
 
           DEFS="-DBUILD_SDL -DSDL_BUILD_MAJOR_VERSION=2 -DSDL_BUILD_MINOR_VERSION=8 -DSDL_BUILD_MICRO_VERSION=0 -DMUSIC_OGG -DOGG_USE_STB -DMUSIC_WAV"
-          CFLAGS="-D_EE -G0 -O2 ${DEFS} -I${MIXER_INC} -I${SRC}/src -I${SRC}/src/codecs -I${SDL2_INC} -I${OGG_INC}"
+          CFLAGS="-D_EE -G0 -O2 -msoft-float ${DEFS} -I${MIXER_INC} -I${SRC}/src -I${SRC}/src/codecs -I${SDL2_INC} -I${OGG_INC}"
 
           echo "=== Compiling SDL2_mixer sources with -G0 ==="
           echo "CFLAGS: $CFLAGS"
