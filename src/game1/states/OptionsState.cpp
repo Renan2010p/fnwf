@@ -28,8 +28,7 @@ OptionsState::OptionsState(Engine& eng) : m_eng(eng) {
             seen.push_back({m[0], m[1]});
     }
     if (seen.empty()) {
-        seen.push_back({1280, 720});
-        seen.push_back({1920, 1080});
+        seen.push_back({GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT});
     }
     std::sort(seen.begin(), seen.end(), [](auto& a, auto& b) { return a.first < b.first; });
     resolutions = seen;
@@ -303,7 +302,7 @@ auto OptionsState::apply_settings() -> void {
             s.resolution_w = res.first;
             s.resolution_h = res.second;
             m_eng.set_resolution(res.first, res.second);
-            m_eng.set_logical_size(1280, 720);
+            m_eng.set_logical_size(GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT);
         } else if (opt.id == "fullscreen") {
             s.fullscreen = opt.value;
             m_eng.set_fullscreen(opt.value);
