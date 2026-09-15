@@ -181,7 +181,15 @@ jobs:
 
           export PKG_CONFIG_PATH=${PS2SDK}/ports/lib/pkgconfig:${PKG_CONFIG_PATH:-}
           meson setup build_ps2/game --cross-file cross/ps2.ini
-          meson compile -C build_ps2/game
+          meson compile -C build_ps2/game -v
+
+          # Verify ELF
+          ELF=$(find build_ps2/game -name 'fnwf' -o -name 'fnwf.elf' | head -1)
+          echo "=== ELF info ==="
+          file "$ELF" 2>/dev/null || true
+          mips64r5900el-ps2-elf-readelf -h "$ELF" 2>/dev/null || true
+          mips64r5900el-ps2-elf-readelf -l "$ELF" 2>/dev/null || true
+          mips64r5900el-ps2-elf-nm "$ELF" 2>/dev/null | grep -E "main|_start|SDL_main" || true
 
           # Restore cross file
           git checkout cross/ps2.ini

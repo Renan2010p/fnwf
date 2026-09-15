@@ -59,11 +59,17 @@ build_game_ps2() {
 
     # Build with meson cross file
     rm -rf "${BUILD_DIR}/game"
+
+    # Expand env vars in cross file for meson (it can't expand $VAR itself)
+    cp "${SCRIPT_DIR}/cross/ps2.ini" "${BUILD_DIR}/ps2_cross.ini"
+    sed -i "s|\\\$PS2SDK|${PS2SDK}|g" "${BUILD_DIR}/ps2_cross.ini"
+    sed -i "s|\\\$PS2DEV|${PS2DEV}|g" "${BUILD_DIR}/ps2_cross.ini"
+
     meson setup "${BUILD_DIR}/game" \
-        --cross-file "${SCRIPT_DIR}/cross/ps2.ini" \
+        --cross-file "${BUILD_DIR}/ps2_cross.ini" \
         --wipe 2>/dev/null || \
     meson setup "${BUILD_DIR}/game" \
-        --cross-file "${SCRIPT_DIR}/cross/ps2.ini"
+        --cross-file "${BUILD_DIR}/ps2_cross.ini"
 
     meson compile -C "${BUILD_DIR}/game"
 
