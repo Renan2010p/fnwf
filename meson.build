@@ -114,15 +114,6 @@ elif host_machine.system() == 'windows'
   ], language : 'cpp')
 
   message('BUILD: Windows static (MinGW64)')
-
-elif host_machine.system() == 'none'
-  add_project_arguments(['-DPS2', '-D__PS2__'], language : 'cpp')
-
-  add_project_link_arguments([
-    '-Wl,-zmax-page-size=128',
-  ], language : 'cpp')
-
-  message('BUILD: PS2 (MIPS R5900)')
 endif
 
 # === Sources ===
@@ -159,11 +150,7 @@ fnwf_sources = files(
   'src/game1/states/ArcadeState.cpp',
 )
 
-if host_machine.system() == 'none'
-  fnwf_sources += files('src/generated/embedded_assets.cpp')
-endif
-
-fnwf_inc = include_directories('src', 'src/generated')
+fnwf_inc = include_directories('src')
 
 fnwf = executable('fnwf',
   fnwf_sources,

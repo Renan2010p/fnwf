@@ -18,11 +18,16 @@ MenuState::MenuState(int cn, bool hss, Engine& eng)
     DrawUtils::load_sprite(eng, "alice");
     DrawUtils::load_sprite(eng, "Sonk");
     DrawUtils::load_sprite(eng, "mafia");
-    cedro_sprite = *DrawUtils::get_sprite("cedro");
-    eser_sprite = *DrawUtils::get_sprite("eser");
-    alice_sprite = *DrawUtils::get_sprite("alice");
-    sonk_sprite = *DrawUtils::get_sprite("Sonk");
-    mafia_logo = *DrawUtils::get_sprite("mafia");
+    auto cedro = DrawUtils::get_sprite("cedro");
+    auto eser = DrawUtils::get_sprite("eser");
+    auto alice = DrawUtils::get_sprite("alice");
+    auto sonk = DrawUtils::get_sprite("Sonk");
+    auto mafia = DrawUtils::get_sprite("mafia");
+    if (cedro) cedro_sprite = *cedro;
+    if (eser) eser_sprite = *eser;
+    if (alice) alice_sprite = *alice;
+    if (sonk) sonk_sprite = *sonk;
+    if (mafia) mafia_logo = *mafia;
     menu_animatronics = {eser_sprite, cedro_sprite, alice_sprite, sonk_sprite};
     current_anim_idx = Rng::int_range(0, 3);
     build_options();
@@ -114,6 +119,7 @@ auto MenuState::handle_action(const std::string& action) -> std::string {
     return action;
 }
 auto MenuState::draw(Engine& eng) -> void {
+    eng.clear(4, 5, 9);
     eng.draw_rect(0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 4, 5, 9);
     auto cur = menu_animatronics[current_anim_idx % menu_animatronics.size()];
     float bounce = 5 * std::sin(timer * 0.8);

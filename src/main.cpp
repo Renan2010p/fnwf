@@ -34,10 +34,6 @@
 #include <emscripten/html5.h>
 #endif
 
-#ifdef PS2
-SDL_PS2_SKIP_IOP_RESET();
-#endif
-
 // --- Global state for Emscripten main loop ---
 namespace {
 
