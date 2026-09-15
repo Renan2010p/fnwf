@@ -195,35 +195,46 @@ jobs:
 
       - name: Package
         run: |
+          set -e
           mkdir -p "release_ps2"
           ELF=$(find build_ps2/game -name 'fnwf' -o -name 'fnwf.elf' | head -1)
+          echo "ELF found: ${ELF}"
+          ls -la "${ELF}"
 
           # Create ISO disc structure
           DISC_DIR="build_ps2/disc"
           rm -rf "${DISC_DIR}"
-          mkdir -p "${DISC_DIR}"
+          mkdir -p "${DISC_DIR}/assets"
 
           # SYSTEM.CNF for PS2 disc boot
-          printf 'BOOT2 = cdrom0:\\FNWF.ELF;1\r\nVER = 1.00\r\nVMODE = NTSC\r\n' > "${DISC_DIR}/SYSTEM.CNF"
+          echo "BOOT2 = cdrom0:\FNWF.ELF;1" > "${DISC_DIR}/SYSTEM.CNF"
+          echo "VER = 1.00" >> "${DISC_DIR}/SYSTEM.CNF"
+          echo "VMODE = NTSC" >> "${DISC_DIR}/SYSTEM.CNF"
+          cat "${DISC_DIR}/SYSTEM.CNF"
 
           # Copy ELF as FNWF.ELF (PS2 convention: uppercase, 8.3)
           cp "${ELF}" "${DISC_DIR}/FNWF.ELF"
+          ls -la "${DISC_DIR}/FNWF.ELF"
 
           # Copy assets directory
-          cp -r assets "${DISC_DIR}/assets"
+          cp -r assets/* "${DISC_DIR}/assets/"
+          echo "=== Disc contents ==="
+          find "${DISC_DIR}" -type f | head -30
 
           # Generate ISO9660 disc image
           echo "=== Creating PS2 ISO ==="
           genisoimage -iso-level 2 -J -joliet-long \
-            -o release_ps2/fnwf-ps2.iso \
+            -o "release_ps2/fnwf-ps2.iso" \
             -V "FNWF" \
             "${DISC_DIR}"
-
-          echo "=== ISO created ==="
-          ls -la release_ps2/fnwf-ps2.iso
+          echo "=== ISO result: $? ==="
+          ls -la "release_ps2/fnwf-ps2.iso"
 
           # Also keep raw ELF
           cp "${ELF}" release_ps2/fnwf.elf
+
+          echo "=== Final release_ps2 contents ==="
+          ls -la release_ps2/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
