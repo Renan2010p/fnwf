@@ -26,7 +26,7 @@ auto DrawUtils::get_sprite(const std::string& name) -> std::optional<TextureHand
 }
 
 auto DrawUtils::set_fonts(Engine& eng) -> void {
-    s_main_font = eng.load_font(GameSettings::asset_path("font", ".ttf"), 16);
+    s_main_font = eng.load_font(GameSettings::asset_path("font/font", ".ttf"), 16);
     if (s_main_font == -1)
         s_main_font = 0;
     s_font_cache[16] = s_main_font;
@@ -37,7 +37,7 @@ auto DrawUtils::get_font_by_size(Engine& eng, std::uint32_t size) -> std::int64_
     if (it != s_font_cache.end()) {
         return it->second;
     }
-    auto idx = eng.load_font(GameSettings::asset_path("font", ".ttf"), size);
+    auto idx = eng.load_font(GameSettings::asset_path("font/font", ".ttf"), size);
     if (idx == -1)
         return s_main_font;
     s_font_cache[size] = idx;

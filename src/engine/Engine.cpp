@@ -2,6 +2,10 @@
 #include "core/DrawUtils.hpp"
 #include "game1/GameSettings.hpp"
 
+#ifdef PS2
+#include "embedded_assets.hpp"
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -320,7 +324,7 @@ auto Engine::draw_text(std::string_view text,
     // Find or create font for this size
     std::int64_t fidx = font_idx;
     if (fidx < 0) {
-        fidx = load_font(GameSettings::asset_path("font", ".ttf"), static_cast<std::uint16_t>(font_size));
+        fidx = load_font(GameSettings::asset_path("font/font", ".ttf"), static_cast<std::uint16_t>(font_size));
         if (fidx < 0) {
             return true;
         }
@@ -392,7 +396,7 @@ auto Engine::draw_text_rotated(std::string_view text,
 
     std::int64_t fidx = font_idx;
     if (fidx < 0) {
-        fidx = load_font(GameSettings::asset_path("font", ".ttf"), static_cast<std::uint16_t>(font_size));
+        fidx = load_font(GameSettings::asset_path("font/font", ".ttf"), static_cast<std::uint16_t>(font_size));
         if (fidx < 0) {
             return true;
         }
@@ -424,6 +428,26 @@ auto Engine::draw_text_rotated(std::string_view text,
 }
 
 auto Engine::load_texture(std::string_view path) -> std::optional<TextureHandle> {
+#ifdef PS2
+    std::string key(path);
+    const char* prefix = "CDROM0:\\ASSETS\\";
+    if (key.compare(0, strlen(prefix), prefix) == 0) key = key.substr(strlen(prefix));
+    std::replace(key.begin(), key.end(), '\\', '/');
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    auto asset = embedded::get_asset(key);
+    if (asset.data) {
+        SDL_RWops* rw = SDL_RWFromConstMem(asset.data, asset.size);
+        SDL_Surface* surf = IMG_Load_RW(rw, 1);
+        if (surf == nullptr) return std::nullopt;
+        SDL_Texture* raw = SDL_CreateTextureFromSurface(m_renderer.get(), surf);
+        SDL_FreeSurface(surf);
+        if (raw == nullptr) return std::nullopt;
+        SDL_SetTextureBlendMode(raw, SDL_BLENDMODE_BLEND);
+        const std::uint32_t id = m_next_id++;
+        m_textures[id] = std::shared_ptr<SDL_Texture>(raw, TextureDeleter{});
+        return TextureHandle{id};
+    }
+#endif
     SDL_Surface* surf = IMG_Load(std::string(path).c_str());
     if (surf == nullptr) {
         return std::nullopt;
@@ -454,6 +478,22 @@ auto Engine::create_target(std::uint32_t w, std::uint32_t h) -> std::optional<Te
 }
 
 auto Engine::load_sound(std::string_view path) -> std::optional<SoundHandle> {
+#ifdef PS2
+    std::string key(path);
+    const char* prefix = "CDROM0:\\ASSETS\\";
+    if (key.compare(0, strlen(prefix), prefix) == 0) key = key.substr(strlen(prefix));
+    std::replace(key.begin(), key.end(), '\\', '/');
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    auto asset = embedded::get_asset(key);
+    if (asset.data) {
+        SDL_RWops* rw = SDL_RWFromConstMem(asset.data, asset.size);
+        Mix_Chunk* raw = Mix_LoadWAV_RW(rw, 1);
+        if (raw == nullptr) return std::nullopt;
+        const std::uint32_t id = m_next_id++;
+        m_chunks[id] = std::shared_ptr<Mix_Chunk>(raw, [](Mix_Chunk* c) { Mix_FreeChunk(c); });
+        return SoundHandle{id};
+    }
+#endif
     Mix_Chunk* raw = Mix_LoadWAV(std::string(path).c_str());
     if (raw == nullptr) {
         return std::nullopt;
@@ -464,6 +504,22 @@ auto Engine::load_sound(std::string_view path) -> std::optional<SoundHandle> {
 }
 
 auto Engine::load_font(std::string_view path, std::uint16_t size) -> std::int64_t {
+#ifdef PS2
+    std::string key(path);
+    const char* prefix = "CDROM0:\\ASSETS\\";
+    if (key.compare(0, strlen(prefix), prefix) == 0) key = key.substr(strlen(prefix));
+    std::replace(key.begin(), key.end(), '\\', '/');
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    auto asset = embedded::get_asset(key);
+    if (asset.data) {
+        SDL_RWops* rw = SDL_RWFromConstMem(asset.data, asset.size);
+        TTF_Font* raw = TTF_OpenFontRW(rw, 1, size);
+        if (raw == nullptr) return -1;
+        const std::int64_t idx = static_cast<std::int64_t>(m_fonts.size());
+        m_fonts.push_back(std::shared_ptr<TTF_Font>(raw, FontDeleter{}));
+        return idx;
+    }
+#endif
     TTF_Font* raw = TTF_OpenFont(std::string(path).c_str(), size);
     if (raw == nullptr) {
         return -1;

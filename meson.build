@@ -159,7 +159,7 @@ fnwf_sources = files(
   'src/game1/states/ArcadeState.cpp',
 )
 
-fnwf_inc = include_directories('src')
+fnwf_inc = include_directories('src', 'src/generated')
 
 fnwf = executable('fnwf',
   fnwf_sources,
