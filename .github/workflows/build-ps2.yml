@@ -54,6 +54,10 @@ jobs:
           sed -i 's/static int vsync_handler(void)/static int vsync_handler(int dummy)/' \
             build_ps2/SDL2-${SDL2_VER}/src/render/ps2/SDL_render_ps2.c
 
+          # Patch out thread requirement check (PS2 has no pthreads)
+          sed -i 's/message_error("ERROR: Threads are needed/message(STATUS "Threads check skipped/' \
+            build_ps2/SDL2-${SDL2_VER}/cmake/macros.cmake
+
           cd build_ps2/SDL2-${SDL2_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/cross/ps2-cmake-toolchain.cmake \
