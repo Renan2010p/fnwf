@@ -159,6 +159,10 @@ fnwf_sources = files(
   'src/game1/states/ArcadeState.cpp',
 )
 
+if host_machine.system() == 'none'
+  fnwf_sources += files('src/generated/embedded_assets.cpp')
+endif
+
 fnwf_inc = include_directories('src', 'src/generated')
 
 fnwf = executable('fnwf',
