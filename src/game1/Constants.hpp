@@ -8,7 +8,7 @@ namespace fnwf::GameSettings {
 constexpr int SCREEN_WIDTH = 640;
 constexpr int SCREEN_HEIGHT = 448;
 constexpr int FPS = 60;
-constexpr const char* ASSETS_DIR = "mass:assets";
+constexpr const char* ASSETS_DIR = "cdrom0:";
 
 constexpr double HOUR_DURATION = 60.0;
 constexpr double MAX_POWER = 100.0;
