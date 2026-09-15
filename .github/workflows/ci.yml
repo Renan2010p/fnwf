@@ -61,9 +61,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
             meson ninja-build pkg-config cmake curl ca-certificates
-      - name: Build dependencies (cross-compiled for ARM64)
+      - name: Clean old deps and build ARM64 dependencies
         run: |
-          # Override pkg-config to use host compiler
+          rm -rf build_deps deps
           export PKG_CONFIG_ALLOW_CROSS=1
           export CC=aarch64-linux-gnu-gcc
           export CXX=aarch64-linux-gnu-g++
