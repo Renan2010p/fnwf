@@ -57,7 +57,7 @@ jobs:
 
           cd build_ps2/SDL2-${SDL2_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=cross/ps2-softfloat.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -73,7 +73,7 @@ jobs:
           cd build_ps2/libogg-${OGG_VER}
           rm -rf build
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=cross/ps2-softfloat.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
