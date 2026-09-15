@@ -50,8 +50,8 @@ jobs:
           cp ${PS2SDK}/ps2dev.cmake ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
           echo '' >> ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
           echo '# Append -msoft-float to prevent VU COP2 codegen' >> ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
-          echo 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msoft-float")' >> ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
-          echo 'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msoft-float")' >> ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
+          echo 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msoft-float" CACHE STRING "" FORCE)' >> ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
+          echo 'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msoft-float" CACHE STRING "" FORCE)' >> ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
           echo "=== Softfloat wrapper created ==="
           cat ${GITHUB_WORKSPACE}/cross/ps2-softfloat.cmake
 
