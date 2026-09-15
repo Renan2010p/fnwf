@@ -34,15 +34,11 @@ jobs:
           sudo sed -i'' "s|/__w/ps2dev/ps2dev/ps2dev/gsKit|${PS2DEV:-/opt/ps2dev}/gsKit|g" \
             /opt/ps2dev/gsKit/lib/pkgconfig/*.pc 2>/dev/null || true
 
-          # Create a wrapper toolchain that forces -G0 via CACHE FORCE
-          # (ps2dev.cmake sets CMAKE_C_FLAGS as a normal variable that shadows -D cache entries)
-          cat > /tmp/ps2dev_g0.cmake << 'WRAPPER'
-          include("$ENV{PS2SDK}/ps2dev.cmake")
-          foreach(_lang C CXX ASM)
-            string(APPEND CMAKE_${_lang}_FLAGS " -G0")
-            set(CMAKE_${_lang}_FLAGS "${CMAKE_${_lang}_FLAGS}" CACHE STRING "" FORCE)
-          endforeach()
-          WRAPPER
+          # Patch ps2dev.cmake to force -G0 on ALL compiler invocations
+          # This fixes R_MIPS_GOT_PAGE relocation overflow in pre-built port libs
+          sudo sed -i 's/-D_EE/-D_EE -G0/g' ${PS2SDK}/ps2dev.cmake
+          echo "=== Patched ps2dev.cmake flags ==="
+          grep -E 'CMAKE_C_FLAGS|CMAKE_CXX_FLAGS|CMAKE_ASM_FLAGS' ${PS2SDK}/ps2dev.cmake || true
 
           echo "PS2DEV=/opt/ps2dev" >> $GITHUB_ENV
           echo "PS2SDK=/opt/ps2dev/ps2sdk" >> $GITHUB_ENV
@@ -89,7 +85,7 @@ jobs:
           tar xzf build_ps2/libogg.tar.gz -C build_ps2
           cd build_ps2/libogg-${OGG_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=/tmp/ps2dev_g0.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build
@@ -103,7 +99,7 @@ jobs:
 
           cd build_ps2/SDL2_mixer-${MIXER_VER}
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=/tmp/ps2dev_g0.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=${PS2SDK}/ps2dev.cmake \
             -DCMAKE_INSTALL_PREFIX=${PS2SDK}/ports \
             -DCMAKE_PREFIX_PATH=${PS2SDK}/ports \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
