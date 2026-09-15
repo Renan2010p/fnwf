@@ -305,7 +305,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: "FNWF ${{ needs.build-linux.outputs.tag || github.ref_name }}"
+          name: "FNWF ${{ github.ref_name }}"
           files: artifacts/*.tar.gz
           draft: false
           prerelease: false
