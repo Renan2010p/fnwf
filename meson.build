@@ -116,7 +116,7 @@ elif host_machine.system() == 'windows'
   message('BUILD: Windows static (MinGW64)')
 
 elif host_machine.system() == 'none'
-  add_project_arguments(['-DPS2', '-D__PS2__', '-msoft-float'], language : 'cpp')
+  add_project_arguments(['-DPS2', '-D__PS2__'], language : 'cpp')
 
   add_project_link_arguments([
     '-Wl,-zmax-page-size=128',

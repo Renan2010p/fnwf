@@ -42,15 +42,11 @@ build_sdl2_ps2() {
     fi
 
     cd "${SDL2_DIR}"
-    # Create softfloat wrapper: copy ps2dev.cmake and append -msoft-float
-    cp "${PS2SDK}/ps2dev.cmake" "${BUILD_DIR}/ps2-softfloat.cmake"
-    echo '' >> "${BUILD_DIR}/ps2-softfloat.cmake"
-    echo 'set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msoft-float" CACHE STRING "" FORCE)' >> "${BUILD_DIR}/ps2-softfloat.cmake"
-    echo 'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msoft-float" CACHE STRING "" FORCE)' >> "${BUILD_DIR}/ps2-softfloat.cmake"
 
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_TOOLCHAIN_FILE="${BUILD_DIR}/ps2-softfloat.cmake" \
-        -DCMAKE_INSTALL_PREFIX="${PREFIX}"
+        -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/cross/ps2-cmake-toolchain.cmake" \
+        -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     cmake --build build
     cmake --install build
     cd "${SCRIPT_DIR}"
@@ -93,20 +89,50 @@ build_game_ps2() {
 
     # Package
     mkdir -p "${OUTPUT_DIR}"
-    cp "${BUILD_DIR}/game/fnwf.elf" "${OUTPUT_DIR}/" 2>/dev/null || \
+
+    # Create ISO disc structure
+    DISC_DIR="${BUILD_DIR}/disc"
+    rm -rf "${DISC_DIR}"
+    mkdir -p "${DISC_DIR}"
+
+    # SYSTEM.CNF for PS2 disc boot
+    cat > "${DISC_DIR}/SYSTEM.CNF" << 'EOF'
+BOOT2 = cdrom0:\FNWF.ELF;1
+VER = 1.00
+VMODE = NTSC
+EOF
+
+    # Copy ELF as FNWF.ELF (PS2 convention: uppercase, 8.3)
+    cp "${BUILD_DIR}/game/fnwf.elf" "${DISC_DIR}/FNWF.ELF" 2>/dev/null || \
+    cp "${BUILD_DIR}/game/fnwf" "${DISC_DIR}/FNWF.ELF"
+
+    # Copy assets directory
+    cp -r "${SCRIPT_DIR}/assets" "${DISC_DIR}/assets"
+
+    # Generate ISO9660 disc image
+    echo "=== Creating PS2 ISO ==="
+    genisoimage -iso-level 2 -J -joliet-long \
+        -o "${OUTPUT_DIR}/fnwf-ps2.iso" \
+        -V "FNWF" \
+        "${DISC_DIR}"
+    echo "=== ISO created ==="
+    ls -la "${OUTPUT_DIR}/fnwf-ps2.iso"
+
+    # Also keep raw ELF
+    cp "${BUILD_DIR}/game/fnwf.elf" "${OUTPUT_DIR}/fnwf.elf" 2>/dev/null || \
     cp "${BUILD_DIR}/game/fnwf" "${OUTPUT_DIR}/fnwf.elf"
 
     echo "=== PS2 build complete ==="
-    echo "Output: ${OUTPUT_DIR}/fnwf.elf"
-    echo ""
-    echo "To run on PS2:"
-    echo "  1. Copy fnwf.elf to USB drive"
-    echo "  2. Launch uLaunchELF on PS2 (FreeMcBoot)"
-    echo "  3. Browse to USB and launch fnwf.elf"
+    echo "ISO:   ${OUTPUT_DIR}/fnwf-ps2.iso"
+    echo "ELF:   ${OUTPUT_DIR}/fnwf.elf"
     echo ""
     echo "To run on PCSX2:"
-    echo "  1. Config > USB > Enable host filesystem"
-    echo "  2. File > Boot ELF > select fnwf.elf"
+    echo "  1. CDVD > ISO Selector > Browse > select fnwf-ps2.iso"
+    echo "  2. System > Boot CDVD (full)"
+    echo ""
+    echo "To run on real PS2:"
+    echo "  1. Burn fnwf-ps2.iso to DVD-R"
+    echo "  2. Boot with FreeMCBoot or modchip"
 }
 
 build_sdl2_ps2
