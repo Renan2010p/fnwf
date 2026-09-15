@@ -221,20 +221,16 @@ jobs:
 
           # Generate ISO9660 disc image for PS2
           echo "=== Creating PS2 ISO ==="
-          mkisofs -iso-level 2 -no-pad \
-            -o "release_ps2/fnwf-ps2.iso" \
-            -V "FNWF" \
-            "${DISC_DIR}" 2>&1 || \
-          genisoimage -iso-level 2 -no-pad \
+          genisoimage -iso-level 2 -no-pad -allow-lowercase -input-charset utf-8 \
             -o "release_ps2/fnwf-ps2.iso" \
             -V "FNWF" \
             "${DISC_DIR}"
           echo "=== ISO result: $? ==="
           ls -la "release_ps2/fnwf-ps2.iso"
 
-          # Verify SYSTEM.CNF is in the ISO
-          echo "=== ISO contents ==="
-          isoinfo -l -i "release_ps2/fnwf-ps2.iso" 2>/dev/null | head -40
+          # Verify filenames in ISO (must match code paths)
+          echo "=== ISO filenames ==="
+          isoinfo -l -i "release_ps2/fnwf-ps2.iso" 2>/dev/null | grep -E '\.(TTF|OGG|PNG|ELF|CNF)' | head -20
 
           # Also keep raw ELF
           cp "${ELF}" release_ps2/fnwf.elf
