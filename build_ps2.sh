@@ -73,6 +73,18 @@ build_game_ps2() {
 
     meson compile -C "${BUILD_DIR}/game"
 
+    # Find the ELF and verify
+    ELF=$(find "${BUILD_DIR}/game" -name 'fnwf' -o -name 'fnwf.elf' | head -1)
+    if [ -n "${ELF}" ]; then
+        echo "=== ELF verification ==="
+        echo "File: ${ELF}"
+        file "${ELF}" 2>/dev/null || true
+        mips64r5900el-ps2-elf-readelf -h "${ELF}" 2>/dev/null | grep -E "Entry|Machine|Type" || true
+        mips64r5900el-ps2-elf-nm "${ELF}" 2>/dev/null | grep -E "__start|main|SDL_main" || true
+        mips64r5900el-ps2-elf-readelf -l "${ELF}" 2>/dev/null || true
+        echo ""
+    fi
+
     # Package
     mkdir -p "${OUTPUT_DIR}"
     cp "${BUILD_DIR}/game/fnwf.elf" "${OUTPUT_DIR}/" 2>/dev/null || \
