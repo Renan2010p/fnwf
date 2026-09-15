@@ -40,7 +40,7 @@ def main():
                 chunk = data[i:i+16]
                 c.write("  " + ", ".join(f"0x{b:02x}" for b in chunk) + ",\n")
             c.write("};\n\n")
-            keys.append((key, rel, len(data)))
+            keys.append((key, rel.lower(), len(data)))
 
         c.write("struct Entry { const char* name; const std::uint8_t* data; std::uint32_t size; };\n")
         c.write("static constexpr Entry entries[] = {\n")
