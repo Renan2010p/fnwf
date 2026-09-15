@@ -114,6 +114,18 @@ elif host_machine.system() == 'windows'
   ], language : 'cpp')
 
   message('BUILD: Windows static (MinGW64)')
+
+elif host_machine.system() == 'none'
+  add_project_arguments(['-D_EE', '-G0', '-O2', '-Dmain=SDL_main'], language : 'cpp')
+
+  add_project_link_arguments([
+    '-Wl,--whole-archive',
+    '-lSDL2main',
+    '-Wl,--no-whole-archive',
+    '-Wl,-z,noexecstack',
+  ], language : 'cpp')
+
+  message('BUILD: PS2 (MIPS R5900)')
 endif
 
 # === Sources ===
