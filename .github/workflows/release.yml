@@ -301,7 +301,7 @@ jobs:
           # Generate ISO9660 disc image
           echo "=== Creating PS2 ISO ==="
           mkdir -p "release/${RELEASE}"
-          genisoimage -iso-level 2 -J -joliet-long \
+          genisoimage -iso-level 2 -no-pad \
             -o "release/${RELEASE}/fnwf-ps2.iso" \
             -V "FNWF" \
             "${DISC_DIR}"
