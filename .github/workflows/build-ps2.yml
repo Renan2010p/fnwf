@@ -87,9 +87,10 @@ jobs:
           MIXER_VER="2.8.0"
           mkdir -p build_ps2
 
-          # Remove pre-built SDL2_mixer entirely
+          # Remove pre-built SDL2_mixer entirely (lib, headers, pkgconfig)
           sudo rm -f ${PS2SDK}/ports/lib/libSDL2_mixer.a
           sudo rm -f ${PS2SDK}/ports/lib/pkgconfig/SDL2_mixer.pc
+          sudo rm -f ${PS2SDK}/ports/include/SDL2/SDL_mixer.h
 
           # Download SDL2_mixer source
           curl -fsSL -o build_ps2/SDL2_mixer.tar.gz \
@@ -106,7 +107,7 @@ jobs:
           OGG_INC=${PS2SDK}/ports/include
 
           DEFS="-DBUILD_SDL -DSDL_BUILD_MAJOR_VERSION=2 -DSDL_BUILD_MINOR_VERSION=8 -DSDL_BUILD_MICRO_VERSION=0 -DMUSIC_OGG -DOGG_USE_STB -DMUSIC_WAV"
-          CFLAGS="-D_EE -G0 -O2 ${DEFS} -I${SDL2_INC} -I${MIXER_INC} -I${SRC}/src -I${SRC}/src/codecs -I${OGG_INC}"
+          CFLAGS="-D_EE -G0 -O2 ${DEFS} -I${MIXER_INC} -I${SRC}/src -I${SRC}/src/codecs -I${SDL2_INC} -I${OGG_INC}"
 
           echo "=== Compiling SDL2_mixer sources with -G0 ==="
           echo "CFLAGS: $CFLAGS"
