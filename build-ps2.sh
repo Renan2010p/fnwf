@@ -74,10 +74,11 @@ rm -rf builddir-ps2
 # Configure with generated cross file
 meson setup builddir-ps2 --cross-file "$CROSS_FILE"
 
-rm -f "$CROSS_FILE"
-
 # Build
 ninja -C builddir-ps2
+
+# Clean up cross file after build
+rm -f "$CROSS_FILE"
 
 echo ""
 echo "=== Build complete ==="
