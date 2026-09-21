@@ -55,8 +55,9 @@ pkgconfig = 'pkg-config'
 [built-in options]
 c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
 cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
-c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
-cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
+c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-lto', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
+cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-lto', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
+lto = false
 
 [properties]
 needs_exe_wrapper = true
