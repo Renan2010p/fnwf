@@ -36,7 +36,6 @@ private:
     Engine& m_eng;
     int night{1};
     std::vector<int> custom_ai_data{};
-    const std::vector<int>* custom_ai{nullptr};
 
     Office office;
     CameraSystem cameras;

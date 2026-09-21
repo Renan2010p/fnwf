@@ -9,9 +9,9 @@
 
 namespace fnwf {
 
-GameplayState::GameplayState(Engine& eng, int night_, const std::vector<int>* custom_ai_)
-    : m_eng(eng), night(night_), custom_ai(custom_ai_), office(eng), cameras(eng), doors(), power(),
-      animatronics(night_, custom_ai_), jumpscare() {
+GameplayState::GameplayState(Engine& eng, int night_, const std::vector<int>* /*custom_ai_*/)
+    : m_eng(eng), night(night_), office(eng), cameras(eng), doors(), power(),
+      animatronics(night_, nullptr), jumpscare() {
     secret_mode = animatronics.is_secret_mode();
     night_duration = GameSettings::HOUR_DURATION * 6;
     SoundManager::set_engine(&eng);

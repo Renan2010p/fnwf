@@ -21,7 +21,6 @@ public:
     }
 
 private:
-    Engine& m_eng;
     int night{1};
     float timer{0.0f};
     bool done{false};

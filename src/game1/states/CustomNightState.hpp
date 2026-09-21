@@ -33,7 +33,6 @@ private:
     auto get_ai_cap() const -> int;
     auto unlock_secret_mode() -> void;
 
-    Engine& m_eng;
     float timer{0.0f};
     int selected{1};
     bool done{false};

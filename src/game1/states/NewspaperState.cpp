@@ -6,7 +6,7 @@
 
 namespace fnwf {
 
-NewspaperState::NewspaperState(Engine& eng) : m_eng(eng) {}
+NewspaperState::NewspaperState(Engine& eng) { (void)eng; }
 
 auto NewspaperState::update(float dt) -> void {
     timer += dt;

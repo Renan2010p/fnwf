@@ -30,7 +30,6 @@ private:
     auto update_scroll() -> void;
     auto draw_discord(Engine& eng) -> void;
 
-    Engine& m_eng;
     int night{1};
     float timer{0.0f};
     bool done{false};

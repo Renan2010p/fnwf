@@ -30,7 +30,7 @@ static auto digit_from_event(const Event& ev) -> int {
     return (it != kp_map.end()) ? it->second : -1;
 }
 
-CustomNightState::CustomNightState(Engine& eng) : m_eng(eng) {
+CustomNightState::CustomNightState(Engine& eng) {
     animatronics = {{"Cedro", "cedro", 220, 220},
                     {"Eser", "eser", 220, 220},
                     {"Alice", "alice", 220, 220},
