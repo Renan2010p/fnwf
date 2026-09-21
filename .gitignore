@@ -1,6 +1,8 @@
 bin/
 build/
-build_web/
+build_*/
+builddir/
+builddir-*/
 *.gcda
 *.gcno
 *.o
@@ -19,3 +21,5 @@ config.dat save.dat
 release/
 config.dat
 save.dat
+deps/
+build_deps/

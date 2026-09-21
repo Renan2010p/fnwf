@@ -10,7 +10,7 @@ class JumpscareSystem
 public:
     JumpscareSystem();
     auto trigger(const std::string& animatronic_name) -> void;
-    auto update(double dt) -> void;
+    auto update(float dt) -> void;
     auto draw(Engine& eng) -> void;
     auto is_done() const -> bool {
         return done;
@@ -19,8 +19,8 @@ public:
 
     bool active{false};
     std::string animatronic{};
-    double timer{0.0};
-    double duration{1.2};
+    float timer{0.0f};
+    float duration{1.2};
     bool done{false};
 };
 

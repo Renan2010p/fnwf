@@ -24,18 +24,33 @@ jobs:
       - name: Build
         run: |
           mkdir -p build_web
+          SOURCES=(
+            src/main.cpp
+            src/engine/Engine.cpp
+            src/core/DrawUtils.cpp
+            src/core/Localization.cpp
+            src/core/SaveManager.cpp
+            src/core/SettingsManager.cpp
+            src/core/StateMachine.cpp
+            src/core/StateRegistry.cpp
+            src/core/SoundManager.cpp
+            src/core/Platform.cpp
+            src/core/InputManager.cpp
+            src/core/MobileUI.cpp
+            src/systems/Office.cpp
+            src/systems/CameraSystem.cpp
+            src/systems/Doors.cpp
+            src/systems/Animatronics.cpp
+            src/systems/Power.cpp
+            src/systems/Jumpscare.cpp
+            src/platform/sdl2/EngineSDL2.cpp
+            src/platform/sdl2/plat_sdl2.cpp
+            src/platform/sdl2/plat_input.cpp
+          )
           em++ \
-            src/main.cpp src/engine/Engine.cpp \
-            src/core/DrawUtils.cpp src/core/Localization.cpp \
-            src/core/SaveManager.cpp src/core/SettingsManager.cpp \
-            src/core/StateMachine.cpp src/core/StateRegistry.cpp \
-            src/core/SoundManager.cpp src/core/Platform.cpp \
-            src/core/InputManager.cpp \
-            src/systems/Office.cpp src/systems/CameraSystem.cpp \
-            src/systems/Doors.cpp src/systems/Animatronics.cpp \
-            src/systems/Power.cpp src/systems/Jumpscare.cpp \
+            "${SOURCES[@]}" \
             src/game1/states/*.cpp \
-            -std=c++23 -Isrc -O2 \
+            -std=c++17 -Isrc -O2 \
             -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_MIXER=2 \
             -sSDL2_IMAGE_FORMATS='["png"]' \
             -sSDL2_MIXER_FORMATS='["ogg"]' \
@@ -53,5 +68,4 @@ jobs:
         with:
           path: build_web
       - name: Deploy
-        id: deployment
         uses: actions/deploy-pages@v4

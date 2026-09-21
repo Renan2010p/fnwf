@@ -8,7 +8,7 @@ namespace fnwf {
 
 NewspaperState::NewspaperState(Engine& eng) : m_eng(eng) {}
 
-auto NewspaperState::update(double dt) -> void {
+auto NewspaperState::update(float dt) -> void {
     timer += dt;
     if (fading_in) {
         fade_alpha = std::max(0, fade_alpha - (int)(100 * dt));
@@ -24,7 +24,7 @@ auto NewspaperState::update(double dt) -> void {
 
 auto NewspaperState::handle_event(const Event& ev) -> void {
     if ((ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown) && !fading_in &&
-        !fading_out && timer > 3.0) {
+        !fading_out && timer > 3.0f) {
         fading_out = true;
         SoundManager::play_sound("select");
     }
@@ -77,7 +77,7 @@ auto NewspaperState::draw(Engine& eng) -> void {
     for (int i = 0; i < (int)txt.size(); ++i)
         DrawUtils::text(eng, txt[i], px + pw / 2, py + 170 + i * 22, 14, 30, 30, 30, 255, true);
 
-    if (timer > 3.0 && ((int)(timer * 2) % 2 == 1))
+    if (timer > 3.0f && ((int)(timer * 2) % 2 == 1))
         DrawUtils::text(eng,
                         Localization::get_text("click_continue"),
                         SCREEN_WIDTH / 2,

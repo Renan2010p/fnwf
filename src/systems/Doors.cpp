@@ -9,14 +9,14 @@ namespace fnwf {
 
 DoorSystem::DoorSystem() = default;
 
-auto DoorSystem::update(double dt) -> void {
-    double tl = left_closed ? 1.0 : 0.0;
+auto DoorSystem::update(float dt) -> void {
+    float tl = left_closed ? 1.0f : 0.0f;
     if (left_anim < tl)
         left_anim = std::min(tl, left_anim + anim_speed * dt);
     else if (left_anim > tl)
         left_anim = std::max(tl, left_anim - anim_speed * dt);
 
-    double tr = right_closed ? 1.0 : 0.0;
+    float tr = right_closed ? 1.0f : 0.0f;
     if (right_anim < tr)
         right_anim = std::min(tr, right_anim + anim_speed * dt);
     else if (right_anim > tr)

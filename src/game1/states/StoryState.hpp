@@ -10,10 +10,13 @@ class StoryState : public GameState
 public:
     StoryState(int night, Engine& eng);
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
+    }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::Story;
     }
 
 private:
@@ -35,7 +38,7 @@ private:
     Engine& m_eng;
     int night{1};
     int current_msg{0};
-    double msg_timer{0.0};
+    float msg_timer{0.0f};
     bool done{false};
     int phase{0};
     int fade_alpha{255};
@@ -43,10 +46,10 @@ private:
     TextureHandle renan_avatar{};
     TextureHandle unknown_avatar{};
     std::vector<Message> messages{};
-    double scroll_y{0.0};
-    double target_scroll{0.0};
+    float scroll_y{0.0f};
+    float target_scroll{0.0f};
     int visible_messages{0};
-    double timer{0.0};
+    float timer{0.0f};
 };
 
 }  // namespace fnwf

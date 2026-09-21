@@ -64,10 +64,10 @@ auto MenuState::build_options() -> void {
         options.push_back({Localization::get_text("back"), "back_menu"});
     }
 }
-auto MenuState::update(double dt) -> void {
+auto MenuState::update(float dt) -> void {
     timer += dt;
     highlight_target_y = 300 + (selected - 1) * 62 - 17;
-    highlight_y = lerp(highlight_y, highlight_target_y, 12.0 * dt);
+    highlight_y = lerp(highlight_y, highlight_target_y, 12.0f * dt);
 }
 auto MenuState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown) {
@@ -127,10 +127,10 @@ auto MenuState::draw(Engine& eng) -> void {
         eng, cur, GameSettings::SCREEN_WIDTH - 640, 70 + bounce, 560, 560, 34, 4, 5, 9);
     DrawUtils::vhs_osd(eng, "FIVE NIGHTS", 60, 64, 220, 240, 220, 46);
     DrawUtils::vhs_osd(eng, "WITH FRIENDS", 60, 116, 220, 240, 220, 46);
-    int classic_alpha = static_cast<int>(120 + 100 * std::sin(timer * 3.0));
+    int classic_alpha = static_cast<int>(120 + 100 * std::sin(timer * 3.0f));
     DrawUtils::text_rotated(
-        eng, "CLASSIC EDITION", 310, 155, -8.0, 20, 255, 220, 50, classic_alpha);
-    DrawUtils::text(eng, "v2.0.3", 62, 176, 15, 140, 170, 200, 220);
+        eng, "CLASSIC EDITION", 310, 155, -8.0f, 20, 255, 220, 50, classic_alpha);
+    DrawUtils::text(eng, "v2.0f.3", 62, 176, 15, 140, 170, 200, 220);
     eng.draw_rect(60, 204, 360, 2, 100, 180, 255, static_cast<int>(120 + 40 * std::sin(timer * 2)));
     for (int i = 0; i < (int)options.size(); ++i) {
         int y = 300 + i * 62;

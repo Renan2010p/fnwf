@@ -51,9 +51,9 @@ OptionsState::OptionsState(Engine& eng) : m_eng(eng) {
     music_volume = s.music_volume;
 
     rebuild_options();
-    item_glows.resize(max_options, 0.0);
+    item_glows.resize(max_options, 0.0f);
     if (!item_glows.empty())
-        item_glows[0] = 1.0;
+        item_glows[0] = 1.0f;
 }
 
 auto OptionsState::rebuild_options() -> void {
@@ -150,14 +150,14 @@ auto OptionsState::rebuild_options() -> void {
     options.push_back(
         {"back", Localization::get_text("back"), OptionItem::Action, {}, 0, false, 0, 100, "back"});
     max_options = (int)options.size();
-    item_glows.resize(max_options, 0.0);
+    item_glows.resize(max_options, 0.0f);
     if (selected > max_options)
         selected = max_options;
 }
 
-auto OptionsState::update(double dt) -> void {
+auto OptionsState::update(float dt) -> void {
     timer += dt;
-    bg_scroll += dt * 35.0;
+    bg_scroll += dt * 35.0f;
 
     int item_h = 50;
     int visible_h = GameSettings::SCREEN_HEIGHT - 200;
@@ -170,18 +170,18 @@ auto OptionsState::update(double dt) -> void {
             scroll_target = target_item_y;
         else if (target_item_y + item_h > (int)scroll_offset + visible_h)
             scroll_target = target_item_y - visible_h + item_h;
-        scroll_target = std::max(0.0, std::min((double)max_scroll, scroll_target));
+        scroll_target = std::max(0.0f, std::min((float)max_scroll, scroll_target));
     } else {
         scroll_target = 0;
     }
 
-    scroll_offset = scroll_offset + (scroll_target - scroll_offset) * std::min(1.0, 12.0 * dt);
+    scroll_offset = scroll_offset + (scroll_target - scroll_offset) * std::min(1.0f, 12.0f * dt);
 
     highlight_y = 150 + (selected - 1) * item_h - 9 - scroll_offset;
 
     for (int i = 0; i < max_options; ++i) {
-        double target = (i + 1 == selected) ? 1.0 : 0.0;
-        item_glows[i] = item_glows[i] + (target - item_glows[i]) * std::min(1.0, 8.0 * dt);
+        float target = (i + 1 == selected) ? 1.0f : 0.0f;
+        item_glows[i] = item_glows[i] + (target - item_glows[i]) * std::min(1.0f, 8.0f * dt);
     }
 }
 
@@ -337,8 +337,8 @@ auto OptionsState::draw(Engine& eng) -> void {
     eng.clear(5, 5, 12, 255);
 
     int grid_size = 80;
-    int off_x = (int)std::fmod(bg_scroll, (double)grid_size);
-    int off_y = (int)std::fmod(bg_scroll * 0.4, (double)grid_size);
+    int off_x = (int)std::fmod(bg_scroll, (float)grid_size);
+    int off_y = (int)std::fmod(bg_scroll * 0.4, (float)grid_size);
 
     for (int y = off_y; y < SCREEN_HEIGHT; y += grid_size) {
         int a = (int)(12 + 8 * std::sin(timer * 0.5 + y * 0.01));
@@ -354,7 +354,7 @@ auto OptionsState::draw(Engine& eng) -> void {
     int panel_x = 40, panel_y = 30;
     int panel_w = SCREEN_WIDTH - 80, panel_h = SCREEN_HEIGHT - 70;
     eng.draw_rect(panel_x, panel_y, panel_w, panel_h, 20, 25, 45, 180);
-    double border_pulse = 0.5 + 0.5 * std::sin(timer * 1.2);
+    float border_pulse = 0.5 + 0.5 * std::sin(timer * 1.2);
     int border_a = (int)(30 + 15 * border_pulse);
     eng.draw_rect(
         panel_x - 2, panel_y - 2, panel_w + 4, panel_h + 4, 100, 180, 255, border_a, false);
@@ -363,7 +363,7 @@ auto OptionsState::draw(Engine& eng) -> void {
     DrawUtils::text(eng, "SYSTEM CONFIGURATION", 72, 98, 12, 100, 180, 255, 180);
 
     int hl_y = (int)highlight_y;
-    double hl_pulse = 0.8 + 0.2 * std::sin(timer * 5.0);
+    float hl_pulse = 0.8 + 0.2 * std::sin(timer * 5.0f);
     eng.draw_rect(65, hl_y, panel_w - 50, 46, 100, 180, 255, (int)(35 * hl_pulse), false);
     eng.draw_rect(65, hl_y, 4, 46, 100, 180, 255, 255);
 
@@ -374,7 +374,7 @@ auto OptionsState::draw(Engine& eng) -> void {
         if (y < 130 || y > SCREEN_HEIGHT - 80)
             continue;
 
-        double glow = item_glows[i];
+        float glow = item_glows[i];
 
         int tc = (int)lerp_f(140, 255, (float)glow);
 

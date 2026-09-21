@@ -9,19 +9,19 @@ namespace fnwf {
 
 PowerSystem::PowerSystem() = default;
 
-auto PowerSystem::update(double dt, int door_usage, bool camera_open) -> void {
+auto PowerSystem::update(float dt, int door_usage, bool camera_open) -> void {
     if (is_dead) {
         dead_timer += dt;
         return;
     }
     usage_level = std::min(5, 1 + door_usage + (camera_open ? 1 : 0));
-    static const double drain_muls[] = {1.0, 1.55, 2.35, 3.4, 4.8};
-    double mul = drain_muls[std::max(0, std::min(4, usage_level - 1))];
+    static const float drain_muls[] = {1.0f, 1.55, 2.35, 3.4, 4.8};
+    float mul = drain_muls[std::max(0, std::min(4, usage_level - 1))];
     power -= GameSettings::BASE_POWER_DRAIN * mul * dt;
-    if (power <= 0.0) {
-        power = 0.0;
+    if (power <= 0.0f) {
+        power = 0.0f;
         is_dead = true;
-        dead_timer = 0.0;
+        dead_timer = 0.0f;
     }
 }
 

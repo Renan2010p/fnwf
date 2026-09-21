@@ -13,13 +13,16 @@ class MenuState : public GameState
 public:
     MenuState(int completed_nights, bool has_seen_story, Engine& eng);
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
     }
     auto result() const -> const std::string& override {
         return m_result;
+    }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::Menu;
     }
 
 private:
@@ -33,9 +36,9 @@ private:
     std::string m_result{};
     std::string menu_page{"main"};
     std::vector<MenuItem> options{};
-    double timer{0.0};
-    double highlight_y{300};
-    double highlight_target_y{300};
+    float timer{0.0f};
+    float highlight_y{300};
+    float highlight_target_y{300};
     TextureHandle cedro_sprite{};
     TextureHandle eser_sprite{};
     TextureHandle alice_sprite{};

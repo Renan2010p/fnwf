@@ -1,6 +1,7 @@
 #pragma once
 #include "core/GameState.hpp"
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace fnwf {
@@ -10,7 +11,7 @@ class CustomNightState : public GameState
 public:
     CustomNightState(Engine& eng);
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
@@ -21,6 +22,9 @@ public:
     auto get_ai_levels() const -> const std::vector<int>& {
         return ai_levels;
     }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::CustomNight;
+    }
 
 private:
     auto rebuild_layout() -> void;
@@ -30,7 +34,7 @@ private:
     auto unlock_secret_mode() -> void;
 
     Engine& m_eng;
-    double timer{0.0};
+    float timer{0.0f};
     int selected{1};
     bool done{false};
     std::string m_result{};
@@ -66,8 +70,8 @@ private:
     std::array<int, 4> preset_next{};
     std::array<int, 4> preset_label{};
     std::array<int, 4> ready_rect{};
-    std::vector<double> card_scales{};
-    std::vector<double> card_glows{};
+    std::vector<float> card_scales{};
+    std::vector<float> card_glows{};
 };
 
 }  // namespace fnwf

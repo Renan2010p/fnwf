@@ -10,11 +10,11 @@ auto WarningState::handle_event(const Event& ev) -> void {
     if (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown) {
         if (phase < 2) {
             phase = 2;
-            alpha = 255.0;
+            alpha = 255.0f;
         }
     }
 }
-auto WarningState::update(double dt) -> void {
+auto WarningState::update(float dt) -> void {
     timer += dt;
     if (phase == 0) {
         alpha += 600 * dt;
@@ -24,7 +24,7 @@ auto WarningState::update(double dt) -> void {
             timer = 0;
         }
     } else if (phase == 1) {
-        if (timer >= 1.0)
+        if (timer >= 1.0f)
             phase = 2;
     } else if (phase == 2) {
         alpha -= 600 * dt;

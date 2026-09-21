@@ -13,11 +13,11 @@ auto JumpscareSystem::trigger(const std::string& animatronic_name) -> void {
         return;
     active = true;
     animatronic = animatronic_name;
-    timer = 0.0;
+    timer = 0.0f;
     done = false;
 }
 
-auto JumpscareSystem::update(double dt) -> void {
+auto JumpscareSystem::update(float dt) -> void {
     if (!active)
         return;
     timer += dt;
@@ -58,14 +58,14 @@ auto JumpscareSystem::draw(Engine& eng) -> void {
     DrawUtils::static_noise(
         eng, 0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 0.1f + prog * 0.2f);
 
-    auto red_a = static_cast<int>(80 * std::pow(std::sin(timer * 20.0), 2));
+    auto red_a = static_cast<int>(80 * std::pow(std::sin(timer * 20.0f), 2));
     eng.draw_rect(0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 200, 0, 0, red_a);
 }
 
 auto JumpscareSystem::reset() -> void {
     active = false;
     animatronic.clear();
-    timer = 0.0;
+    timer = 0.0f;
     done = false;
 }
 
