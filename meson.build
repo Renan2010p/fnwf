@@ -11,19 +11,28 @@ project('fnwf', 'cpp',
 )
 
 # === Dependencies (static linking) ===
-sdl2_dep = dependency('sdl2', required : false)
-sdl2_ttf_dep = dependency('SDL2_ttf', required : false)
-sdl2_image_dep = dependency('SDL2_image', required : false)
-sdl2_mixer_dep = dependency('SDL2_mixer', required : false)
-freetype2_dep = dependency('freetype2', required : false)
+# PS2 backend uses SDL1.2 via PS2SDK — no SDL2 deps needed
+if host_machine.system() != 'ps2' and host_machine.system() != 'baremetal'
+  sdl2_dep = dependency('sdl2', required : false)
+  sdl2_ttf_dep = dependency('SDL2_ttf', required : false)
+  sdl2_image_dep = dependency('SDL2_image', required : false)
+  sdl2_mixer_dep = dependency('SDL2_mixer', required : false)
+  freetype2_dep = dependency('freetype2', required : false)
 
-if not sdl2_dep.found() or not sdl2_ttf_dep.found() or not sdl2_image_dep.found() or not sdl2_mixer_dep.found()
-  message('SDL2 not found or incomplete — building from source...')
-  sdl2_proj = subproject('sdl2', default_options : ['tests=disabled'])
-  sdl2_dep = sdl2_proj.get_variable('sdl2_dep')
-  sdl2_ttf_dep = subproject('sdl2_ttf').get_variable('sdl2_ttf_dep')
-  sdl2_image_dep = subproject('sdl2_image').get_variable('sdl2_image_dep')
-  sdl2_mixer_dep = subproject('sdl2_mixer').get_variable('sdl2_mixer_dep')
+  if not sdl2_dep.found() or not sdl2_ttf_dep.found() or not sdl2_image_dep.found() or not sdl2_mixer_dep.found()
+    message('SDL2 not found or incomplete — building from source...')
+    sdl2_proj = subproject('sdl2', default_options : ['tests=disabled'])
+    sdl2_dep = sdl2_proj.get_variable('sdl2_dep')
+    sdl2_ttf_dep = subproject('sdl2_ttf').get_variable('sdl2_ttf_dep')
+    sdl2_image_dep = subproject('sdl2_image').get_variable('sdl2_image_dep')
+    sdl2_mixer_dep = subproject('sdl2_mixer').get_variable('sdl2_mixer_dep')
+  endif
+else
+  sdl2_dep = disabler()
+  sdl2_ttf_dep = disabler()
+  sdl2_image_dep = disabler()
+  sdl2_mixer_dep = disabler()
+  freetype2_dep = disabler()
 endif
 
 # === Platform-specific flags ===

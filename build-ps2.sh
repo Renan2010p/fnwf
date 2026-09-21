@@ -32,10 +32,17 @@ PREFIX="mips64r5900el-ps2-elf"
 echo "=== Building FNWF for PS2 ==="
 echo "PS2DEV:  $PS2DEV"
 echo "PS2SDK:  $PS2SDK"
-echo "EE bin:  $EE_BIN"
 echo "Compiler: ${EE_BIN}/${PREFIX}-gcc"
 
-# Generate cross file with actual paths (meson requires single-line arrays)
+# Verify compiler exists
+if [ ! -x "${EE_BIN}/${PREFIX}-gcc" ]; then
+    echo "ERROR: Compiler not found at ${EE_BIN}/${PREFIX}-gcc"
+    echo "Contents of ${EE_BIN}:"
+    ls -la "${EE_BIN}/" 2>/dev/null || echo "(directory not found)"
+    exit 1
+fi
+
+# Generate cross file with actual paths
 CROSS_FILE="/tmp/ps2-cross-file.ini"
 cat > "$CROSS_FILE" << EOF
 [binaries]
@@ -45,11 +52,14 @@ ar = '${EE_BIN}/${PREFIX}-ar'
 strip = '${EE_BIN}/${PREFIX}-strip'
 pkgconfig = 'pkg-config'
 
-[properties]
+[built-in options]
 c_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG']
 cpp_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG']
-c_link_args = ['-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-lfileXio', '-lmc', '-lpad', '-laudsrv', '-lSDL', '-lSDL_ttf', '-lSDL_mixer', '-lpatches', '-lc', '-lkernel']
-cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-lfileXio', '-lmc', '-lpad', '-laudsrv', '-lSDL', '-lSDL_ttf', '-lSDL_mixer', '-lpatches', '-lc', '-lkernel']
+c_link_args = ['-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0']
+cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0']
+
+[properties]
+needs_exe_wrapper = true
 
 [host_machine]
 system = 'ps2'
