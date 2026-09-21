@@ -132,10 +132,6 @@ std::vector<Event> EnginePS2::poll_events() {
                 ev.x = e.motion.x;
                 ev.y = e.motion.y;
                 break;
-            case SDL_MOUSEWHEEL:
-                ev.type = EventType::MouseWheel;
-                ev.y = e.wheel.y;
-                break;
             default:
                 continue;
         }
@@ -375,10 +371,8 @@ bool EnginePS2::draw_text_rotated(std::string_view text, std::int32_t x, std::in
 // ── Resources ────────────────────────────────────────────────────────────────
 
 std::optional<TextureHandle> EnginePS2::load_texture(std::string_view path) {
-    SDL_Surface* surf = IMG_Load(std::string(path).c_str());
-    if (!surf) {
-        surf = SDL_LoadBMP(std::string(path).c_str());
-    }
+    // SDL 1.2 on PS2: only BMP is guaranteed. PNG needs SDL_image which may not be available.
+    SDL_Surface* surf = SDL_LoadBMP(std::string(path).c_str());
     if (!surf) return std::nullopt;
 
     SDL_Surface* converted = SDL_ConvertSurface(surf, m_screen->format, SDL_SWSURFACE);

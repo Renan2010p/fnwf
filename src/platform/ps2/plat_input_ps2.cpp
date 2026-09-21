@@ -4,9 +4,9 @@
 #include "core/InputManager.hpp"
 
 #ifdef __PS2__
-#include <tamtypes.h>
-#include <libpad.h>
+#include <kernel.h>
 #include <sifrpc.h>
+#include <libpad.h>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
