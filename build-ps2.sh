@@ -31,7 +31,7 @@ echo "PS2DEV:  $PS2DEV"
 echo "PS2SDK:  $PS2SDK"
 
 # Generate cross file with actual paths
-CROSS_FILE=$(mktemp /tmp/ps2-cross-XXXXXX.ini)
+CROSS_FILE="/tmp/ps2-cross-file.ini"
 cat > "$CROSS_FILE" << EOF
 [binaries]
 c = '${PS2DEV}/bin/mips64r5900-ee-gcc'
