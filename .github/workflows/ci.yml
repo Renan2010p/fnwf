@@ -228,25 +228,8 @@ jobs:
           export PS2DEV=/usr/local/ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
-          echo "=== Diagnostics ==="
-          echo "ls $PS2DEV/ee/bin:"
-          ls $PS2DEV/ee/bin/ 2>/dev/null | head -10 || echo "(not found)"
-          echo "---"
-          echo "Compiler test:"
-          mips64r5900el-ps2-elf-g++ --version 2>&1 | head -2 || echo "(g++ not found)"
-          echo "---"
-          echo "C++ compile test:"
-          echo 'int main(){return 0;}' > /tmp/test_ps2.cpp
-          mips64r5900el-ps2-elf-g++ -std=c++17 -c /tmp/test_ps2.cpp -o /tmp/test_ps2.o 2>&1 && echo "C++ compile OK" || echo "C++ compile FAILED"
-          mips64r5900el-ps2-elf-g++ /tmp/test_ps2.o -o /tmp/test_ps2 2>&1 && echo "C++ link OK" || echo "C++ link FAILED"
-          echo "---"
-          echo "C++ include paths:"
-          echo '#include <string>' > /tmp/test_inc.cpp
-          echo 'int main(){return 0;}' >> /tmp/test_inc.cpp
-          mips64r5900el-ps2-elf-g++ -std=c++17 -v -c /tmp/test_inc.cpp -o /dev/null 2>&1 | grep -E "include|search" | head -20
-          echo "=== End diagnostics ==="
           chmod +x build-ps2.sh
-          ./build-ps2.sh 2>&1 || { echo "=== meson log ==="; cat builddir-ps2/meson-logs/meson-log.txt 2>/dev/null | head -80; exit 1; }
+          ./build-ps2.sh
       - name: Package
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
