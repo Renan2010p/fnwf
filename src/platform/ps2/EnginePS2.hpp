@@ -1,25 +1,23 @@
 #pragma once
 
 // EnginePS2 — concrete PS2 implementation of the Engine interface.
-// Uses SDL 1.2 from ps2sdk-ports + PS2SDK native libs.
+// Uses SDL 1.2 from ps2sdk-ports.
 // Runs on the Emotion Engine (MIPS R5900) with 32MB RAM.
 
 #include "engine/Engine.hpp"
 
 #ifdef __PS2__
-#include <tamtypes.h>
+// PS2SDK: include only what we need — tamtypes.h 128-bit types break with -mgp32.
+// libpad.h and sifrpc.h pull in their own type definitions.
 #include <kernel.h>
-#include <sifrpc.h>
 #include <sifrpc.h>
 #include <loadfile.h>
 #include <libpad.h>
 #include <audsrv.h>
-#include <fileXio.h>
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
 #else
-// Allow compilation on desktop for testing (stub)
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
@@ -37,26 +35,22 @@ public:
     EnginePS2() = default;
     ~EnginePS2() override;
 
-    // Lifecycle
     bool init(std::string_view title, std::uint32_t w, std::uint32_t h,
               bool fullscreen, bool vsync) override;
     void shutdown() override;
 
-    // Events & timing
     std::vector<Event> poll_events() override;
     float ticks() const noexcept override;
     bool keeps_running() const noexcept override { return m_running; }
     void request_stop() noexcept override { m_running = false; }
     void present() override;
 
-    // Window
     void set_logical_size(std::uint32_t w, std::uint32_t h) override;
     void set_fullscreen(bool on) override;
     void set_vsync(bool on) override;
     void set_resolution(std::uint32_t w, std::uint32_t h) override;
     std::vector<std::array<std::int32_t, 3>> get_display_modes() override;
 
-    // Drawing primitives
     void clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) override;
     void draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::uint32_t h,
                    std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
@@ -67,7 +61,6 @@ public:
                 std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
                 bool filled) override;
 
-    // Textures
     void draw_texture(const TextureHandle& tex, std::int32_t dx, std::int32_t dy,
                       std::uint32_t dw, std::uint32_t dh, std::int32_t sx, std::int32_t sy,
                       std::int32_t sw, std::int32_t sh,
@@ -76,7 +69,6 @@ public:
                               std::uint32_t dw, std::uint32_t dh, float angle,
                               std::optional<std::uint8_t> alpha) override;
 
-    // Text
     bool draw_text(std::string_view text, std::int32_t x, std::int32_t y,
                    std::uint32_t font_size, std::uint8_t r, std::uint8_t g, std::uint8_t b,
                    std::uint8_t a, bool center, std::int32_t font_idx) override;
@@ -85,7 +77,6 @@ public:
                            std::uint8_t r, std::uint8_t g, std::uint8_t b,
                            std::uint8_t a, bool center, std::int32_t font_idx) override;
 
-    // Resources
     std::optional<TextureHandle> load_texture(std::string_view path) override;
     std::optional<TextureHandle> create_target(std::uint32_t w, std::uint32_t h) override;
     std::optional<SoundHandle> load_sound(std::string_view path) override;
@@ -94,25 +85,20 @@ public:
                                                               std::uint32_t font_idx) override;
     std::pair<std::uint32_t, std::uint32_t> texture_size(std::uint32_t id) noexcept override;
 
-    // Render targets
     void set_render_target(std::optional<TextureHandle> target) override;
     void reset_render_target() override;
 
-    // Sound
     std::int32_t play_sound(const SoundHandle& snd, std::int32_t loops,
                             std::int32_t channel) override;
     void stop_channel(std::int32_t channel) override;
     void stop_all_sounds() override;
 
-    // Input
     std::pair<std::int32_t, std::int32_t> mouse_pos() override;
 
-    // Volume
     void set_master_volume(int vol) override;
     void set_sfx_volume(int vol) override;
     void set_music_volume(int vol) override;
 
-    // Misc
     void update_discord(std::string_view details, std::string_view state) override;
 
 private:
