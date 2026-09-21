@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # build-ps2.sh — Build FNWF for PlayStation 2
 #
 # Prerequisites:
