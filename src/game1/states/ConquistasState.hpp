@@ -23,7 +23,6 @@ public:
     }
 
 private:
-    Engine& m_eng;
     std::vector<std::string> unlocked_achievements{};
     bool done{false};
     std::string m_result{};

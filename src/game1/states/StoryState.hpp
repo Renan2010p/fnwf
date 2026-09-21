@@ -37,8 +37,6 @@ private:
 
     Engine& m_eng;
     int night{1};
-    int current_msg{0};
-    float msg_timer{0.0f};
     bool done{false};
     int phase{0};
     int fade_alpha{255};

@@ -6,7 +6,7 @@
 
 namespace fnwf {
 
-PaycheckState::PaycheckState(Engine& eng) : m_eng(eng) {}
+PaycheckState::PaycheckState(Engine& eng) { (void)eng; }
 
 auto PaycheckState::update(float dt) -> void {
     timer += dt;

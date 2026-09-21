@@ -58,7 +58,8 @@ public:
         (void)std::system(cmd.c_str());
 #else
         std::string cmd = "xdg-open \"" + url + "\"";
-        (void)std::system(cmd.c_str());
+        auto ret = std::system(cmd.c_str());
+        (void)ret;
 #endif
     }
 

@@ -7,7 +7,7 @@
 namespace fnwf {
 
 ConquistasState::ConquistasState(const std::vector<std::string>& ach, Engine& eng)
-    : m_eng(eng), unlocked_achievements(ach) {
+    : unlocked_achievements(ach) { (void)eng;
     achievements_list = {{"survive_n1",
                           Localization::get_text("night_1_ach_title"),
                           Localization::get_text("night_1_ach_desc")},

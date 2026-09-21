@@ -28,7 +28,6 @@ private:
     auto draw_game_over(Engine& eng) -> void;
     auto draw_win(Engine& eng) -> void;
 
-    Engine& m_eng;
     bool is_win{false};
     int night{1};
     float timer{0.0f};

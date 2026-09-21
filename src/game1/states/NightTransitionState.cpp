@@ -7,7 +7,7 @@
 
 namespace fnwf {
 
-NightTransitionState::NightTransitionState(int night_, Engine& eng) : m_eng(eng), night(night_) {
+NightTransitionState::NightTransitionState(int night_, Engine& eng) : night(night_) {
     DrawUtils::load_sprite(eng, "cedro");
     cedro_avatar = *DrawUtils::get_sprite("cedro");
     DrawUtils::load_sprite(eng, "renan");

@@ -11,7 +11,7 @@ static auto lerp(float a, float b, float t) -> float {
     return a + (b - a) * std::min(1.0f, std::max(0.0f, t));
 }
 MenuState::MenuState(int cn, bool hss, Engine& eng)
-    : m_eng(eng), m_completed_nights(cn), m_has_seen_story(hss) {
+    : m_completed_nights(cn), m_has_seen_story(hss) {
     SoundManager::set_engine(&eng);
     DrawUtils::load_sprite(eng, "cedro");
     DrawUtils::load_sprite(eng, "eser");

@@ -9,7 +9,7 @@
 namespace fnwf {
 
 GameOverState::GameOverState(bool is_win_, int night_, Engine& eng)
-    : m_eng(eng), is_win(is_win_), night(night_) {}
+    : is_win(is_win_), night(night_) { (void)eng; }
 
 auto GameOverState::is_done() const -> bool {
     return timer > 3.0f;

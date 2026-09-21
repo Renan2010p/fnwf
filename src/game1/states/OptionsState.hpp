@@ -61,7 +61,7 @@ private:
 
     float bg_scroll{0.0f};
     float highlight_y{150.0f};
-    float highlight_target_y{150.0f};
+    /* float highlight_target_y{150.0f}; */ // removed: unused
     float scroll_offset{0.0f};
     float scroll_target{0.0f};
     std::vector<float> item_glows{};

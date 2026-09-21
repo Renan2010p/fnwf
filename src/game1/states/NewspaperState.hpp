@@ -18,7 +18,6 @@ public:
     }
 
 private:
-    Engine& m_eng;
     float timer{0.0f};
     bool done{false};
     int fade_alpha{255};

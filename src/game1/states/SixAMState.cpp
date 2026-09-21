@@ -7,7 +7,7 @@
 
 namespace fnwf {
 
-SixAMState::SixAMState(int night_, Engine& eng) : m_eng(eng), night(night_) {}
+SixAMState::SixAMState(int night_, Engine& eng) : night(night_) { (void)eng; }
 
 auto SixAMState::update(float dt) -> void {
     timer += dt;

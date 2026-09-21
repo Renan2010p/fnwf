@@ -71,7 +71,7 @@ bool EngineSDL2::init(std::string_view title, std::uint32_t w, std::uint32_t h,
     return true;
 }
 
-void EngineSDL2::shutdown() noexcept {
+void EngineSDL2::shutdown() {
     m_textures.clear();
     m_text_cache.clear();
     m_fonts.clear();

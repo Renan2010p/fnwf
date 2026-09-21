@@ -28,7 +28,6 @@ public:
 private:
     auto build_options() -> void;
     auto handle_action(const std::string& action) -> std::string;
-    Engine& m_eng;
     int m_completed_nights;
     bool m_has_seen_story;
     int selected{1};
