@@ -57,7 +57,6 @@ c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abi
 cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
 c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-lto', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
 cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-G0', '-fno-lto', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
-lto = false
 
 [properties]
 needs_exe_wrapper = true
@@ -73,7 +72,7 @@ EOF
 rm -rf builddir-ps2
 
 # Configure with generated cross file
-meson setup builddir-ps2 --cross-file "$CROSS_FILE"
+meson setup builddir-ps2 --cross-file "$CROSS_FILE" -Db_lto=false
 
 # Build
 ninja -C builddir-ps2
