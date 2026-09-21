@@ -6,7 +6,7 @@
 #   2. Export environment variables:
 #      export PS2DEV=/usr/local/ps2dev
 #      export PS2SDK=$PS2DEV/ps2sdk
-#      export PATH=$PS2DEV/bin:$PATH
+#      export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
 #
 # Usage:
 #   ./build-ps2.sh          # Build ELF
@@ -22,22 +22,27 @@ if [ -z "$PS2DEV" ]; then
     echo "ERROR: PS2DEV not set. Install ps2dev and run:"
     echo "  export PS2DEV=/usr/local/ps2dev"
     echo "  export PS2SDK=\$PS2DEV/ps2sdk"
-    echo "  export PATH=\$PS2DEV/bin:\$PATH"
+    echo "  export PATH=\$PS2DEV/ee/bin:\$PATH"
     exit 1
 fi
+
+EE_BIN="${PS2DEV}/ee/bin"
+PREFIX="mips64r5900el-ps2-elf"
 
 echo "=== Building FNWF for PS2 ==="
 echo "PS2DEV:  $PS2DEV"
 echo "PS2SDK:  $PS2SDK"
+echo "EE bin:  $EE_BIN"
+echo "Compiler: ${EE_BIN}/${PREFIX}-gcc"
 
 # Generate cross file with actual paths (meson requires single-line arrays)
 CROSS_FILE="/tmp/ps2-cross-file.ini"
 cat > "$CROSS_FILE" << EOF
 [binaries]
-c = '${PS2DEV}/bin/mips64r5900-ee-gcc'
-cpp = '${PS2DEV}/bin/mips64r5900-ee-g++'
-ar = '${PS2DEV}/bin/mips64r5900-ee-ar'
-strip = '${PS2DEV}/bin/mips64r5900-ee-strip'
+c = '${EE_BIN}/${PREFIX}-gcc'
+cpp = '${EE_BIN}/${PREFIX}-g++'
+ar = '${EE_BIN}/${PREFIX}-ar'
+strip = '${EE_BIN}/${PREFIX}-strip'
 pkgconfig = 'pkg-config'
 
 [properties]
