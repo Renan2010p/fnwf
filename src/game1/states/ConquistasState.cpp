@@ -22,7 +22,7 @@ ConquistasState::ConquistasState(const std::vector<std::string>& ach, Engine& en
                           Localization::get_text("night_7_ach_desc")}};
 }
 
-auto ConquistasState::update(double dt) -> void {
+auto ConquistasState::update(float dt) -> void {
     timer += dt;
 }
 

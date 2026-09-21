@@ -3,7 +3,6 @@
 #include "core/SettingsManager.hpp"
 #include "engine/Engine.hpp"
 #include "game1/GameSettings.hpp"
-#include <SDL_mixer.h>
 #include <unordered_map>
 
 namespace fnwf {
@@ -12,10 +11,6 @@ static Engine* s_eng = nullptr;
 static std::unordered_map<std::string, SoundHandle> s_cache{};
 static int s_menu_channel = -1;
 static int s_breathing_channel = -1;
-
-static int s_master_vol{80};
-static int s_sfx_vol{100};
-static int s_music_vol{70};
 
 static const std::unordered_map<std::string, std::string> s_filename_map = {
     {"door_open", "portas.ogg"},
@@ -128,29 +123,19 @@ auto SoundManager::stop_mask_breathing() -> void {
     }
 }
 
-static auto effective_sfx_volume() -> int {
-    return (s_master_vol * s_sfx_vol) / 100;
-}
-static auto effective_music_volume() -> int {
-    return (s_master_vol * s_music_vol) / 100;
-}
-
 auto SoundManager::set_master_volume(int vol) -> void {
-    s_master_vol = vol;
-    Mix_VolumeMusic((effective_music_volume() * MIX_MAX_VOLUME) / 100);
-    for (int ch = 0; ch < 16; ++ch)
-        Mix_Volume(ch, (effective_sfx_volume() * MIX_MAX_VOLUME) / 100);
+    if (s_eng)
+        s_eng->set_master_volume(vol);
 }
 
 auto SoundManager::set_sfx_volume(int vol) -> void {
-    s_sfx_vol = vol;
-    for (int ch = 0; ch < 16; ++ch)
-        Mix_Volume(ch, (effective_sfx_volume() * MIX_MAX_VOLUME) / 100);
+    if (s_eng)
+        s_eng->set_sfx_volume(vol);
 }
 
 auto SoundManager::set_music_volume(int vol) -> void {
-    s_music_vol = vol;
-    Mix_VolumeMusic((effective_music_volume() * MIX_MAX_VOLUME) / 100);
+    if (s_eng)
+        s_eng->set_music_volume(vol);
 }
 
 }  // namespace fnwf

@@ -15,7 +15,7 @@ public:
                 const std::vector<std::string>& achievements,
                 Engine& eng);
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
@@ -26,6 +26,9 @@ public:
     auto get_cheats() const -> std::pair<bool, bool> {
         return {infinite_power, fast_nights};
     }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::Extras;
+    }
 
 private:
     auto draw_animatronics(Engine& eng) -> void;
@@ -34,7 +37,7 @@ private:
     auto draw_achievements(Engine& eng) -> void;
 
     Engine& m_eng;
-    double timer{0.0};
+    float timer{0.0f};
     bool done{false};
     std::string m_result{};
     int category{1};

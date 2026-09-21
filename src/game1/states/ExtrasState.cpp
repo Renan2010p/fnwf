@@ -38,7 +38,7 @@ ExtrasState::ExtrasState(
                           Localization::get_text("night_7_ach_desc")}};
 }
 
-auto ExtrasState::update(double dt) -> void {
+auto ExtrasState::update(float dt) -> void {
     timer += dt;
 }
 

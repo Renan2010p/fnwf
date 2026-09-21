@@ -12,10 +12,10 @@ GameOverState::GameOverState(bool is_win_, int night_, Engine& eng)
     : m_eng(eng), is_win(is_win_), night(night_) {}
 
 auto GameOverState::is_done() const -> bool {
-    return timer > 3.0;
+    return timer > 3.0f;
 }
 
-auto GameOverState::update(double dt) -> void {
+auto GameOverState::update(float dt) -> void {
     timer += dt;
     if (timer > 0.5) {
         show_text = true;
@@ -24,7 +24,7 @@ auto GameOverState::update(double dt) -> void {
 }
 
 auto GameOverState::handle_event(const Event& ev) -> void {
-    if (timer < 2.0)
+    if (timer < 2.0f)
         return;
     if (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown)
         m_result = is_win ? "next" : "menu";
@@ -94,7 +94,7 @@ auto GameOverState::draw_game_over(Engine& eng) -> void {
     }
 
     DrawUtils::scanlines(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 15);
-    if (timer > 3.0 && ((int)(timer * 2) % 2 == 1))
+    if (timer > 3.0f && ((int)(timer * 2) % 2 == 1))
         DrawUtils::text(eng,
                         Localization::get_text("press_any_key"),
                         SCREEN_WIDTH / 2,
@@ -129,7 +129,7 @@ auto GameOverState::draw_win(Engine& eng) -> void {
         eng.draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 255, 255, 200, a);
     }
 
-    if (timer > 2.0) {
+    if (timer > 2.0f) {
         std::string nl = Localization::get_text("night") + " " + std::to_string(night);
         DrawUtils::text(eng,
                         Localization::get_text("night_complete") + " " + nl,

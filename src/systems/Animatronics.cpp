@@ -14,7 +14,7 @@ Animatronic::Animatronic(std::string n,
     : name(std::move(n)), ai_level(ai), position(std::move(start)), path_map(&paths),
       active(ai > 0) {}
 
-auto Animatronic::update(double dt,
+auto Animatronic::update(float dt,
                          const std::string* camera_looking_at,
                          bool left_door_closed,
                          bool right_door_closed,
@@ -26,7 +26,7 @@ auto Animatronic::update(double dt,
 
     if (!at_door.empty() || at_vent || in_office) {
         stare_timer += dt;
-        double target_max = in_office ? 3.0 : max_stare;
+        float target_max = in_office ? 3.0f : max_stare;
         if (stare_timer >= target_max) {
             if (position == "OFFICE_VENT" || in_office) {
                 if (!mask_on) {
@@ -38,14 +38,14 @@ auto Animatronic::update(double dt,
                     at_vent = false;
                     in_office = false;
                     just_left_office = true;
-                    stare_timer = 0.0;
+                    stare_timer = 0.0f;
                 }
             }
         }
     }
 
     if (move_timer >= move_interval) {
-        move_timer = 0.0;
+        move_timer = 0.0f;
         try_move(camera_looking_at, left_door_closed, right_door_closed, mask_on);
     }
 }
@@ -113,12 +113,12 @@ auto Animatronic::try_move(const std::string* /*camera_looking_at*/,
         at_vent = true;
         in_office = true;
         at_door.clear();
-        stare_timer = 0.0;
+        stare_timer = 0.0f;
     } else {
         at_door.clear();
         at_vent = false;
         in_office = false;
-        stare_timer = 0.0;
+        stare_timer = 0.0f;
     }
 }
 
@@ -132,7 +132,7 @@ auto Animatronic::is_at_right_door() const -> bool {
 // Sonk
 SonkAnimatronic::SonkAnimatronic(int ai) : ai_level(ai), active(ai > 0) {}
 
-auto SonkAnimatronic::update(double dt,
+auto SonkAnimatronic::update(float dt,
                              const std::string* camera_looking_at,
                              bool /*left_door_closed*/,
                              bool /*right_door_closed*/,
@@ -146,7 +146,7 @@ auto SonkAnimatronic::update(double dt,
             is_charging = false;
             position = "LEFT_DOOR";
             at_door = "LEFT_DOOR";
-            stare_timer = 0.0;
+            stare_timer = 0.0f;
             SoundManager::play_sound("animatronic_door");
         }
         return;
@@ -156,18 +156,18 @@ auto SonkAnimatronic::update(double dt,
 
     if (position == "LEFT_DOOR") {
         stare_timer += dt;
-        if (stare_timer >= 1.0) {
+        if (stare_timer >= 1.0f) {
             position = "5";
             stage = 0;
             at_door.clear();
-            stare_timer = 0.0;
+            stare_timer = 0.0f;
         }
         return;
     }
 
     if (move_timer < move_interval)
         return;
-    move_timer = 0.0;
+    move_timer = 0.0f;
 
     int effective_ai = ai_level;
     if (camera_looking_at && *camera_looking_at == "5") {
@@ -182,7 +182,7 @@ auto SonkAnimatronic::update(double dt,
         stage++;
     } else {
         is_charging = true;
-        charge_timer = 0.0;
+        charge_timer = 0.0f;
         SoundManager::play_sound("footstep");
     }
 }
@@ -225,9 +225,9 @@ AnimatronicManager::AnimatronicManager(int night, const std::vector<int>* custom
     eser.move_interval = move_int;
     alice.move_interval = move_int;
     if (secret_mode) {
-        cedro.max_stare = 2.3;
-        eser.max_stare = 2.3;
-        alice.max_stare = 2.3;
+        cedro.max_stare = 2.3f;
+        eser.max_stare = 2.3f;
+        alice.max_stare = 2.3f;
     }
 
     int sonk_ai = levels.size() > 3 ? levels[3] : 0;
@@ -237,10 +237,10 @@ AnimatronicManager::AnimatronicManager(int night, const std::vector<int>* custom
     sonk = SonkAnimatronic(sonk_ai);
     sonk.move_interval = secret_mode ? 1.25 : GameSettings::MOVE_INTERVAL;
     if (secret_mode)
-        sonk.charge_duration = 0.65;
+        sonk.charge_duration = 0.65f;
 }
 
-auto AnimatronicManager::update(double dt,
+auto AnimatronicManager::update(float dt,
                                 const std::string* camera_looking_at,
                                 bool left_door_closed,
                                 bool right_door_closed,

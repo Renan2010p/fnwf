@@ -32,7 +32,7 @@ public:
                              const std::string& text,
                              std::int32_t x,
                              std::int32_t y,
-                             double angle,
+                             float angle,
                              std::uint32_t size = 24,
                              std::uint8_t r = 255,
                              std::uint8_t g = 255,

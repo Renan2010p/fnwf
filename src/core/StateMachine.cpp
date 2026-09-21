@@ -12,7 +12,7 @@ auto StateMachine::switch_state_raw(std::unique_ptr<GameState> state) -> void {
     m_current = std::move(state);
 }
 
-auto StateMachine::update(double dt) -> void {
+auto StateMachine::update(float dt) -> void {
     if (m_current) {
         m_current->update(dt);
     }

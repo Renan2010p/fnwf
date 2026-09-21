@@ -1,7 +1,7 @@
 project('fnwf', 'cpp',
   version : '2.0.12',
   default_options : [
-    'cpp_std=c++23',
+    'cpp_std=c++17',
     'warning_level=2',
     'optimization=3',
     'default_library=static',
@@ -11,14 +11,12 @@ project('fnwf', 'cpp',
 )
 
 # === Dependencies (static linking) ===
-# Try system SDL2 first, fallback to building from source
 sdl2_dep = dependency('sdl2', required : false)
 sdl2_ttf_dep = dependency('SDL2_ttf', required : false)
 sdl2_image_dep = dependency('SDL2_image', required : false)
 sdl2_mixer_dep = dependency('SDL2_mixer', required : false)
 freetype2_dep = dependency('freetype2', required : false)
 
-# If any SDL2 dep not found, build all from source via subproject
 if not sdl2_dep.found() or not sdl2_ttf_dep.found() or not sdl2_image_dep.found() or not sdl2_mixer_dep.found()
   message('SDL2 not found or incomplete — building from source...')
   sdl2_proj = subproject('sdl2', default_options : ['tests=disabled'])
@@ -127,10 +125,14 @@ elif host_machine.system() == 'darwin'
   message('BUILD: macOS static')
 endif
 
-# === Sources ===
+# === Abstract sources (no platform code here) ===
 fnwf_sources = files(
   'src/main.cpp',
+  # Engine interface
   'src/engine/Engine.cpp',
+  # Core abstractions (stubs — real impls live in platform/)
+  'src/core/Platform.cpp',
+  'src/core/InputManager.cpp',
   'src/core/DrawUtils.cpp',
   'src/core/Localization.cpp',
   'src/core/SaveManager.cpp',
@@ -138,14 +140,15 @@ fnwf_sources = files(
   'src/core/StateMachine.cpp',
   'src/core/StateRegistry.cpp',
   'src/core/SoundManager.cpp',
-  'src/core/Platform.cpp',
-  'src/core/InputManager.cpp',
+  'src/core/MobileUI.cpp',
+  # Game systems (all abstract, depend only on Engine interface)
   'src/systems/Office.cpp',
   'src/systems/CameraSystem.cpp',
   'src/systems/Doors.cpp',
   'src/systems/Animatronics.cpp',
   'src/systems/Power.cpp',
   'src/systems/Jumpscare.cpp',
+  # Game states
   'src/game1/states/WarningState.cpp',
   'src/game1/states/MenuState.cpp',
   'src/game1/states/GameplayState.cpp',
@@ -163,17 +166,42 @@ fnwf_sources = files(
   'src/game1/states/ArcadeState.cpp',
 )
 
-fnwf_inc = include_directories('src')
+# === Platform backend selection ===
+# The game code is 100% abstract — only this section changes per platform.
+# SDL2 backend (desktop: Linux, Windows, macOS, Web)
+sdl2_backend = files(
+  'src/platform/sdl2/EngineSDL2.cpp',
+  'src/platform/sdl2/plat_sdl2.cpp',
+  'src/platform/sdl2/plat_input.cpp',
+)
 
-fnwf = executable('fnwf',
-  fnwf_sources,
-  include_directories : fnwf_inc,
-  dependencies : [
+# PS2 backend (PlayStation 2 via ps2sdk)
+ps2_backend = files(
+  'src/platform/ps2/EnginePS2.cpp',
+  'src/platform/ps2/plat_ps2.cpp',
+  'src/platform/ps2/plat_input_ps2.cpp',
+)
+
+# Select backend based on target platform
+if host_machine.system() == 'ps2'
+  platform_backend = ps2_backend
+  platform_deps = []   # PS2 links via cross-file flags
+else
+  platform_backend = sdl2_backend
+  platform_deps = [
     sdl2_dep,
     sdl2_ttf_dep,
     sdl2_image_dep,
     sdl2_mixer_dep,
     freetype2_dep,
-  ],
+  ]
+endif
+
+fnwf_inc = include_directories('src')
+
+fnwf = executable('fnwf',
+  fnwf_sources + platform_backend,
+  include_directories : fnwf_inc,
+  dependencies : platform_deps,
   install : true
 )

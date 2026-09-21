@@ -45,12 +45,12 @@ CustomNightState::CustomNightState(Engine& eng) : m_eng(eng) {
                {Localization::get_text("preset_2"), {10, 20, 10, 10}, true},
                {Localization::get_text("preset_3"), {20, 20, 20, 20}, true}};
     current_preset = 0;
-    card_scales.resize(4, 1.0);
-    card_glows.resize(4, 0.0);
+    card_scales.resize(4, 1.0f);
+    card_glows.resize(4, 0.0f);
     if (!card_scales.empty())
-        card_scales[0] = 1.02;
+        card_scales[0] = 1.02f;
     if (!card_glows.empty())
-        card_glows[0] = 1.0;
+        card_glows[0] = 1.0f;
     rebuild_layout();
 }
 
@@ -107,14 +107,14 @@ auto CustomNightState::rebuild_layout() -> void {
     ready_rect = {cx - 180, 642, 360, 54};
 }
 
-auto CustomNightState::update(double dt) -> void {
+auto CustomNightState::update(float dt) -> void {
     timer += dt;
     for (int i = 0; i < 4; ++i) {
         bool is_sel = (i + 1 == selected);
-        double target_scale = is_sel ? 1.02 : 1.0;
-        double target_glow = is_sel ? 1.0 : 0.0;
-        card_scales[i] = card_scales[i] + (target_scale - card_scales[i]) * std::min(1.0, 8.0 * dt);
-        card_glows[i] = card_glows[i] + (target_glow - card_glows[i]) * std::min(1.0, 6.0 * dt);
+        float target_scale = is_sel ? 1.02 : 1.0f;
+        float target_glow = is_sel ? 1.0f : 0.0f;
+        card_scales[i] = card_scales[i] + (target_scale - card_scales[i]) * std::min(1.0f, 8.0f * dt);
+        card_glows[i] = card_glows[i] + (target_glow - card_glows[i]) * std::min(1.0f, 6.0f * dt);
     }
 }
 
@@ -248,13 +248,13 @@ auto CustomNightState::draw(Engine& eng) -> void {
         auto& a = animatronics[i];
         auto& r = card_rects[i];
         int cx = r[0] + r[2] / 2;
-        double glow = card_glows[i];
-        double scale = card_scales[i];
+        float glow = card_glows[i];
+        float scale = card_scales[i];
         int dw = (int)(r[2] * scale), dh = (int)(r[3] * scale);
         int dx = r[0] - (dw - r[2]) / 2, dy = r[1] - (dh - r[3]) / 2;
 
         if (glow > 0.05) {
-            double pulse = 0.5 + 0.5 * std::sin(timer * 6.0);
+            float pulse = 0.5 + 0.5 * std::sin(timer * 6.0f);
             int edge = (int)lerp_f(120, 230, (float)glow);
             int blue = (int)(130 + pulse * 110 * glow);
             eng.draw_rect(dx - 3, dy - 3, dw + 6, dh + 6, 90, 120, blue, 255, false);
@@ -310,7 +310,7 @@ auto CustomNightState::draw(Engine& eng) -> void {
                         true);
     }
 
-    double pulse = 0.5 + 0.5 * std::sin(timer * 4.0);
+    float pulse = 0.5 + 0.5 * std::sin(timer * 4.0f);
     int arrow_r = 200, arrow_g = 200, arrow_b = (int)(140 + 70 * pulse);
 
     eng.draw_rect(
@@ -363,7 +363,7 @@ auto CustomNightState::draw(Engine& eng) -> void {
 
     bool rs = (selected == 5);
     if (rs) {
-        int glow = (int)(100 + 100 * (0.5 + 0.5 * std::sin(timer * 7.0)));
+        int glow = (int)(100 + 100 * (0.5 + 0.5 * std::sin(timer * 7.0f)));
         eng.draw_rect(
             ready_rect[0], ready_rect[1], ready_rect[2], ready_rect[3], glow, glow, 80, 255, false);
     } else

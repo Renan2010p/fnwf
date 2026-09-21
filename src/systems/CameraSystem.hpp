@@ -12,7 +12,7 @@ class CameraSystem
 public:
     CameraSystem(Engine& eng);
 
-    auto update(double dt) -> void;
+    auto update(float dt) -> void;
     auto draw(Engine& eng,
               const std::unordered_map<std::string, std::string>& anim_positions,
               int foxy_stage) -> void;
@@ -34,7 +34,7 @@ public:
     bool is_animating{false};
 
 private:
-    auto ease_out_cubic(double v) const -> double;
+    auto ease_out_cubic(float v) const -> float;
     auto get_bottom_toggle_rects() const -> std::pair<std::array<int, 4>, std::array<int, 4>>;
 
     auto draw_mask_overlay(Engine& eng) -> void;
@@ -79,13 +79,13 @@ private:
         -> void;
 
     Engine& m_eng;
-    double static_timer{0.0};
-    double static_duration{0.4};
-    double anim_progress{0.0};
-    double anim_speed{5.0};
-    double mask_anim_progress{0.0};
-    double mask_anim_speed{4.0};
-    double mouse_trigger_zone{60.0};
+    float static_timer{0.0f};
+    float static_duration{0.4};
+    float anim_progress{0.0f};
+    float anim_speed{5.0f};
+    float mask_anim_progress{0.0f};
+    float mask_anim_speed{4.0f};
+    float mouse_trigger_zone{60.0f};
     bool mouse_in_cam_zone{false};
     bool mouse_in_mask_zone{false};
 

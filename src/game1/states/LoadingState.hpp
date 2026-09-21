@@ -16,7 +16,7 @@ public:
         next_factory = std::move(f);
     }
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
@@ -24,18 +24,21 @@ public:
     auto get_next_state() -> std::unique_ptr<GameState> {
         return std::move(next_state);
     }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::Loading;
+    }
 
 private:
     Engine& m_eng;
     StateFactory next_factory{};
-    double timer{0.0};
-    double duration{4.0};
+    float timer{0.0f};
+    float duration{4.0f};
     std::string tip{};
     bool done{false};
     std::unique_ptr<GameState> next_state{};
     int font_alpha{0};
-    double glitch_timer{0.0};
-    double loader_angle{0.0};
+    float glitch_timer{0.0f};
+    float loader_angle{0.0f};
 
     static const std::vector<std::string> TIPS;
 };

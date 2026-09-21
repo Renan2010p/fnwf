@@ -7,7 +7,7 @@
 
 namespace fnwf {
 
-static constexpr double PI = 3.14159265358979323846;
+static constexpr float PI = 3.14159265f;
 
 Office::Office(Engine& eng) : m_eng(eng) {
     office_tex = *eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
@@ -24,18 +24,18 @@ Office::Office(Engine& eng) : m_eng(eng) {
     build_static_layer();
 }
 
-Color Office::shade(const Color& c, double factor) {
+Color Office::shade(const Color& c, float factor) {
     return {static_cast<std::uint8_t>(std::max(0, std::min(255, static_cast<int>(c.r * factor)))),
             static_cast<std::uint8_t>(std::max(0, std::min(255, static_cast<int>(c.g * factor)))),
             static_cast<std::uint8_t>(std::max(0, std::min(255, static_cast<int>(c.b * factor))))};
 }
 
-auto Office::project_depth(double nx, double z, double height) -> std::tuple<int, int, double> {
-    double zc = std::max(0.0, std::min(1.0, z));
-    double scale = 0.40 + zc * 1.45;
-    double world_half = 320;
+auto Office::project_depth(float nx, float z, float height) -> std::tuple<int, int, float> {
+    float zc = std::max(0.0f, std::min(1.0f, z));
+    float scale = 0.40 + zc * 1.45;
+    float world_half = 320;
     int sx = static_cast<int>(vp_x + (nx * world_half * scale));
-    double floor_y =
+    float floor_y =
         bw_bottom + static_cast<int>((GameSettings::SCREEN_HEIGHT - bw_bottom) * std::pow(zc, 1.2));
     int sy = static_cast<int>(floor_y - height * scale);
     return {sx, sy, scale};
@@ -44,15 +44,15 @@ auto Office::project_depth(double nx, double z, double height) -> std::tuple<int
 auto Office::precalculate_projection() -> void {
     auto screen_w = GameSettings::SCREEN_WIDTH;
     auto screen_h = GameSettings::SCREEN_HEIGHT;
-    double fov = PI * 100.0 / 180.0;
-    double focal_length = (screen_w / 2.0) / std::tan(fov / 2.0);
+    float fov = PI * 100.0f / 180.0f;
+    float focal_length = (screen_w / 2.0f) / std::tan(fov / 2.0f);
     int slice_w = 16;
-    double pixels_per_radian = GameSettings::OFFICE_WIDTH / PI;
+    float pixels_per_radian = GameSettings::OFFICE_WIDTH / PI;
 
     for (int sx = 0; sx < screen_w; sx += slice_w) {
-        double theta = std::atan((sx + slice_w / 2.0 - screen_w / 2.0) / focal_length);
-        double scale_y = 1.0 / std::cos(theta);
-        double src_w_d =
+        float theta = std::atan((sx + slice_w / 2.0f - screen_w / 2.0f) / focal_length);
+        float scale_y = 1.0f / std::cos(theta);
+        float src_w_d =
             slice_w * (pixels_per_radian * std::pow(std::cos(theta), 2) / focal_length);
         projection_data.push_back({sx,
                                    theta,
@@ -77,22 +77,22 @@ auto Office::build_static_layer() -> void {
     m_eng.reset_render_target();
 }
 
-auto Office::update(int mouse_x, double dt) -> void {
-    double norm = static_cast<double>(mouse_x) / GameSettings::SCREEN_WIDTH;
-    target_pan = (norm - 0.5) * 2.0;
-    pan_x += (target_pan - pan_x) * 4.0 * dt;
+auto Office::update(int mouse_x, float dt) -> void {
+    float norm = static_cast<float>(mouse_x) / GameSettings::SCREEN_WIDTH;
+    target_pan = (norm - 0.5) * 2.0f;
+    pan_x += (target_pan - pan_x) * 4.0f * dt;
 }
 
 auto Office::draw(Engine& eng,
-                  double left_door_anim,
-                  double right_door_anim,
+                  float left_door_anim,
+                  float right_door_anim,
                   bool left_light,
                   bool right_light,
                   const std::string& anim_at_left,
                   const std::string& anim_at_right,
                   const std::string& anim_at_vent,
                   const std::string& anim_in_office) -> void {
-    double t = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+    float t = static_cast<float>(clock()) / CLOCKS_PER_SEC;
     eng.set_render_target(office_tex);
     eng.draw_texture(
         office_static_tex, 0, 0, GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
@@ -108,16 +108,16 @@ auto Office::draw(Engine& eng,
 
     auto screen_h = GameSettings::SCREEN_HEIGHT;
     auto office_w = GameSettings::OFFICE_WIDTH;
-    double pixels_per_radian = office_w / PI;
-    double max_pan_angle = PI / 4.0;
-    double center_angle = PI / 2.0 + pan_x * max_pan_angle;
+    float pixels_per_radian = office_w / PI;
+    float max_pan_angle = PI / 4.0f;
+    float center_angle = PI / 2.0f + pan_x * max_pan_angle;
 
     for (auto& data : projection_data) {
-        double target_angle = center_angle + data.theta;
-        double source_x = target_angle * pixels_per_radian;
+        float target_angle = center_angle + data.theta;
+        float source_x = target_angle * pixels_per_radian;
         int src_w = data.src_w;
         int target_h = data.target_h;
-        int src_x = static_cast<int>(std::floor(source_x - src_w / 2.0));
+        int src_x = static_cast<int>(std::floor(source_x - src_w / 2.0f));
 
         if (src_x + src_w > 0 && src_x < office_w) {
             int final_src_x = std::max(0, src_x);
@@ -151,16 +151,16 @@ auto Office::draw_ceiling(Engine& eng) -> void {
                          bw_left - hall_depth,
                          bw_top);
     for (int i = 1; i < 10; ++i) {
-        double prog = i / 10.0;
+        float prog = i / 10.0f;
         int y = static_cast<int>(prog * bw_top);
         int lx = static_cast<int>((bw_left - hall_depth) * prog);
         int rx = static_cast<int>(GameSettings::OFFICE_WIDTH -
                                   (GameSettings::OFFICE_WIDTH - bw_right - hall_depth) * prog);
-        auto shade = static_cast<int>(std::max(0.0, 30.0 - prog * 20));
+        auto shade = static_cast<int>(std::max(0.0f, 30.0f - prog * 20));
         eng.line(lx, y, rx, y, shade, shade, shade + 3);
     }
     for (int i = 0; i <= 5; ++i) {
-        double frac = (i + 1) / 7.0;
+        float frac = (i + 1) / 7.0f;
         int top_x = static_cast<int>(GameSettings::OFFICE_WIDTH * frac);
         int bot_x = static_cast<int>((bw_left - hall_depth) +
                                      frac * (bw_right + hall_depth - bw_left + hall_depth));
@@ -186,8 +186,8 @@ auto Office::draw_floor(Engine& eng) -> void {
 
     int rows = 4, cols = 8;
     for (int r = 0; r < rows; ++r) {
-        double py0 = r / (double)rows;
-        double py1 = (r + 1) / (double)rows;
+        float py0 = r / (float)rows;
+        float py1 = (r + 1) / (float)rows;
         int y0 = static_cast<int>(bw_bottom + py0 * (GameSettings::SCREEN_HEIGHT - bw_bottom));
         int y1 = static_cast<int>(bw_bottom + py1 * (GameSettings::SCREEN_HEIGHT - bw_bottom));
         int lx0 = static_cast<int>(floor_left_far + (-100 - floor_left_far) * py0);
@@ -197,13 +197,13 @@ auto Office::draw_floor(Engine& eng) -> void {
         int rx1 = static_cast<int>(floor_right_far +
                                    (GameSettings::OFFICE_WIDTH + 100 - floor_right_far) * py1);
         for (int c = 0; c < cols; ++c) {
-            int px0 = lx0 + static_cast<int>(c / (double)cols * (rx0 - lx0));
-            int px1 = lx0 + static_cast<int>((c + 1) / (double)cols * (rx0 - lx0));
-            int px0b = lx1 + static_cast<int>(c / (double)cols * (rx1 - lx1));
-            int px1b = lx1 + static_cast<int>((c + 1) / (double)cols * (rx1 - lx1));
+            int px0 = lx0 + static_cast<int>(c / (float)cols * (rx0 - lx0));
+            int px1 = lx0 + static_cast<int>((c + 1) / (float)cols * (rx0 - lx0));
+            int px0b = lx1 + static_cast<int>(c / (float)cols * (rx1 - lx1));
+            int px1b = lx1 + static_cast<int>((c + 1) / (float)cols * (rx1 - lx1));
             auto& color =
                 ((r + c) % 2 == 0) ? GameSettings::FLOOR_TILE_1 : GameSettings::FLOOR_TILE_2;
-            double fade = std::max(0.3, 1.0 - (1.0 - py0) * 0.6);
+            float fade = std::max(0.3, 1.0f - (1.0f - py0) * 0.6);
             DrawUtils::trapezoid(eng,
                                  static_cast<int>(color.r * fade),
                                  static_cast<int>(color.g * fade),
@@ -286,7 +286,7 @@ auto Office::draw_back_wall_base(Engine& eng) -> void {
     eng.line(vp_x, bw_top, vp_x, bw_bottom, 60, 55, 65, 120);
 }
 
-auto Office::draw_back_wall_dynamic(Engine& eng, double t) -> void {
+auto Office::draw_back_wall_dynamic(Engine& eng, float t) -> void {
     int clock_x = vp_x + 120, clock_y = bw_top + 30;
     eng.line(clock_x,
              clock_y,
@@ -295,23 +295,23 @@ auto Office::draw_back_wall_dynamic(Engine& eng, double t) -> void {
              140,
              130,
              120);
-    double pulse = 0.45 + 0.55 * std::sin(t * 2.8);
+    float pulse = 0.45 + 0.55 * std::sin(t * 2.8);
     auto lamp_a = static_cast<int>(26 + pulse * 38);
     eng.draw_rect(vp_x - 120, bw_top + 6, 240, 16, 220, 210, 165, lamp_a);
 }
 
 auto Office::draw_depth_structure(Engine& eng) -> void {
-    double depths[] = {0.12, 0.24, 0.36, 0.50, 0.66, 0.82};
-    for (double z : depths) {
-        auto [lx, y, s] = project_depth(-1.0, z);
-        auto [rx, ry, rs] = project_depth(1.0, z);
+    float depths[] = {0.12, 0.24, 0.36, 0.50, 0.66, 0.82};
+    for (float z : depths) {
+        auto [lx, y, s] = project_depth(-1.0f, z);
+        auto [rx, ry, rs] = project_depth(1.0f, z);
         auto shade_val = static_cast<int>(70 - z * 28);
         eng.line(lx, y, rx, y, shade_val, shade_val, shade_val + 4, 120);
     }
 
-    double side_depths[] = {0.18, 0.42, 0.70};
+    float side_depths[] = {0.18, 0.42, 0.70};
     for (int side : {-1, 1}) {
-        for (double z : side_depths) {
+        for (float z : side_depths) {
             auto [x0, y0, s0] = project_depth(0.82 * side, z, 0);
             auto [x1, y1, s1] = project_depth(0.82 * side, z, 150);
             int w = std::max(8, static_cast<int>(16 * s0));
@@ -450,7 +450,7 @@ auto Office::draw_vent_dynamic(Engine& eng, const std::string& anim_vent) -> voi
     }
 }
 
-auto Office::draw_doors(Engine& eng, double left_anim_val, double right_anim_val) -> void {
+auto Office::draw_doors(Engine& eng, float left_anim_val, float right_anim_val) -> void {
     int ht = bw_top + 15, hb = bw_bottom - 15;
     int door_h = hb - ht;
     if (left_anim_val > 0.01)
@@ -551,7 +551,7 @@ auto Office::draw_office_elements(Engine& eng) -> void {
         mug_x + mug_w / 2 - 1, mug_y - mug_h + 2, 5, mug_h - 4, 120, 115, 102, 255, false);
 }
 
-auto Office::draw_fan(Engine& eng, double t) -> void {
+auto Office::draw_fan(Engine& eng, float t) -> void {
     auto [fx, fy, fs] = project_depth(-0.46, 0.66, 34);
     int cx = fx, cy = fy;
     auto hub_r = std::max(3, static_cast<int>(5 * fs));
@@ -560,9 +560,9 @@ auto Office::draw_fan(Engine& eng, double t) -> void {
     eng.draw_rect(cx - 16, cy + 22, 32, 6, 65, 65, 70);
     eng.circle(cx, cy - 5, ring_r, 70, 24, 24);
     eng.circle(cx, cy - 5, std::max(8, ring_r - 2), 48, 48, 52);
-    double ft = t * 12.0;
+    float ft = t * 12.0f;
     for (int i = 0; i < 4; ++i) {
-        double angle = ft + i * (PI / 2);
+        float angle = ft + i * (PI / 2.0f);
         int ex = cx + static_cast<int>(std::cos(angle) * (ring_r - 5));
         int ey = cy - 5 + static_cast<int>(std::sin(angle) * (ring_r - 5));
         eng.line(cx, cy - 5, ex, ey, 110, 110, 115);
@@ -590,7 +590,7 @@ auto Office::draw_in_office(Engine& eng, const std::string& anim_name) -> void {
     int w = 400, h = 500;
     int x = vp_x - w / 2;
     int y = bw_bottom - h + 80;
-    int ct = static_cast<int>(static_cast<double>(clock()) / CLOCKS_PER_SEC * 7);
+    int ct = static_cast<int>(static_cast<float>(clock()) / CLOCKS_PER_SEC * 7);
     if (ct % 3 != 0)
         DrawUtils::animatronic_sprite(eng, anim_name, x, y, w, h);
 }
@@ -600,13 +600,13 @@ auto Office::draw_ambient(Engine& eng) -> void {
     eng.draw_rect(0, 0, GameSettings::OFFICE_WIDTH, 120, 0, 0, 0, 40);
     eng.draw_rect(0, GameSettings::SCREEN_HEIGHT - 90, GameSettings::OFFICE_WIDTH, 90, 0, 0, 0, 32);
     for (int i = 0; i <= 6; ++i) {
-        int y = static_cast<int>(i * (GameSettings::SCREEN_HEIGHT / 7.0));
+        int y = static_cast<int>(i * (GameSettings::SCREEN_HEIGHT / 7.0f));
         int a = 20 - i * 2;
         if (a > 0)
             eng.draw_rect(0,
                           y,
                           GameSettings::OFFICE_WIDTH,
-                          static_cast<int>(GameSettings::SCREEN_HEIGHT / 7.0),
+                          static_cast<int>(GameSettings::SCREEN_HEIGHT / 7.0f),
                           0,
                           0,
                           0,

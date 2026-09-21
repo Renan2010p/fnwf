@@ -1,18 +1,13 @@
 #pragma once
 
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
-#include <SDL_ttf.h>
+// Engine — pure abstract interface. No platform headers here.
 
 #include <array>
 #include <cstdint>
-#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -20,48 +15,7 @@
 
 namespace fnwf {
 
-struct WindowDeleter
-{
-    auto operator()(SDL_Window* W) const noexcept -> void {
-        SDL_DestroyWindow(W);
-    }
-};
-struct RendererDeleter
-{
-    auto operator()(SDL_Renderer* R) const noexcept -> void {
-        SDL_DestroyRenderer(R);
-    }
-};
-struct TextureDeleter
-{
-    auto operator()(SDL_Texture* T) const noexcept -> void {
-        SDL_DestroyTexture(T);
-    }
-};
-struct SurfaceDeleter
-{
-    auto operator()(SDL_Surface* S) const noexcept -> void {
-        SDL_FreeSurface(S);
-    }
-};
-struct FontDeleter
-{
-    auto operator()(TTF_Font* F) const noexcept -> void {
-        TTF_CloseFont(F);
-    }
-};
-struct ChunkDeleter
-{
-    auto operator()(Mix_Chunk* C) const noexcept -> void {
-        Mix_FreeChunk(C);
-    }
-};
-
-using Window = std::shared_ptr<SDL_Window>;
-using Renderer = std::shared_ptr<SDL_Renderer>;
-using Tex = std::shared_ptr<SDL_Texture>;
-using Font = std::shared_ptr<TTF_Font>;
-
+// ── Opaque resource handles ─────────────────────────────────────────────────
 struct TextureHandle
 {
     std::uint32_t id{};
@@ -71,131 +25,102 @@ struct SoundHandle
     std::uint32_t id{};
 };
 
+// ── Abstract engine interface ────────────────────────────────────────────────
 class Engine
 {
 public:
-    auto new_instance(std::string_view title,
+    virtual ~Engine() = default;
+
+    // Lifecycle
+    virtual bool init(std::string_view title,
                       std::uint32_t w,
                       std::uint32_t h,
                       bool fullscreen,
-                      bool vsync) -> std::expected<bool, std::string>;
-    auto shutdown() noexcept -> void;
+                      bool vsync) = 0;
+    virtual void shutdown() = 0;
 
-    auto poll_events() -> std::vector<Event>;
-    auto ticks() const noexcept -> double;
-    auto keeps_running() const noexcept -> bool {
-        return m_running;
-    }
-    auto request_stop() noexcept -> void {
-        m_running = false;
-    }
-    auto present() -> void;
+    // Events & timing
+    virtual std::vector<Event> poll_events() = 0;
+    virtual float ticks() const noexcept = 0;
+    virtual bool keeps_running() const noexcept = 0;
+    virtual void request_stop() noexcept = 0;
+    virtual void present() = 0;
 
-    auto set_logical_size(std::uint32_t w, std::uint32_t h) -> void;
-    auto set_fullscreen(bool on) -> void;
-    auto set_vsync(bool on) -> void;
-    auto set_resolution(std::uint32_t w, std::uint32_t h) -> void;
-    auto get_display_modes() -> std::vector<std::array<std::int32_t, 3>>;
+    // Window
+    virtual void set_logical_size(std::uint32_t w, std::uint32_t h) = 0;
+    virtual void set_fullscreen(bool on) = 0;
+    virtual void set_vsync(bool on) = 0;
+    virtual void set_resolution(std::uint32_t w, std::uint32_t h) = 0;
+    virtual std::vector<std::array<std::int32_t, 3>> get_display_modes() = 0;
 
-    auto clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255) -> void;
-    auto draw_rect(std::int32_t x,
-                   std::int32_t y,
-                   std::uint32_t w,
-                   std::uint32_t h,
-                   std::uint8_t r,
-                   std::uint8_t g,
-                   std::uint8_t b,
-                   std::uint8_t a = 255,
-                   bool filled = true) -> void;
-    auto line(std::int32_t x1,
-              std::int32_t y1,
-              std::int32_t x2,
-              std::int32_t y2,
-              std::uint8_t r,
-              std::uint8_t g,
-              std::uint8_t b,
-              std::uint8_t a = 255) -> void;
-    auto circle(std::int32_t cx,
-                std::int32_t cy,
-                std::int32_t radius,
-                std::uint8_t r,
-                std::uint8_t g,
-                std::uint8_t b,
-                std::uint8_t a = 255,
-                bool filled = true) -> void;
-    auto draw_texture(const TextureHandle& tex,
-                      std::int32_t dx,
-                      std::int32_t dy,
-                      std::uint32_t dw,
-                      std::uint32_t dh,
-                      std::int32_t sx = -1,
-                      std::int32_t sy = -1,
-                      std::int32_t sw = -1,
-                      std::int32_t sh = -1,
-                      std::optional<std::uint8_t> alpha = std::nullopt) -> void;
-    auto draw_texture_rotated(const TextureHandle& tex,
-                              std::int32_t dx,
-                              std::int32_t dy,
-                              std::uint32_t dw,
-                              std::uint32_t dh,
-                              double angle,
-                              std::optional<std::uint8_t> alpha = std::nullopt) -> void;
-    auto draw_text(std::string_view text,
-                   std::int32_t x,
-                   std::int32_t y,
-                   std::uint32_t font_size,
-                   std::uint8_t r,
-                   std::uint8_t g,
-                   std::uint8_t b,
-                   std::uint8_t a = 255,
-                   bool center = false,
-                   std::int32_t font_idx = -1) -> bool;
-    auto draw_text_rotated(std::string_view text,
-                           std::int32_t x,
-                           std::int32_t y,
-                           std::uint32_t font_size,
-                           double angle,
-                           std::uint8_t r,
-                           std::uint8_t g,
-                           std::uint8_t b,
-                           std::uint8_t a = 255,
-                           bool center = false,
-                           std::int32_t font_idx = -1) -> bool;
+    // Drawing primitives
+    virtual void clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255) = 0;
+    virtual void draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::uint32_t h,
+                           std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255,
+                           bool filled = true) = 0;
+    virtual void line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
+                      std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255) = 0;
+    virtual void circle(std::int32_t cx, std::int32_t cy, std::int32_t radius,
+                        std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255,
+                        bool filled = true) = 0;
 
-    auto load_texture(std::string_view path) -> std::optional<TextureHandle>;
-    auto create_target(std::uint32_t w, std::uint32_t h) -> std::optional<TextureHandle>;
-    auto load_sound(std::string_view path) -> std::optional<SoundHandle>;
-    auto load_font(std::string_view path, std::uint16_t size) -> std::int64_t;
-    auto font_text_size(std::string_view text, std::uint32_t font_idx)
-        -> std::optional<std::array<std::int32_t, 2>>;
-    auto texture_size(std::uint32_t id) noexcept -> std::pair<std::uint32_t, std::uint32_t>;
+    // Textures
+    virtual void draw_texture(const TextureHandle& tex,
+                              std::int32_t dx, std::int32_t dy, std::uint32_t dw, std::uint32_t dh,
+                              std::int32_t sx = -1, std::int32_t sy = -1,
+                              std::int32_t sw = -1, std::int32_t sh = -1,
+                              std::optional<std::uint8_t> alpha = std::nullopt) = 0;
+    virtual void draw_texture_rotated(const TextureHandle& tex,
+                                      std::int32_t dx, std::int32_t dy,
+                                      std::uint32_t dw, std::uint32_t dh, float angle,
+                                      std::optional<std::uint8_t> alpha = std::nullopt) = 0;
 
-    auto set_render_target(std::optional<TextureHandle> target) -> void;
-    auto reset_render_target() -> void;
+    // Text
+    virtual bool draw_text(std::string_view text, std::int32_t x, std::int32_t y,
+                           std::uint32_t font_size, std::uint8_t r, std::uint8_t g, std::uint8_t b,
+                           std::uint8_t a = 255, bool center = false, std::int32_t font_idx = -1) = 0;
+    virtual bool draw_text_rotated(std::string_view text, std::int32_t x, std::int32_t y,
+                                   std::uint32_t font_size, float angle,
+                                   std::uint8_t r, std::uint8_t g, std::uint8_t b,
+                                   std::uint8_t a = 255, bool center = false,
+                                   std::int32_t font_idx = -1) = 0;
 
-    auto play_sound(const SoundHandle& snd, std::int32_t loops, std::int32_t channel)
-        -> std::int32_t;
-    auto stop_channel(std::int32_t channel) -> void;
-    auto stop_all_sounds() -> void;
-    auto mouse_pos() -> std::pair<std::int32_t, std::int32_t>;
+    // Resources
+    virtual std::optional<TextureHandle> load_texture(std::string_view path) = 0;
+    virtual std::optional<TextureHandle> create_target(std::uint32_t w, std::uint32_t h) = 0;
+    virtual std::optional<SoundHandle> load_sound(std::string_view path) = 0;
+    virtual std::int64_t load_font(std::string_view path, std::uint16_t size) = 0;
+    virtual std::optional<std::array<std::int32_t, 2>> font_text_size(std::string_view text,
+                                                                      std::uint32_t font_idx) = 0;
+    virtual std::pair<std::uint32_t, std::uint32_t> texture_size(std::uint32_t id) noexcept = 0;
 
-    auto update_discord(std::string_view details, std::string_view state) -> void;
+    // Render targets
+    virtual void set_render_target(std::optional<TextureHandle> target) = 0;
+    virtual void reset_render_target() = 0;
 
-private:
-    auto get_texture(std::uint32_t id) noexcept -> SDL_Texture*;
+    // Sound
+    virtual std::int32_t play_sound(const SoundHandle& snd, std::int32_t loops,
+                                    std::int32_t channel) = 0;
+    virtual void stop_channel(std::int32_t channel) = 0;
+    virtual void stop_all_sounds() = 0;
 
-    Window m_window{};
-    Renderer m_renderer{};
-    std::vector<Font> m_fonts{};
-    std::unordered_map<std::uint32_t, Tex> m_textures{};
-    std::unordered_map<std::uint32_t, std::shared_ptr<Mix_Chunk>> m_chunks{};
-    std::unordered_map<std::uint64_t, Tex> m_text_cache{};
-    std::optional<std::uint32_t> m_active_target{};
-    std::uint32_t m_next_id{1};
-    std::uint32_t m_logical_w{};
-    std::uint32_t m_logical_h{};
-    bool m_running{false};
-    bool m_vsync{false};
+    // Input
+    virtual std::pair<std::int32_t, std::int32_t> mouse_pos() = 0;
+
+    // Volume (abstracted from Mix_Volume calls)
+    virtual void set_master_volume(int vol) = 0;
+    virtual void set_sfx_volume(int vol) = 0;
+    virtual void set_music_volume(int vol) = 0;
+
+    // Misc
+    virtual void update_discord(std::string_view details, std::string_view state) = 0;
+
+    // Notification for derived classes when VSW triggers texture cache invalidation
+    virtual void on_vsync_change() {}
 };
+
+// ── Factory ──────────────────────────────────────────────────────────────────
+Engine* create_engine();
+void destroy_engine(Engine* e);
 
 }  // namespace fnwf

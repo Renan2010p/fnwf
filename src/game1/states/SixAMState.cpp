@@ -9,9 +9,9 @@ namespace fnwf {
 
 SixAMState::SixAMState(int night_, Engine& eng) : m_eng(eng), night(night_) {}
 
-auto SixAMState::update(double dt) -> void {
+auto SixAMState::update(float dt) -> void {
     timer += dt;
-    if (!show_six && timer > 2.0) {
+    if (!show_six && timer > 2.0f) {
         hour = 6;
         show_six = true;
     }
@@ -19,12 +19,12 @@ auto SixAMState::update(double dt) -> void {
         SoundManager::play_sound("noite_concluida");
         played_chime = true;
     }
-    if (timer > 10.0)
+    if (timer > 10.0f)
         done = true;
 }
 
 auto SixAMState::handle_event(const Event& ev) -> void {
-    if (timer > 2.0 && (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown))
+    if (timer > 2.0f && (ev.type == EventType::KeyDown || ev.type == EventType::MouseButtonDown))
         done = true;
 }
 
@@ -35,7 +35,7 @@ auto SixAMState::draw(Engine& eng) -> void {
     DrawUtils::text(eng, std::to_string(hour), cx - 40, cy - 20, 120, 255, 255, 255, 255, true);
     DrawUtils::text(eng, "AM", cx + 80, cy - 10, 50, 255, 255, 255, 255, true);
 
-    if (timer > 8.0 && ((int)(timer * 2) % 2 == 1))
+    if (timer > 8.0f && ((int)(timer * 2) % 2 == 1))
         DrawUtils::text(eng,
                         Localization::get_text("press_any_key"),
                         cx,

@@ -14,10 +14,10 @@ LoadingState::LoadingState(Engine& eng) : m_eng(eng) {
 
 auto LoadingState::handle_event(const Event&) -> void {}
 
-auto LoadingState::update(double dt) -> void {
+auto LoadingState::update(float dt) -> void {
     timer += dt;
     glitch_timer += dt;
-    loader_angle += 360.0 * dt;
+    loader_angle += 360.0f * dt;
 
     if (timer < 0.5)
         font_alpha = (int)((timer / 0.5) * 255);
@@ -44,8 +44,8 @@ auto LoadingState::draw(Engine& eng) -> void {
 
     int lx = SCREEN_WIDTH - 80, ly = SCREEN_HEIGHT - 80, radius = 20;
     for (int i = 0; i < 8; ++i) {
-        double angle =
-            std::fmod(loader_angle, 360.0) * 3.14159 / 180.0 + i * 45.0 * 3.14159 / 180.0;
+        float angle =
+            std::fmod(loader_angle, 360.0f) * 3.14159 / 180.0f + i * 45.0f * 3.14159 / 180.0f;
         int ex = lx + (int)(std::cos(angle) * radius);
         int ey = ly + (int)(std::sin(angle) * radius);
         eng.line(lx, ly, ex, ey, 120, 120, 130, 255);

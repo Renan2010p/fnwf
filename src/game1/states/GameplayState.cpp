@@ -21,7 +21,7 @@ auto GameplayState::is_done() const -> bool {
     return !m_result.empty() && fade_alpha >= 255;
 }
 
-auto GameplayState::update(double dt) -> void {
+auto GameplayState::update(float dt) -> void {
     fx_timer += dt;
 
     if (fading_in) {
@@ -93,7 +93,7 @@ auto GameplayState::update(double dt) -> void {
     animatronics.update(dt, cam_looking, doors.left_closed, doors.right_closed, mask_on);
 
     if (mask_on) {
-        oxygen = std::max(0.0, oxygen - oxygen_depletion_rate * dt);
+        oxygen = std::max(0.0f, oxygen - oxygen_depletion_rate * dt);
         if (oxygen <= 0) {
             cameras.force_remove_mask();
             mask_on = cameras.is_mask_open || cameras.is_mask_animating;
@@ -103,15 +103,15 @@ auto GameplayState::update(double dt) -> void {
 
     if (animatronics.check_alice_just_left()) {
         is_blackout = true;
-        blackout_alpha = 255.0;
-        blackout_timer = 0.5;
+        blackout_alpha = 255.0f;
+        blackout_timer = 0.5f;
     }
 
     if (is_blackout) {
         if (blackout_timer > 0)
             blackout_timer -= dt;
         else {
-            blackout_alpha = std::max(0.0, blackout_alpha - 250.0 * dt);
+            blackout_alpha = std::max(0.0f, blackout_alpha - 250.0f * dt);
             if (blackout_alpha <= 0)
                 is_blackout = false;
         }
@@ -124,23 +124,23 @@ auto GameplayState::update(double dt) -> void {
         jumpscare.trigger(attacker);
     }
 
-    double danger = 0.0;
+    float danger = 0.0f;
     if (!animatronics.get_at_left_door().empty())
-        danger += 0.22;
+        danger += 0.22f;
     if (!animatronics.get_at_right_door().empty())
-        danger += 0.22;
+        danger += 0.22f;
     if (!animatronics.get_at_vent().empty())
-        danger += 0.18;
+        danger += 0.18f;
     if (!animatronics.get_in_office().empty())
-        danger += 0.35;
+        danger += 0.35f;
     if (power.power <= 25)
-        danger += 0.15;
+        danger += 0.15f;
     if (oxygen <= 35)
-        danger += 0.1;
-    danger_level = std::max(0.0, std::min(1.0, danger));
+        danger += 0.1f;
+    danger_level = std::max(0.0f, std::min(1.0f, danger));
 }
 
-auto GameplayState::update_power_out(double dt) -> void {
+auto GameplayState::update_power_out(float dt) -> void {
     if (!_power_out_snd) {
         SoundManager::stop_ambient();
         SoundManager::play_sound("power_out");
@@ -156,13 +156,13 @@ auto GameplayState::update_power_out(double dt) -> void {
         office.vent_light = false;
         cameras.is_open = false;
         mask_on = false;
-        if (power_out_timer > 3.0) {
+        if (power_out_timer > 3.0f) {
             power_out_phase = 1;
-            power_out_delay = 0.0;
+            power_out_delay = 0.0f;
         }
     } else if (power_out_phase == 1) {
         power_out_delay += dt;
-        if (power_out_delay > 5.0 + Rng::float_range(0.0f, 10.0f)) {
+        if (power_out_delay > 5.0f + Rng::float_range(0.0f, 10.0f)) {
             if (time_elapsed >= night_duration) {
                 m_result = "win";
                 fading_out = true;
@@ -298,7 +298,7 @@ auto GameplayState::draw(Engine& eng) -> void {
     cameras.draw(eng, animatronics.get_positions(), animatronics.get_foxy_stage());
 
     if (high_fx && !cameras.is_visible()) {
-        double light_pulse = 0.55 + 0.45 * std::sin(fx_timer * 8.0);
+        float light_pulse = 0.55 + 0.45 * std::sin(fx_timer * 8.0f);
         if (doors.left_light)
             for (int i = 1; i <= 5; ++i) {
                 int w = 100 + i * 58;
@@ -320,7 +320,7 @@ auto GameplayState::draw(Engine& eng) -> void {
     }
 
     if (secret_mode) {
-        double pulse = 0.5 + 0.5 * std::sin(time_elapsed * 2.4);
+        float pulse = 0.5 + 0.5 * std::sin(time_elapsed * 2.4);
         int alpha = (int)(36 + 24 * pulse);
         eng.draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 120, 8, 8, alpha);
     }
@@ -330,7 +330,7 @@ auto GameplayState::draw(Engine& eng) -> void {
         DrawUtils::vignette(eng, 0.20 + danger_level * 0.35, 0, 0, 0);
 
     if (high_fx) {
-        double lp = 0.6 + 0.4 * std::sin(time_elapsed * 1.2);
+        float lp = 0.6 + 0.4 * std::sin(time_elapsed * 1.2);
         int cx = SCREEN_WIDTH / 2, cy = (int)(SCREEN_HEIGHT * 0.64);
         eng.draw_rect(cx - 320, cy - 150, 640, 300, 220, 200, 150, (int)(7 + 6 * lp));
         eng.draw_rect(cx - 140, cy - 78, 280, 156, 245, 235, 200, (int)(4 + 3 * lp));
@@ -406,7 +406,7 @@ auto GameplayState::draw_power_out(Engine& eng) -> void {
     using namespace GameSettings;
     eng.clear(0, 0, 0, 255);
     if (power_out_phase >= 1) {
-        if ((int)(m_eng.ticks() / 1000.0 * 2) % 3 != 0) {
+        if ((int)(m_eng.ticks() / 1000.0f * 2) % 3 != 0) {
             DrawUtils::animatronic_face(eng, "cedro", 50, SCREEN_HEIGHT / 2 - 120, 200, 250);
             eng.circle(120, SCREEN_HEIGHT / 2 - 20, 8, 255, 255, 255, 255);
             eng.circle(180, SCREEN_HEIGHT / 2 - 20, 8, 255, 255, 255, 255);

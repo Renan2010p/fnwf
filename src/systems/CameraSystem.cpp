@@ -18,9 +18,9 @@ CameraSystem::CameraSystem(Engine& eng) : m_eng(eng) {
     map_base_tex = *m_eng.create_target(map_w, map_h);
 }
 
-auto CameraSystem::ease_out_cubic(double v) const -> double {
-    v = std::max(0.0, std::min(1.0, v));
-    return 1.0 - std::pow(1.0 - v, 3.0);
+auto CameraSystem::ease_out_cubic(float v) const -> float {
+    v = std::max(0.0f, std::min(1.0f, v));
+    return 1.0f - std::pow(1.0f - v, 3.0f);
 }
 
 auto CameraSystem::get_bottom_toggle_rects() const
@@ -59,7 +59,7 @@ auto CameraSystem::toggle_mask() -> void {
 }
 
 auto CameraSystem::force_remove_mask() -> void {
-    if (!is_mask_open && mask_anim_progress <= 0.0)
+    if (!is_mask_open && mask_anim_progress <= 0.0f)
         return;
     if (is_mask_animating && !is_mask_open)
         return;
@@ -78,7 +78,7 @@ auto CameraSystem::switch_camera(const std::string& cam_id) -> void {
 }
 
 auto CameraSystem::is_fully_open() const -> bool {
-    return is_open && anim_progress >= 0.99;
+    return is_open && anim_progress >= 0.99f;
 }
 auto CameraSystem::is_visible() const -> bool {
     return anim_progress > 0.01;
@@ -111,7 +111,7 @@ auto CameraSystem::check_mouse_trigger(int mouse_x, int mouse_y) -> bool {
     int mx_m = mask_rect[0], my_m = mask_rect[1], mw_m = mask_rect[2], mh_m = mask_rect[3];
     int mx_c = monitor_rect[0], my_c = monitor_rect[1], mw_c = monitor_rect[2];
 
-    double gesture_h = std::max((double)(mh_m + 18), mouse_trigger_zone);
+    float gesture_h = std::max((float)(mh_m + 18), mouse_trigger_zone);
     bool in_mask = mouse_x >= mx_m && mouse_x <= mx_m + mw_m && mouse_y >= my_m - 14 &&
                    mouse_y <= my_m - 14 + gesture_h;
     bool in_cam = mouse_x >= mx_c && mouse_x <= mx_c + mw_c && mouse_y >= my_c - 14 &&
@@ -157,11 +157,11 @@ auto CameraSystem::handle_click(int mx, int my) -> bool {
     return false;
 }
 
-auto CameraSystem::update(double dt) -> void {
+auto CameraSystem::update(float dt) -> void {
     if (static_timer > 0)
         static_timer -= dt;
 
-    double target = is_open ? 1.0 : 0.0;
+    float target = is_open ? 1.0f : 0.0f;
     if (anim_progress != target) {
         is_animating = true;
         if (anim_progress < target)
@@ -171,7 +171,7 @@ auto CameraSystem::update(double dt) -> void {
     } else
         is_animating = false;
 
-    double mask_target = is_mask_open ? 1.0 : 0.0;
+    float mask_target = is_mask_open ? 1.0f : 0.0f;
     if (mask_anim_progress != mask_target) {
         is_mask_animating = true;
         if (mask_anim_progress < mask_target)
@@ -188,7 +188,7 @@ auto CameraSystem::draw(Engine& eng,
     auto [mask_rect, monitor_rect] = get_bottom_toggle_rects();
 
     if (!is_mask_open && !is_visible()) {
-        double pulse = 0.5 + 0.5 * std::sin(m_eng.ticks() / 1000.0 * 5.0);
+        float pulse = 0.5 + 0.5 * std::sin(m_eng.ticks() / 1000.0f * 5.0f);
         int glow = (int)(80 + 70 * pulse);
         eng.draw_rect(mask_rect[0], mask_rect[1], mask_rect[2], mask_rect[3], 28, 22, 18, 230);
         eng.draw_rect(
@@ -206,7 +206,7 @@ auto CameraSystem::draw(Engine& eng,
     }
 
     if (!is_visible() && !is_mask_open) {
-        double pulse = 0.5 + 0.5 * std::sin(m_eng.ticks() / 1000.0 * 4.0);
+        float pulse = 0.5 + 0.5 * std::sin(m_eng.ticks() / 1000.0f * 4.0f);
         int edge_g = (int)(160 + 60 * pulse);
         eng.draw_rect(
             monitor_rect[0], monitor_rect[1], monitor_rect[2], monitor_rect[3], 12, 18, 12, 220);
@@ -243,8 +243,8 @@ auto CameraSystem::draw(Engine& eng,
 
 auto CameraSystem::draw_mask_overlay(Engine& eng) -> void {
     using namespace GameSettings;
-    double eased = ease_out_cubic(mask_anim_progress);
-    int slide_offset = (int)((1.0 - eased) * -SCREEN_HEIGHT);
+    float eased = ease_out_cubic(mask_anim_progress);
+    int slide_offset = (int)((1.0f - eased) * -SCREEN_HEIGHT);
 
     int mask_r = 44, mask_g = 33, mask_b = 22, mask_a = 185;
     int y_top = slide_offset;
@@ -289,8 +289,8 @@ auto CameraSystem::draw_monitor(Engine& eng,
                                 const std::unordered_map<std::string, std::string>& anim_positions,
                                 int foxy_stage) -> void {
     using namespace GameSettings;
-    double eased = ease_out_cubic(anim_progress);
-    int slide_offset = (int)((1.0 - eased) * (SCREEN_HEIGHT - 40));
+    float eased = ease_out_cubic(anim_progress);
+    int slide_offset = (int)((1.0f - eased) * (SCREEN_HEIGHT - 40));
 
     eng.set_render_target(monitor_tex);
     eng.clear(5, 10, 5, 230);
@@ -304,7 +304,7 @@ auto CameraSystem::draw_monitor(Engine& eng,
             eng, "CAM " + current_cam, 30, 30, 20, CAM_OUTLINE.r, CAM_OUTLINE.g, CAM_OUTLINE.b);
         DrawUtils::scanlines(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 20);
         DrawUtils::static_noise(eng, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.02f);
-        if ((int)(m_eng.ticks() / 1000.0) % 2 == 0) {
+        if ((int)(m_eng.ticks() / 1000.0f) % 2 == 0) {
             eng.draw_rect(SCREEN_WIDTH - 50, 35, 12, 12, 200, 30, 30);
             DrawUtils::text(eng, "REC", SCREEN_WIDTH - 35, 28, 14, 200, 30, 30);
         }
@@ -323,15 +323,15 @@ auto CameraSystem::draw_monitor(Engine& eng,
 
 auto CameraSystem::draw_monitor_animation(Engine& eng) -> void {
     using namespace GameSettings;
-    double progress = ease_out_cubic(anim_progress);
-    int slide_offset = (int)((1.0 - progress) * (SCREEN_HEIGHT - 40));
+    float progress = ease_out_cubic(anim_progress);
+    int slide_offset = (int)((1.0f - progress) * (SCREEN_HEIGHT - 40));
 
     eng.draw_rect(16, slide_offset, SCREEN_WIDTH - 32, SCREEN_HEIGHT, 42, 42, 48, 245);
     eng.draw_rect(16, slide_offset, SCREEN_WIDTH - 32, SCREEN_HEIGHT, 180, 180, 180, 255, false);
 
-    int bar_alpha = (int)(120 + 100 * (1.0 - progress));
+    int bar_alpha = (int)(120 + 100 * (1.0f - progress));
     for (int i = 0; i <= 5; ++i) {
-        int y = slide_offset + 40 + i * 90 + (int)((1.0 - progress) * 24);
+        int y = slide_offset + 40 + i * 90 + (int)((1.0f - progress) * 24);
         eng.draw_rect(28, y, SCREEN_WIDTH - 56, 18, 20, 30, 20, bar_alpha);
     }
 }

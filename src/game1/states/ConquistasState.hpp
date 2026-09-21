@@ -10,7 +10,7 @@ class ConquistasState : public GameState
 public:
     ConquistasState(const std::vector<std::string>& achievements, Engine& eng);
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
@@ -18,13 +18,16 @@ public:
     auto result() const -> const std::string& override {
         return m_result;
     }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::Conquistas;
+    }
 
 private:
     Engine& m_eng;
     std::vector<std::string> unlocked_achievements{};
     bool done{false};
     std::string m_result{};
-    double timer{0.0};
+    float timer{0.0f};
 
     struct AchData
     {

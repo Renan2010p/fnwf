@@ -1,7 +1,9 @@
-// Five Nights With Friends 1 — Pure C++23 entry point.
+// Five Nights With Friends 1 — Pure C++17 entry point.
 #include "core/DrawUtils.hpp"
 #include "core/GameState.hpp"
+#include "core/InputManager.hpp"
 #include "core/Localization.hpp"
+#include "core/Platform.hpp"
 #include "core/SaveManager.hpp"
 #include "core/SettingsManager.hpp"
 #include "core/SoundManager.hpp"
@@ -44,8 +46,8 @@ struct GameState {
     bool test_office{false};
     int pending_night{1};
     std::vector<int> pending_custom_ai{};
-    double last_time{0.0};
-    double fps_timer{0.0};
+    float last_time{0.0f};
+    float fps_timer{0.0f};
     int fps_frames{0};
     int fps_value{0};
     int completed_nights{0};
@@ -115,8 +117,8 @@ void game_loop_iter() {
     auto& sm = *g.sm;
     auto& settings = fnwf::SettingsManager::instance();
 
-    double current_time = eng.ticks() / 1000.0;
-    double dt = current_time - g.last_time;
+    float current_time = eng.ticks() / 1000.0f;
+    float dt = current_time - g.last_time;
     g.last_time = current_time;
     g.fps_timer += dt;
     g.fps_frames++;
@@ -245,9 +247,13 @@ void game_loop_iter() {
                 do_switch("menu");
             }
         } else if (g.state_name == "six_am") {
-            auto* six = dynamic_cast<fnwf::SixAMState*>(cur);
-            if (six && six->get_night() == 5) {
-                do_switch("paycheck");
+            if (cur->state_type() == fnwf::StateType::SixAM) {
+                auto* six = static_cast<fnwf::SixAMState*>(cur);
+                if (six->get_night() == 5) {
+                    do_switch("paycheck");
+                } else {
+                    do_switch("menu");
+                }
             } else {
                 do_switch("menu");
             }
@@ -256,19 +262,23 @@ void game_loop_iter() {
         } else if (g.state_name == "newspaper") {
             do_switch("menu");
         } else if (g.state_name == "gameover") {
-            auto* go = dynamic_cast<fnwf::GameOverState*>(cur);
-            if (go && go->get_is_win()) {
-                do_switch("menu");
-            } else if (go && go->get_night() == 0) {
-                do_switch("menu");
+            if (cur->state_type() == fnwf::StateType::GameOver) {
+                auto* go = static_cast<fnwf::GameOverState*>(cur);
+                if (go->get_is_win()) {
+                    do_switch("menu");
+                } else if (go->get_night() == 0) {
+                    do_switch("menu");
+                } else {
+                    do_switch("newspaper");
+                }
             } else {
                 do_switch("newspaper");
             }
         } else if (g.state_name == "custom_night") {
             auto& res = cur->result();
             if (res == "start") {
-                auto* cn = dynamic_cast<fnwf::CustomNightState*>(cur);
-                if (cn) {
+                if (cur->state_type() == fnwf::StateType::CustomNight) {
+                    auto* cn = static_cast<fnwf::CustomNightState*>(cur);
                     g.pending_custom_ai = cn->get_ai_levels();
                     g.pending_night = 7;
                     sm.switch_state("loading", [](fnwf::Engine& e) {
@@ -319,33 +329,34 @@ auto main(int argc, char** argv) -> int {
         }
     }
 
-    fnwf::Engine eng;
-    auto init_res = eng.new_instance("Five Nights With Friends",
+    fnwf::Engine* eng_ptr = fnwf::create_engine();
+    auto init_res = eng_ptr->init("Five Nights With Friends",
                                      fnwf::GameSettings::SCREEN_WIDTH,
                                      fnwf::GameSettings::SCREEN_HEIGHT,
                                      false,
                                      true);
     if (!init_res) {
-        std::fprintf(stderr, "Engine init failed: %s\n", init_res.error().c_str());
+        std::fprintf(stderr, "Engine init failed\n");
+        fnwf::destroy_engine(eng_ptr);
         return 1;
     }
-    eng.set_logical_size(fnwf::GameSettings::SCREEN_WIDTH, fnwf::GameSettings::SCREEN_HEIGHT);
+    eng_ptr->set_logical_size(fnwf::GameSettings::SCREEN_WIDTH, fnwf::GameSettings::SCREEN_HEIGHT);
 
-    fnwf::SoundManager::set_engine(&eng);
-    fnwf::DrawUtils::set_fonts(eng);
+    fnwf::SoundManager::set_engine(eng_ptr);
+    fnwf::DrawUtils::set_fonts(*eng_ptr);
 
     auto& settings = fnwf::SettingsManager::instance();
     fnwf::Localization::set_language(settings.language);
     fnwf::DrawUtils::set_render_quality(settings.quality);
 
-    g.eng = &eng;
+    g.eng = eng_ptr;
     g.test_office = test_office;
     g.save_data = fnwf::SaveManager::load_data();
     g.completed_nights = g.save_data.completed_nights;
     g.has_seen_story = g.save_data.has_seen_story;
     g.achievements = g.save_data.achievements;
 
-    fnwf::StateMachine sm(eng);
+    fnwf::StateMachine sm(*eng_ptr);
     g.sm = &sm;
     g.state_name = "warning";
 
@@ -358,15 +369,16 @@ auto main(int argc, char** argv) -> int {
         do_switch("warning");
     }
 
-    g.last_time = eng.ticks() / 1000.0;
+    g.last_time = eng_ptr->ticks() / 1000.0f;
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(game_loop_iter, 0, 1);
 #else
-    while (eng.keeps_running()) {
+    while (eng_ptr->keeps_running()) {
         game_loop_iter();
     }
-    eng.shutdown();
+    eng_ptr->shutdown();
+    fnwf::destroy_engine(eng_ptr);
 #endif
 
     return 0;

@@ -8,15 +8,18 @@ class PaycheckState : public GameState
 public:
     PaycheckState(Engine& eng);
     auto handle_event(const Event& ev) -> void override;
-    auto update(double dt) -> void override;
+    auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
     auto is_done() const -> bool override {
         return done;
     }
+    auto state_type() const -> fnwf::StateType override {
+        return fnwf::StateType::Paycheck;
+    }
 
 private:
     Engine& m_eng;
-    double timer{0.0};
+    float timer{0.0f};
     bool done{false};
     int fade_alpha{255};
     bool fading_in{true};

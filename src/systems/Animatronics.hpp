@@ -14,7 +14,7 @@ public:
                 std::string start_pos,
                 const std::unordered_map<std::string, std::vector<std::string>>& path_map);
 
-    auto update(double dt,
+    auto update(float dt,
                 const std::string* camera_looking_at,
                 bool left_door_closed,
                 bool right_door_closed,
@@ -26,16 +26,16 @@ public:
     int ai_level;
     std::string position;
     const std::unordered_map<std::string, std::vector<std::string>>* path_map;
-    double move_timer{0.0};
+    float move_timer{0.0f};
     bool active{false};
     std::string at_door{};
     bool at_vent{false};
     bool attacking{false};
     bool in_office{false};
     bool just_left_office{false};
-    double stare_timer{0.0};
-    double max_stare{4.0};
-    double move_interval{5.0};
+    float stare_timer{0.0f};
+    float max_stare{4.0f};
+    float move_interval{5.0f};
 
 private:
     auto try_move(const std::string* camera_looking_at,
@@ -49,7 +49,7 @@ class SonkAnimatronic
 public:
     SonkAnimatronic(int ai_level);
 
-    auto update(double dt,
+    auto update(float dt,
                 const std::string* camera_looking_at,
                 bool left_door_closed,
                 bool right_door_closed,
@@ -62,16 +62,16 @@ public:
     bool active{false};
     std::string position{"5"};
     int stage{0};
-    double move_timer{0.0};
+    float move_timer{0.0f};
     std::string at_door{};
     bool at_vent{false};
     bool in_office{false};
     bool attacking{false};
-    double stare_timer{0.0};
+    float stare_timer{0.0f};
     bool is_charging{false};
-    double charge_timer{0.0};
-    double charge_duration{1.1};
-    double move_interval{5.0};
+    float charge_timer{0.0f};
+    float charge_duration{1.1};
+    float move_interval{5.0f};
 };
 
 class AnimatronicManager
@@ -79,7 +79,7 @@ class AnimatronicManager
 public:
     AnimatronicManager(int night, const std::vector<int>* custom_ai = nullptr);
 
-    auto update(double dt,
+    auto update(float dt,
                 const std::string* camera_looking_at,
                 bool left_door_closed,
                 bool right_door_closed,

@@ -10,7 +10,7 @@ class DoorSystem
 {
 public:
     DoorSystem();
-    auto update(double dt) -> void;
+    auto update(float dt) -> void;
     auto draw_buttons(Engine& eng, bool camera_open) -> void;
     auto handle_click(int mx, int my) -> std::string;
     auto get_power_usage() -> int;
@@ -19,11 +19,11 @@ public:
     bool right_closed{false};
     bool left_light{false};
     bool right_light{false};
-    double left_anim{0.0};
-    double right_anim{0.0};
+    float left_anim{0.0f};
+    float right_anim{0.0f};
 
 private:
-    double anim_speed{4.0};
+    float anim_speed{4.0f};
     std::unordered_map<std::string, std::array<int, 4>> button_rects{};
 };
 

@@ -8,7 +8,7 @@ namespace fnwf {
 
 PaycheckState::PaycheckState(Engine& eng) : m_eng(eng) {}
 
-auto PaycheckState::update(double dt) -> void {
+auto PaycheckState::update(float dt) -> void {
     timer += dt;
     if (fading_in) {
         fade_alpha = std::max(0, fade_alpha - (int)(150 * dt));

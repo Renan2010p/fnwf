@@ -142,7 +142,7 @@ auto StoryState::update_scroll_target() -> void {
         target_scroll = th - va;
 }
 
-auto StoryState::update(double dt) -> void {
+auto StoryState::update(float dt) -> void {
     timer += dt;
     if (phase == 0) {
         fade_alpha = std::max(0, fade_alpha - (int)(250 * dt));
@@ -156,7 +156,7 @@ auto StoryState::update(double dt) -> void {
         if (fade_alpha >= 255)
             done = true;
     }
-    scroll_y = scroll_y + (target_scroll - scroll_y) * 6.0 * dt;
+    scroll_y = scroll_y + (target_scroll - scroll_y) * 6.0f * dt;
 }
 
 auto StoryState::handle_event(const Event& ev) -> void {
