@@ -78,6 +78,16 @@ c_link_args = [
     '-G0',
     '-L${PS2SDK}/ee/lib',
     '-L${PS2SDK}/common/lib',
+    '-lfileXio',
+    '-lmc',
+    '-lpad',
+    '-laudsrv',
+    '-lSDL',
+    '-lSDL_ttf',
+    '-lSDL_mixer',
+    '-lpatches',
+    '-lc',
+    '-lkernel',
 ]
 cpp_link_args = [
     '-march=r5900',
@@ -87,6 +97,16 @@ cpp_link_args = [
     '-G0',
     '-L${PS2SDK}/ee/lib',
     '-L${PS2SDK}/common/lib',
+    '-lfileXio',
+    '-lmc',
+    '-lpad',
+    '-laudsrv',
+    '-lSDL',
+    '-lSDL_ttf',
+    '-lSDL_mixer',
+    '-lpatches',
+    '-lc',
+    '-lkernel',
 ]
 
 [host_machine]
