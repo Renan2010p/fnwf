@@ -53,10 +53,10 @@ strip = '${EE_BIN}/${PREFIX}-strip'
 pkgconfig = 'pkg-config'
 
 [built-in options]
-c_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG']
-cpp_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG']
-c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0']
-cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0']
+c_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
+cpp_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
+c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
+cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib']
 
 [properties]
 needs_exe_wrapper = true
