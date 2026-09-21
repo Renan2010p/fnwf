@@ -9,16 +9,6 @@
 #include <cstring>
 #include <string>
 
-// PS2 uses SDL 1.2 where rendering is surface-based.
-// The Engine abstract interface maps to SDL 1.2 as follows:
-//   SDL2 concept              → SDL 1.2 equivalent
-//   SDL_Window+SDL_Renderer   → SDL_Surface* (screen)
-//   SDL_Texture               → SDL_Surface*
-//   SDL_RenderCopy            → SDL_BlitSurface
-//   SDL_RenderPresent         → SDL_Flip
-//   SDL_SetTextureAlphaMod    → SDL_SetAlpha
-//   SDL_RenderFillRect        → SDL_FillRect
-
 namespace fnwf {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -32,15 +22,9 @@ SDL_Color make_color(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_
     return c;
 }
 
-// Create an SDL_Surface with alpha channel for compositing
 SDL_Surface* create_surface(std::uint32_t w, std::uint32_t h) {
-#ifdef __PS2__
     return SDL_CreateRGBSurface(SDL_SWSURFACE, static_cast<int>(w), static_cast<int>(h),
                                 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-#else
-    return SDL_CreateRGBSurface(SDL_SWSURFACE, static_cast<int>(w), static_cast<int>(h),
-                                32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-#endif
 }
 
 }  // namespace
@@ -54,28 +38,9 @@ EnginePS2::~EnginePS2() {
 bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t h,
                      bool /*fullscreen*/, bool vsync) {
 #ifdef __PS2__
-    // Initialize IOP RPC
     SifInitRpc(0);
-
-    // Load IOP modules needed for input, audio, filesystem
-    static const char* irx_modules[] = {
-        "rom0:LIBSD",     // Sound driver
-        "rom0:SDRDRV",    // SPU2 driver
-        "mc0:SERVMAN.IRX", // Memory card (optional)
-    };
-    (void)irx_modules;  // Loaded via sbus in production
-
-    // Initialize pad (input)
-    SifInitIopHeap();
-    SifLoadModule("rom0:SIO2MAN", 0, nullptr);
-    SifLoadModule("rom0:PADMAN", 0, nullptr);
-    padInit(0);
-    padOpenPort(0, 1, 64);  // Port 0, slot 1, buffer 64 bytes
-    padSetActDirect(0, 1, nullptr);
-    m_pad_connected = (padGetState(0, 1) == PAD_STATE_OK);
 #endif
 
-    // Initialize SDL 1.2
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
         return false;
     }
@@ -87,12 +52,9 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     }
     Mix_AllocateChannels(32);
 
-    // PS2 physical resolution: 640x448 NTSC (16:9 widescreen mode)
-    // The game's logical 1280x720 maps to this with 2x downscale
     m_physical_w = 640;
     m_physical_h = 448;
 
-    // SDL 1.2: set video mode returns the screen surface
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
                                 32,
@@ -112,25 +74,21 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 }
 
 void EnginePS2::shutdown() {
-    // Free all textures
     for (auto& [id, surf] : m_textures) {
         if (surf) SDL_FreeSurface(surf);
     }
     m_textures.clear();
 
-    // Free text cache
     for (auto& [h, surf] : m_text_cache) {
         if (surf) SDL_FreeSurface(surf);
     }
     m_text_cache.clear();
 
-    // Free fonts
     for (auto* font : m_fonts) {
         if (font) TTF_CloseFont(font);
     }
     m_fonts.clear();
 
-    // Free sounds
     for (auto& [id, chunk] : m_chunks) {
         if (chunk) Mix_FreeChunk(chunk);
     }
@@ -141,10 +99,6 @@ void EnginePS2::shutdown() {
 
     m_screen = nullptr;
     SDL_Quit();
-
-#ifdef __PS2__
-    padClosePort(0, 1);
-#endif
 }
 
 // ── Events & timing ──────────────────────────────────────────────────────────
@@ -152,48 +106,6 @@ void EnginePS2::shutdown() {
 std::vector<Event> EnginePS2::poll_events() {
     std::vector<Event> events;
     SDL_Event e{};
-
-#ifdef __PS2__
-    // Read PS2 controller state
-    padGetState(0, 1);
-    unsigned char pad_data[64];
-    if (padRead(0, 1, pad_data)) {
-        // Map PS2 buttons to our key system
-        // D-pad, face buttons, etc. are in pad_data
-        // This is a simplified mapping
-        uint16_t buttons = pad_data[2] << 8 | pad_data[3];
-
-        static bool prev_buttons[16] = {};
-        const uint16_t btn_map[16] = {
-            PAD_CROSS, PAD_CIRCLE, PAD_SQUARE, PAD_TRIANGLE,
-            PAD_L1, PAD_R1, PAD_L2, PAD_R2,
-            PAD_UP, PAD_DOWN, PAD_LEFT, PAD_RIGHT,
-            PAD_START, PAD_SELECT, 0, 0
-        };
-        const int key_map[16] = {
-            SDLK_z, SDLK_x, SDLK_c, SDLK_v,
-            SDLK_a, SDLK_s, SDLK_q, SDLK_w,
-            SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT,
-            SDLK_RETURN, SDLK_ESCAPE, 0, 0
-        };
-
-        for (int i = 0; i < 14; ++i) {
-            bool now = (buttons & btn_map[i]) != 0;
-            if (now && !prev_buttons[i]) {
-                SDL_Event ev;
-                ev.type = SDL_KEYDOWN;
-                ev.key.keysym.sym = static_cast<SDLKey>(key_map[i]);
-                SDL_PushEvent(&ev);
-            } else if (!now && prev_buttons[i]) {
-                SDL_Event ev;
-                ev.type = SDL_KEYUP;
-                ev.key.keysym.sym = static_cast<SDLKey>(key_map[i]);
-                SDL_PushEvent(&ev);
-            }
-            prev_buttons[i] = now;
-        }
-    }
-#endif
 
     while (SDL_PollEvent(&e)) {
         Event ev;
@@ -237,7 +149,6 @@ float EnginePS2::ticks() const noexcept {
 }
 
 void EnginePS2::present() {
-    // SDL 1.2: flip the screen surface
     SDL_Flip(m_screen);
 }
 
@@ -248,20 +159,15 @@ void EnginePS2::set_logical_size(std::uint32_t w, std::uint32_t h) {
     m_logical_h = h;
 }
 
-void EnginePS2::set_fullscreen(bool /*on*/) {
-    // PS2 is always fullscreen
-}
+void EnginePS2::set_fullscreen(bool /*on*/) {}
 
 void EnginePS2::set_vsync(bool on) {
     m_vsync = on;
 }
 
-void EnginePS2::set_resolution(std::uint32_t /*w*/, std::uint32_t /*h*/) {
-    // PS2 resolution is fixed by the GS video mode
-}
+void EnginePS2::set_resolution(std::uint32_t /*w*/, std::uint32_t /*h*/) {}
 
 std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
-    // PS2 has fixed video modes
     return {{640, 448, 60}, {640, 480, 60}};
 }
 
@@ -281,7 +187,6 @@ void EnginePS2::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::
 
     if (filled) {
         if (a < 255) {
-            // Alpha-blended rect: create temporary surface
             SDL_Surface* tmp = create_surface(w, h);
             if (tmp) {
                 SDL_FillRect(tmp, nullptr, SDL_MapRGBA(tmp->format, r, g, b, a));
@@ -292,8 +197,7 @@ void EnginePS2::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::
             SDL_FillRect(target, &rect, SDL_MapRGB(target->format, r, g, b));
         }
     } else {
-        // Outline: draw 4 thin rects
-        SDL_Color color = SDL_MapRGB(target->format, r, g, b);
+        Uint32 color = SDL_MapRGB(target->format, r, g, b);
         SDL_Rect top{rect.x, rect.y, rect.w, 1};
         SDL_Rect bot{rect.x, static_cast<Sint16>(rect.y + rect.h - 1), rect.w, 1};
         SDL_Rect lft{rect.x, rect.y, 1, rect.h};
@@ -307,7 +211,6 @@ void EnginePS2::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::
 
 void EnginePS2::line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
                       std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t /*a*/) {
-    // SDL 1.2 doesn't have a line function; implement Bresenham
     SDL_Surface* target = m_target ? m_target : m_screen;
     Uint32 color = SDL_MapRGB(target->format, r, g, b);
 
@@ -367,14 +270,12 @@ void EnginePS2::blit_scaled(SDL_Surface* src, std::int32_t dx, std::int32_t dy,
 
     SDL_Surface* target = m_target ? m_target : m_screen;
 
-    // Set alpha blending on source
     if (alpha < 255) {
         SDL_SetAlpha(src, SDL_SRCALPHA | SDL_RLEACCEL, alpha);
     } else {
         SDL_SetAlpha(src, 0, 0);
     }
 
-    // Source clip rect
     SDL_Rect src_rect;
     if (sx >= 0 && sy >= 0 && sw >= 0 && sh >= 0) {
         src_rect = {static_cast<Sint16>(sx), static_cast<Sint16>(sy),
@@ -383,13 +284,11 @@ void EnginePS2::blit_scaled(SDL_Surface* src, std::int32_t dx, std::int32_t dy,
         src_rect = {0, 0, static_cast<Uint16>(src->w), static_cast<Uint16>(src->h)};
     }
 
-    // Destination rect (SDL 1.2 does hardware scaling via dest rect)
     SDL_Rect dst_rect{static_cast<Sint16>(dx), static_cast<Sint16>(dy),
                       static_cast<Uint16>(dw), static_cast<Uint16>(dh)};
 
     SDL_BlitSurface(src, &src_rect, target, &dst_rect);
 
-    // Restore alpha
     if (alpha < 255) {
         SDL_SetAlpha(src, 0, 0);
     }
@@ -413,9 +312,6 @@ void EnginePS2::draw_texture_rotated(const TextureHandle& tex,
                                       std::int32_t dx, std::int32_t dy,
                                       std::uint32_t dw, std::uint32_t dh, float /*angle*/,
                                       std::optional<std::uint8_t> alpha) {
-    // PS2 GS doesn't support 2D rotation via SDL 1.2.
-    // Draw without rotation as fallback (game is still playable).
-    // TODO: Use gsKit's gsKit_rot_trans_sprite for hardware rotation.
     draw_texture(tex, dx, dy, dw, dh, -1, -1, -1, -1, alpha);
 }
 
@@ -434,7 +330,6 @@ bool EnginePS2::draw_text(std::string_view text, std::int32_t x, std::int32_t y,
     }
     if (static_cast<std::size_t>(fidx) >= m_fonts.size()) return true;
 
-    // FNV-1a cache key
     std::uint64_t h = 0xcbf29ce484222325ULL;
     for (unsigned char c : text) {
         h ^= c;
@@ -448,7 +343,6 @@ bool EnginePS2::draw_text(std::string_view text, std::int32_t x, std::int32_t y,
     SDL_Surface* surf = nullptr;
     if (it == m_text_cache.end()) {
         if (m_text_cache.size() > 512) {
-            // Evict cache (PS2 memory is limited)
             for (auto& [k, s] : m_text_cache) {
                 if (s) SDL_FreeSurface(s);
             }
@@ -475,22 +369,18 @@ bool EnginePS2::draw_text_rotated(std::string_view text, std::int32_t x, std::in
                                    std::uint32_t font_size, float /*angle*/,
                                    std::uint8_t r, std::uint8_t g, std::uint8_t b,
                                    std::uint8_t a, bool center, std::int32_t font_idx) {
-    // Rotation not supported in SDL 1.2 fallback; draw without rotation.
     return draw_text(text, x, y, font_size, r, g, b, a, center, font_idx);
 }
 
 // ── Resources ────────────────────────────────────────────────────────────────
 
 std::optional<TextureHandle> EnginePS2::load_texture(std::string_view path) {
-    // SDL 1.2: load as BMP/IMG surface
     SDL_Surface* surf = IMG_Load(std::string(path).c_str());
     if (!surf) {
-        // Fallback: try BMP
         surf = SDL_LoadBMP(std::string(path).c_str());
     }
     if (!surf) return std::nullopt;
 
-    // Convert to screen format for fast blitting
     SDL_Surface* converted = SDL_ConvertSurface(surf, m_screen->format, SDL_SWSURFACE);
     SDL_FreeSurface(surf);
     if (!converted) return std::nullopt;
@@ -583,7 +473,6 @@ void EnginePS2::stop_all_sounds() {
 // ── Input ────────────────────────────────────────────────────────────────────
 
 std::pair<std::int32_t, std::int32_t> EnginePS2::mouse_pos() {
-    // PS2 has no mouse; return center of screen
     return {static_cast<std::int32_t>(m_logical_w / 2),
             static_cast<std::int32_t>(m_logical_h / 2)};
 }
@@ -614,9 +503,7 @@ void EnginePS2::set_music_volume(int vol) {
 
 // ── Misc ─────────────────────────────────────────────────────────────────────
 
-void EnginePS2::update_discord(std::string_view, std::string_view) {
-    // PS2 has no Discord Rich Presence
-}
+void EnginePS2::update_discord(std::string_view, std::string_view) {}
 
 // ── Factory ──────────────────────────────────────────────────────────────────
 
