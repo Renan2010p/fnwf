@@ -228,6 +228,20 @@ jobs:
           export PS2DEV=/usr/local/ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
+          echo "=== Diagnostics ==="
+          echo "ls $PS2DEV/ee/bin:"
+          ls $PS2DEV/ee/bin/ 2>/dev/null | head -10 || echo "(not found)"
+          echo "---"
+          echo "ls $PS2SDK:"
+          ls $PS2SDK/ 2>/dev/null | head -10 || echo "(not found)"
+          echo "---"
+          echo "Compiler test:"
+          mips64r5900el-ps2-elf-gcc --version 2>&1 | head -2 || echo "(gcc not found)"
+          echo "---"
+          echo "Simple compile test:"
+          echo 'int main(){return 0;}' > /tmp/test_ps2.c
+          mips64r5900el-ps2-elf-gcc -c /tmp/test_ps2.c -o /tmp/test_ps2.o 2>&1 && echo "compile OK" || echo "compile FAILED"
+          mips64r5900el-ps2-elf-gcc /tmp/test_ps2.o -o /tmp/test_ps2 2>&1 && echo "link OK" || echo "link FAILED"
           chmod +x build-ps2.sh
           ./build-ps2.sh
       - name: Package
