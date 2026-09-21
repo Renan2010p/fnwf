@@ -6,18 +6,21 @@
 
 #include "engine/Engine.hpp"
 
-#include <SDL.h>
 #ifdef __PS2__
-#include <SDL_ttf.h>
-#include <SDL_mixer.h>
-#include <audsrv.h>
-#include <libpad.h>
-#include <fileXio.h>
-#include <mcman.h>
+#include <tamtypes.h>
+#include <kernel.h>
+#include <sifrpc.h>
 #include <sifrpc.h>
 #include <loadfile.h>
+#include <libpad.h>
+#include <audsrv.h>
+#include <fileXio.h>
+#include <SDL.h>
+#include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #else
 // Allow compilation on desktop for testing (stub)
+#include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
 #endif
@@ -113,15 +116,14 @@ public:
     void update_discord(std::string_view details, std::string_view state) override;
 
 private:
-    // Blit a source surface onto the screen (or current target) with scaling
     void blit_scaled(SDL_Surface* src, std::int32_t dx, std::int32_t dy,
                      std::uint32_t dw, std::uint32_t dh,
                      std::int32_t sx, std::int32_t sy,
                      std::int32_t sw, std::int32_t sh,
                      std::uint8_t alpha);
 
-    SDL_Surface* m_screen{nullptr};          // The display surface
-    SDL_Surface* m_target{nullptr};          // Current render target (or nullptr)
+    SDL_Surface* m_screen{nullptr};
+    SDL_Surface* m_target{nullptr};
     std::unordered_map<std::uint32_t, SDL_Surface*> m_textures{};
     std::unordered_map<std::uint32_t, Mix_Chunk*> m_chunks{};
     std::vector<TTF_Font*> m_fonts{};
@@ -137,12 +139,6 @@ private:
     int m_master_vol{80};
     int m_sfx_vol{100};
     int m_music_vol{70};
-
-    // PS2 controller state
-#ifdef __PS2__
-    unsigned char m_pad_buf[256]{};  // Pad data buffer
-    bool m_pad_connected{false};
-#endif
 };
 
 }  // namespace fnwf

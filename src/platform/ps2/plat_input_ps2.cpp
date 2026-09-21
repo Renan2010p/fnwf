@@ -7,6 +7,7 @@
 #include <tamtypes.h>
 #include <libpad.h>
 #include <sifrpc.h>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 
@@ -14,16 +15,16 @@ namespace fnwf {
 
 namespace {
 
-Key ps2_button_to_key(uint16_t button) {
+Key ps2_button_to_key(unsigned short button) {
     switch (button) {
         case PAD_CROSS:     return Key::Space;
         case PAD_CIRCLE:    return Key::Return;
-        case PAD_SQUARE:    return Key::A;       // Interact
-        case PAD_TRIANGLE:  return Key::S;       // Secondary action
-        case PAD_L1:        return Key::LShift;  // Left door
-        case PAD_R1:        return Key::RShift;  // Right door
-        case PAD_L2:        return Key::LAlt;    // Mask
-        case PAD_R2:        return Key::RAlt;    // Light
+        case PAD_SQUARE:    return Key::A;
+        case PAD_TRIANGLE:  return Key::S;
+        case PAD_L1:        return Key::LShift;
+        case PAD_R1:        return Key::RShift;
+        case PAD_L2:        return Key::LAlt;
+        case PAD_R2:        return Key::RAlt;
         case PAD_UP:        return Key::ArrowUp;
         case PAD_DOWN:      return Key::ArrowDown;
         case PAD_LEFT:      return Key::ArrowLeft;
@@ -37,27 +38,24 @@ Key ps2_button_to_key(uint16_t button) {
 }  // namespace
 
 class PS2InputManager : public InputManager {
-    std::unordered_map<uint32_t, bool> m_key_states{};
-    std::unordered_map<uint32_t, bool> m_key_pressed{};
-    std::unordered_map<uint32_t, bool> m_key_released{};
+    std::unordered_map<unsigned short, bool> m_key_states{};
+    std::unordered_map<unsigned short, bool> m_key_pressed{};
+    std::unordered_map<unsigned short, bool> m_key_released{};
     int m_mouse_x = 0, m_mouse_y = 0;
     std::unordered_map<uint32_t, bool> m_mouse_buttons{};
-    unsigned char m_pad_buf[256]{};
-    uint16_t m_prev_buttons = 0;
+    unsigned char m_pad_buf[256] __attribute__((aligned(64))) = {};
+    unsigned short m_prev_buttons = 0;
 
 public:
     bool init() override {
         SifInitRpc(0);
-        SifLoadModule("rom0:SIO2MAN", 0, nullptr);
-        SifLoadModule("rom0:PADMAN", 0, nullptr);
         padInit(0);
-        padOpenPort(0, 1, 64);
-        padSetActDirect(0, 1, nullptr);
+        padPortOpen(0, 1, m_pad_buf);
         return true;
     }
 
     void shutdown() override {
-        padClosePort(0, 1);
+        padPortClose(0, 1);
     }
 
     std::vector<InputEvent> poll_events() override {
@@ -75,13 +73,13 @@ public:
 
         // Read PS2 controller
         int state = padGetState(0, 1);
-        if (state == PAD_STATE_OK || state == PAD_STATE_HAT) {
-            if (padRead(0, 1, m_pad_buf)) {
-                uint16_t buttons = m_pad_buf[2] << 8 | m_pad_buf[3];
-                uint16_t changed = buttons ^ m_prev_buttons;
+        if (state == PAD_STATE_STABLE) {
+            struct padButtonStatus pad_data;
+            if (padRead(0, 1, &pad_data)) {
+                unsigned short buttons = pad_data.btns;
+                unsigned short changed = buttons ^ m_prev_buttons;
 
-                // Detect newly pressed and released buttons
-                for (uint16_t mask = 0x8000; mask; mask >>= 1) {
+                for (unsigned short mask = 0x8000; mask; mask >>= 1) {
                     if (changed & mask) {
                         if (buttons & mask) {
                             m_key_pressed[mask] = true;
@@ -93,10 +91,10 @@ public:
                     }
                 }
 
-                // Map analog stick to mouse position (D-pad也可用)
-                int8_t joy_x = m_pad_buf[4];
-                int8_t joy_y = m_pad_buf[5];
-                if (std::abs(joy_x) > 20 || std::abs(joy_y) > 20) {
+                // Map analog stick to mouse position
+                int8_t joy_x = static_cast<int8_t>(pad_data.ljoy_h - 128);
+                int8_t joy_y = static_cast<int8_t>(pad_data.ljoy_v - 128);
+                if (joy_x > 20 || joy_x < -20 || joy_y > 20 || joy_y < -20) {
                     m_mouse_x += joy_x / 8;
                     m_mouse_y += joy_y / 8;
                     if (m_mouse_x < 0) m_mouse_x = 0;
@@ -115,7 +113,6 @@ public:
     }
 
     bool is_key_down(Key key) const override {
-        // Map abstract key to PS2 button mask
         for (auto& [mask, pressed] : m_key_states) {
             if (ps2_button_to_key(mask) == key && pressed) return true;
         }
@@ -150,12 +147,15 @@ public:
 
     bool is_gamepad_connected(int /*index*/ = 0) const override {
         int state = padGetState(0, 1);
-        return (state == PAD_STATE_OK || state == PAD_STATE_HAT);
+        return (state == PAD_STATE_STABLE);
     }
 
     float get_gamepad_axis(int /*index*/, int axis) const override {
-        if (axis == 0) return m_pad_buf[4] / 127.0f;
-        if (axis == 1) return m_pad_buf[5] / 127.0f;
+        struct padButtonStatus pad_data;
+        if (padRead(0, 1, const_cast<struct padButtonStatus*>(&pad_data))) {
+            if (axis == 0) return (pad_data.ljoy_h - 128) / 127.0f;
+            if (axis == 1) return (pad_data.ljoy_v - 128) / 127.0f;
+        }
         return 0.0f;
     }
 

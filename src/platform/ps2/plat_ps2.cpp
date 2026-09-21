@@ -7,10 +7,7 @@
 #include <tamtypes.h>
 #include <sifrpc.h>
 #include <fileXio.h>
-#include <mcman.h>
-#include <libmc.h>
 #include <loadfile.h>
-#include <iopcontrol.h>
 #include <string>
 #include <cstring>
 
@@ -31,12 +28,6 @@ public:
         // Initialize fileXio for file operations
         SifInitRpc(0);
         fileXioInit();
-
-        // Ensure memory card directory exists
-        mcInit(MC_TYPE_XMC);
-        int ret = mcMkDir(0, 0, "/FNWF");
-        // Ignore error if directory already exists
-
         return true;
     }
 
@@ -45,8 +36,6 @@ public:
     }
 
     void show_message(const std::string& title, const std::string& message) override {
-        // PS2 has no native message box; print to screen via SDL
-        // (caller should handle drawing)
         (void)title;
         (void)message;
     }
