@@ -228,8 +228,8 @@ jobs:
           export PS2DEV=/usr/local/ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export PATH=$PS2DEV/bin:$PATH
-          meson setup builddir-ps2 --cross-file cross/ps2.ini
-          ninja -C builddir-ps2
+          chmod +x build-ps2.sh
+          ./build-ps2.sh
       - name: Package
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")

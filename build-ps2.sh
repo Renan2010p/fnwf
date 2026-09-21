@@ -7,9 +7,6 @@
 #      export PS2DEV=/usr/local/ps2dev
 #      export PS2SDK=$PS2DEV/ps2sdk
 #      export PATH=$PS2DEV/bin:$PATH
-#   3. Build SDL 1.2 for PS2:
-#      cd $PS2SDK/ports
-#      # Or use ps2sdk-ports: https://github.com/ps2dev/ps2sdk-ports
 #
 # Usage:
 #   ./build-ps2.sh          # Build ELF
@@ -33,15 +30,79 @@ echo "=== Building FNWF for PS2 ==="
 echo "PS2DEV:  $PS2DEV"
 echo "PS2SDK:  $PS2SDK"
 
+# Generate cross file with actual paths
+CROSS_FILE=$(mktemp /tmp/ps2-cross-XXXXXX.ini)
+cat > "$CROSS_FILE" << EOF
+[binaries]
+c = '${PS2DEV}/bin/mips64r5900-ee-gcc'
+cpp = '${PS2DEV}/bin/mips64r5900-ee-g++'
+ar = '${PS2DEV}/bin/mips64r5900-ee-ar'
+strip = '${PS2DEV}/bin/mips64r5900-ee-strip'
+pkgconfig = 'pkg-config'
+
+[properties]
+c_args = [
+    '-D__PS2__',
+    '-DPS2',
+    '-march=r5900',
+    '-mabi=eabi',
+    '-mgp32',
+    '-mfp32',
+    '-G0',
+    '-fno-exceptions',
+    '-fno-rtti',
+    '-fno-strict-aliasing',
+    '-O2',
+    '-DNDEBUG',
+]
+cpp_args = [
+    '-D__PS2__',
+    '-DPS2',
+    '-march=r5900',
+    '-mabi=eabi',
+    '-mgp32',
+    '-mfp32',
+    '-G0',
+    '-fno-exceptions',
+    '-fno-rtti',
+    '-fno-strict-aliasing',
+    '-std=c++17',
+    '-O2',
+    '-DNDEBUG',
+]
+c_link_args = [
+    '-march=r5900',
+    '-mabi=eabi',
+    '-mgp32',
+    '-mfp32',
+    '-G0',
+    '-L${PS2SDK}/ee/lib',
+    '-L${PS2SDK}/common/lib',
+]
+cpp_link_args = [
+    '-march=r5900',
+    '-mabi=eabi',
+    '-mgp32',
+    '-mfp32',
+    '-G0',
+    '-L${PS2SDK}/ee/lib',
+    '-L${PS2SDK}/common/lib',
+]
+
+[host_machine]
+system = 'ps2'
+cpu_family = 'mips'
+cpu = 'r5900'
+endian = 'little'
+EOF
+
 # Clean
 rm -rf builddir-ps2
 
-# Configure with PS2 cross file
-meson setup builddir-ps2 \
-    --cross-file cross/ps2.ini \
-    --wipe 2>/dev/null || \
-meson setup builddir-ps2 \
-    --cross-file cross/ps2.ini
+# Configure with generated cross file
+meson setup builddir-ps2 --cross-file "$CROSS_FILE"
+
+rm -f "$CROSS_FILE"
 
 # Build
 ninja -C builddir-ps2
