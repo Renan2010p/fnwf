@@ -30,7 +30,7 @@ echo "=== Building FNWF for PS2 ==="
 echo "PS2DEV:  $PS2DEV"
 echo "PS2SDK:  $PS2SDK"
 
-# Generate cross file with actual paths
+# Generate cross file with actual paths (meson requires single-line arrays)
 CROSS_FILE="/tmp/ps2-cross-file.ini"
 cat > "$CROSS_FILE" << EOF
 [binaries]
@@ -41,73 +41,10 @@ strip = '${PS2DEV}/bin/mips64r5900-ee-strip'
 pkgconfig = 'pkg-config'
 
 [properties]
-c_args = [
-    '-D__PS2__',
-    '-DPS2',
-    '-march=r5900',
-    '-mabi=eabi',
-    '-mgp32',
-    '-mfp32',
-    '-G0',
-    '-fno-exceptions',
-    '-fno-rtti',
-    '-fno-strict-aliasing',
-    '-O2',
-    '-DNDEBUG',
-]
-cpp_args = [
-    '-D__PS2__',
-    '-DPS2',
-    '-march=r5900',
-    '-mabi=eabi',
-    '-mgp32',
-    '-mfp32',
-    '-G0',
-    '-fno-exceptions',
-    '-fno-rtti',
-    '-fno-strict-aliasing',
-    '-std=c++17',
-    '-O2',
-    '-DNDEBUG',
-]
-c_link_args = [
-    '-march=r5900',
-    '-mabi=eabi',
-    '-mgp32',
-    '-mfp32',
-    '-G0',
-    '-L${PS2SDK}/ee/lib',
-    '-L${PS2SDK}/common/lib',
-    '-lfileXio',
-    '-lmc',
-    '-lpad',
-    '-laudsrv',
-    '-lSDL',
-    '-lSDL_ttf',
-    '-lSDL_mixer',
-    '-lpatches',
-    '-lc',
-    '-lkernel',
-]
-cpp_link_args = [
-    '-march=r5900',
-    '-mabi=eabi',
-    '-mgp32',
-    '-mfp32',
-    '-G0',
-    '-L${PS2SDK}/ee/lib',
-    '-L${PS2SDK}/common/lib',
-    '-lfileXio',
-    '-lmc',
-    '-lpad',
-    '-laudsrv',
-    '-lSDL',
-    '-lSDL_ttf',
-    '-lSDL_mixer',
-    '-lpatches',
-    '-lc',
-    '-lkernel',
-]
+c_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG']
+cpp_args = ['-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG']
+c_link_args = ['-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-lfileXio', '-lmc', '-lpad', '-laudsrv', '-lSDL', '-lSDL_ttf', '-lSDL_mixer', '-lpatches', '-lc', '-lkernel']
+cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mgp32', '-mfp32', '-G0', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-lfileXio', '-lmc', '-lpad', '-laudsrv', '-lSDL', '-lSDL_ttf', '-lSDL_mixer', '-lpatches', '-lc', '-lkernel']
 
 [host_machine]
 system = 'ps2'
