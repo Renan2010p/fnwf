@@ -1,4 +1,4 @@
-// Force-included on Windows only (see meson.build, windows section).
+// Force-included on Windows and PS2 (see meson.build, windows/ps2 sections).
 //
 // libSDL2main.a is C code: its main()/WinMain() entry wrappers call
 // SDL_main() with C language linkage. main.cpp is platform-abstract and

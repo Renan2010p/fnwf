@@ -139,6 +139,17 @@ elif host_machine.system() == 'darwin'
   ], language : 'cpp')
 
   message('BUILD: macOS static')
+
+elif host_machine.system() == 'ps2'
+  # PS2 SDL 1.2 (sdl_main.c in libsdl.a) provides the `main` entry and calls
+  # SDL_main — same convention as SDL2main on Windows, so use the same rename
+  # and force-included extern "C" declaration (see sdl_main_extern.h).
+  add_project_arguments([
+    '-Dmain=SDL_main',
+    '-include', meson.project_source_root() / 'src/platform/sdl2/sdl_main_extern.h',
+  ], language : 'cpp')
+
+  message('BUILD: PlayStation 2 (EE, SDL1.2)')
 endif
 
 # === Abstract sources (no platform code here) ===
