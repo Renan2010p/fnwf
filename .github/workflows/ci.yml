@@ -230,23 +230,34 @@ jobs:
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
 
-          # Build gsKit (required by SDL for PS2).
-          # The wrapper `make` bakes in CMAKE_INTERPROCEDURAL_OPTIMIZATION=TRUE
-          # via a plain set() in CMakeLists.txt, which a -D cache entry cannot
-          # override. Patch the file to disable LTO: gsKit's LTO bytecode
-          # objects embedded into libsdl.a / linked with our -fno-lto produce
-          # "plugin needed to handle lto object" errors.
+          # gsKit upstream enables IPO/LTO (set(CMAKE_INTERPROCEDURAL_OPTIMIZATION
+          # TRUE) at CMakeLists.txt:35, which a -D cache entry cannot override
+          # since plain set() shadows cache vars). We do NOT pass -fno-lto at
+          # link time (that's what suppressed gcc's LTO plugin and caused
+          # "plugin needed to handle lto object"), but keeping gsKit LTO-free
+          # anyway avoids relying on the plugin at all. Patch + verify.
           cd /tmp
           git clone --depth 1 https://github.com/ps2dev/gsKit.git
           cd gsKit
           sed -i 's/set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)/set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)/' CMakeLists.txt
+          grep -q 'set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)' CMakeLists.txt \
+            || { echo "ERROR: failed to patch gsKit IPO off"; exit 1; }
           make
           make install
           cd /tmp
 
-          # Diagnostics: confirm gsKit headers/libs landed where the SDL guard expects them
+          # Diagnostics: headers/libs landed where the SDL guard expects them,
+          # and whether the archives contain LTO bytecode (.gnu.lto_* sections).
+          # LTO here is not fatal: our link no longer passes -fno-lto, so gcc's
+          # LTO plugin processes these objects (same as official ps2sdk samples).
           echo "=== gsKit install check ==="
           ls -la "$GSKIT/include/gsKit.h" "$GSKIT/lib/libgskit.a" "$GSKIT/lib/libdmakit.a" 2>&1 || true
+          echo "=== gsKit LTO check ==="
+          if mips64r5900el-ps2-elf-readelf -S "$GSKIT/lib/libgskit.a" 2>&1 | grep -q '\.gnu\.lto_'; then
+            echo "WARNING: libgskit.a still has LTO sections (sed patch ineffective)"
+          else
+            echo "libgskit.a: no LTO sections (OK)"
+          fi
 
           # Build SDL, SDL_mixer, SDL_ttf from ps2sdk-ports
           git clone --depth 1 https://github.com/ps2dev/ps2sdk-ports.git

@@ -60,8 +60,8 @@ pkg-config = 'pkg-config'
 [built-in options]
 c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
 cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
-c_link_args = ['-G0', '-fno-lto', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
-cpp_link_args = ['-G0', '-fno-lto', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
+c_link_args = ['-G0', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
+cpp_link_args = ['-G0', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
 
 [properties]
 needs_exe_wrapper = true
