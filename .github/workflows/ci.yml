@@ -13,8 +13,8 @@ permissions:
   id-token: write
 
 jobs:
-  # === Linux x86_64 ===
-  build-linux-x86_64:
+  # === Linux amd64 ===
+  build-linux-amd64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
       - name: Package
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-linux-x86_64"
+          REL="fnwf-classic-${VER}-linux-amd64"
           mkdir -p "release/${REL}"
           cp build/fnwf "release/${REL}/"
           cp -r assets "release/${REL}/"
@@ -48,11 +48,11 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-linux-x86_64
-          path: release/fnwf-classic-*-linux-x86_64.tar.gz
+          name: fnwf-linux-amd64
+          path: release/fnwf-classic-*-linux-amd64.tar.gz
 
-  # === Linux ARM64 ===
-  build-linux-arm64:
+  # === Linux aarch64 ===
+  build-linux-aarch64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
             meson ninja-build pkg-config cmake curl ca-certificates
-      - name: Build ARM64 dependencies
+      - name: Build aarch64 dependencies
         run: |
           rm -rf build_deps deps
           export PKG_CONFIG_ALLOW_CROSS=1
@@ -75,25 +75,25 @@ jobs:
           export CXX=aarch64-linux-gnu-g++
           export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
           export PKG_CONFIG_ALLOW_CROSS=1
-          meson setup build_arm64 --cross-file=cross/aarch64-linux.ini --buildtype=release
-          ninja -C build_arm64
+          meson setup build_aarch64 --cross-file=cross/aarch64-linux.ini --buildtype=release
+          ninja -C build_aarch64
       - name: Package
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-linux-arm64"
+          REL="fnwf-classic-${VER}-linux-aarch64"
           mkdir -p "release/${REL}"
-          cp build_arm64/fnwf "release/${REL}/"
+          cp build_aarch64/fnwf "release/${REL}/"
           cp -r assets "release/${REL}/"
           chmod +x "release/${REL}/fnwf"
           cd release && tar czf "${REL}.tar.gz" "${REL}"
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-linux-arm64
-          path: release/fnwf-classic-*-linux-arm64.tar.gz
+          name: fnwf-linux-aarch64
+          path: release/fnwf-classic-*-linux-aarch64.tar.gz
 
-  # === Windows ===
-  build-windows:
+  # === Windows amd64 ===
+  build-windows-amd64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,7 +122,7 @@ jobs:
         shell: msys2 {0}
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-windows-x86_64"
+          REL="fnwf-classic-${VER}-windows-amd64"
           mkdir -p "release/${REL}"
           cp build/fnwf.exe "release/${REL}/"
           cp -r assets "release/${REL}/"
@@ -130,11 +130,11 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-windows-x86_64
-          path: release/fnwf-classic-*-windows-x86_64.tar.gz
+          name: fnwf-windows-amd64
+          path: release/fnwf-classic-*-windows-amd64.tar.gz
 
-  # === macOS ===
-  build-macos:
+  # === macOS aarch64 ===
+  build-macos-aarch64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -148,7 +148,7 @@ jobs:
       - name: Package
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-macos"
+          REL="fnwf-classic-${VER}-macos-aarch64"
           mkdir -p "release/${REL}"
           cp build/fnwf "release/${REL}/"
           cp -r assets "release/${REL}/"
@@ -157,11 +157,11 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-macos
-          path: release/fnwf-classic-*-macos.tar.gz
+          name: fnwf-macos-aarch64
+          path: release/fnwf-classic-*-macos-aarch64.tar.gz
 
-  # === WebAssembly ===
-  build-web:
+  # === WebAssembly (WASM) ===
+  build-web-wasm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -210,11 +210,11 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-web
+          name: fnwf-web-wasm
           path: build_web/
 
-  # === PlayStation 2 ===
-  build-ps2:
+  # === PlayStation 2 (EE) ===
+  build-ps2-ee:
     runs-on: ubuntu-latest
     container: ps2dev/ps2dev
     steps:
@@ -265,25 +265,25 @@ jobs:
       - name: Package
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-ps2"
+          REL="fnwf-classic-${VER}-ps2-ee"
           mkdir -p "release/${REL}"
           cp builddir-ps2/fnwf "release/${REL}/"
           cd release && tar czf "${REL}.tar.gz" "${REL}"
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: fnwf-ps2
-          path: release/fnwf-classic-*-ps2.tar.gz
+          name: fnwf-ps2-ee
+          path: release/fnwf-classic-*-ps2-ee.tar.gz
 
   # === Deploy to GitHub Pages ===
   deploy:
-    needs: [build-web]
+    needs: [build-web-wasm]
     runs-on: ubuntu-latest
     steps:
       - name: Download web artifact
         uses: actions/download-artifact@v4
         with:
-          name: fnwf-web
+          name: fnwf-web-wasm
           path: build_web
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -297,7 +297,7 @@ jobs:
 
   # === Create Release ===
   create-release:
-    needs: [build-linux-x86_64, build-linux-arm64, build-windows, build-macos, build-ps2]
+    needs: [build-linux-amd64, build-linux-aarch64, build-windows-amd64, build-macos-aarch64, build-ps2-ee]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
