@@ -415,7 +415,7 @@ void EnginePS2::circle(std::int32_t cx, std::int32_t cy, std::int32_t radius,
     if (m_target == nullptr) {
         cx = map_x(cx);
         cy = map_y(cy);
-        radius = std::max(1, static_cast<std::int32_t>(static_cast<float>(radius) * m_scale));
+        radius = std::max<std::int32_t>(1, static_cast<std::int32_t>(static_cast<float>(radius) * m_scale));
     }
 
     Uint32 color = SDL_MapRGB(target->format, r, g, b);
