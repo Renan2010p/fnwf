@@ -107,8 +107,11 @@ elif host_machine.system() == 'windows'
   # SDL2 on Windows: libSDL2main.a provides the Win32 entry point which calls
   # SDL_main. Our main.cpp is platform-abstract and never includes SDL.h
   # (which would normally do this rename), so do it via compiler flag.
+  # The force-included header declares SDL_main with C linkage so the
+  # renamed definition matches libSDL2main.a's unmangled C call.
   add_project_arguments([
     '-Dmain=SDL_main',
+    '-include', meson.project_source_root() / 'src/platform/sdl2/sdl_main_extern.h',
     '-O2',
     '-DNDEBUG',
     '-fomit-frame-pointer',
