@@ -104,7 +104,11 @@ if host_machine.system() == 'linux'
   message('BUILD: Linux static (cpu_family=@0@)'.format(host_machine.cpu_family()))
 
 elif host_machine.system() == 'windows'
+  # SDL2 on Windows: libSDL2main.a provides the Win32 entry point which calls
+  # SDL_main. Our main.cpp is platform-abstract and never includes SDL.h
+  # (which would normally do this rename), so do it via compiler flag.
   add_project_arguments([
+    '-Dmain=SDL_main',
     '-O2',
     '-DNDEBUG',
     '-fomit-frame-pointer',
