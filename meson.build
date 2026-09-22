@@ -207,6 +207,7 @@ ps2_backend = files(
   'src/platform/ps2/EnginePS2.cpp',
   'src/platform/ps2/plat_ps2.cpp',
   'src/platform/ps2/plat_input_ps2.cpp',
+  'src/platform/ps2/lzma_stubs.cpp',
 )
 
 # Select backend based on target platform
