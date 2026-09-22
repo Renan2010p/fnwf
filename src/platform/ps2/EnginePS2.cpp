@@ -217,12 +217,26 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     }
 #endif
 
+    // PS2 pad input: brings the pad driver up on the IOP (HLE'd by PCSX2).
+    // Deliberately last and after the cyan splash, so a hang in here leaves
+    // cyan on screen (revert point) instead of a black/white freeze. The pad
+    // is translated into mouse/keyboard events in poll_pad().
+    if (SDL_Init(SDL_INIT_JOYSTICK) == 0 && SDL_NumJoysticks() > 0) {
+        m_joy = SDL_JoystickOpen(0);
+    }
+    // poll_pad() reads pad state directly every frame; SDL's own joystick
+    // event queue would only add noise to the event loop.
+    SDL_JoystickEventState(SDL_DISABLE);
+
     m_running = true;
     m_vsync = vsync;
 
-    // TEMP DIAGNOSTIC: white splash = init() completed; a hang while loading
-    // fonts/saves/building states in main() leaves white on screen.
-    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 255, 255, 255));
+    // TEMP DIAGNOSTIC: splash = init() completed. White = pad opened;
+    // gray = no joystick found (controls will not respond). A hang while
+    // loading fonts/saves/building states in main() leaves it on screen.
+    SDL_FillRect(m_screen, nullptr,
+                 m_joy != nullptr ? SDL_MapRGB(m_screen->format, 255, 255, 255)
+                                  : SDL_MapRGB(m_screen->format, 96, 96, 96));
     SDL_Flip(m_screen);
 
     return true;
@@ -258,6 +272,11 @@ void EnginePS2::shutdown() {
         m_tpl_alpha = nullptr;
     }
 
+    if (m_joy != nullptr) {
+        SDL_JoystickClose(m_joy);
+        m_joy = nullptr;
+    }
+
     Mix_CloseAudio();
     TTF_Quit();
 
@@ -279,6 +298,22 @@ std::vector<Event> EnginePS2::poll_events() {
     auto to_ly = [this, s](std::int32_t v) {
         return static_cast<std::int32_t>((static_cast<float>(v - m_off_y)) / s);
     };
+    auto clamp_x = [this](std::int32_t v) {
+        const std::int32_t mx =
+            m_logical_w ? static_cast<std::int32_t>(m_logical_w) - 1 : 0;
+        return std::min(std::max(v, 0), mx);
+    };
+    auto clamp_y = [this](std::int32_t v) {
+        const std::int32_t my =
+            m_logical_h ? static_cast<std::int32_t>(m_logical_h) - 1 : 0;
+        return std::min(std::max(v, 0), my);
+    };
+
+    // Set when SDL delivered real mouse input this frame (USB mouse, or the
+    // port's own pad→mouse emulation if it got enabled); poll_pad() then
+    // skips its own synthesis so input is never applied twice.
+    bool sdl_mouse_motion = false;
+    bool sdl_mouse_button = false;
 
     while (SDL_PollEvent(&e)) {
         Event ev;
@@ -297,20 +332,195 @@ std::vector<Event> EnginePS2::poll_events() {
             case SDL_MOUSEBUTTONUP:
                 ev.type = (e.type == SDL_MOUSEBUTTONDOWN) ? EventType::MouseButtonDown
                                                           : EventType::MouseButtonUp;
-                ev.x = to_lx(e.button.x);
-                ev.y = to_ly(e.button.y);
+                m_mouse_x = clamp_x(to_lx(e.button.x));
+                m_mouse_y = clamp_y(to_ly(e.button.y));
+                ev.x = m_mouse_x;
+                ev.y = m_mouse_y;
+                sdl_mouse_button = true;
                 break;
             case SDL_MOUSEMOTION:
                 ev.type = EventType::MouseMotion;
-                ev.x = to_lx(e.motion.x);
-                ev.y = to_ly(e.motion.y);
+                m_mouse_x = clamp_x(to_lx(e.motion.x));
+                m_mouse_y = clamp_y(to_ly(e.motion.y));
+                ev.x = m_mouse_x;
+                ev.y = m_mouse_y;
+                sdl_mouse_motion = true;
                 break;
             default:
                 continue;
         }
         events.push_back(std::move(ev));
     }
+
+    poll_pad(events, sdl_mouse_motion, sdl_mouse_button);
     return events;
+}
+
+// The game is a mouse + keyboard title; on PS2 the DualShock stands in for
+// both. The pad is read through SDL's joystick API every frame and translated
+// into the same events a real mouse/keyboard would produce:
+//
+//   D-pad ................. arrow keys — console-style menu navigation
+//                           (MenuState moves the highlight on up/down)
+//   Left stick ............ move the virtual cursor (office pan, camera
+//                           hover, △-click targets)
+//   ✕ (Cross) ............. Enter   (confirm the highlighted entry)
+//   ○ (Circle) ............ Escape  (back / leave the night)
+//   ◻ (Square) ............ Space   (advance dialogs / mask in-game)
+//   △ (Triangle) .......... left click at the cursor (on-screen buttons:
+//                           doors, camera select, menu entries by position)
+//   START ................. Enter   (confirm)
+//   SELECT ................ Tab     (monitor toggle)
+//   L1 / R1 ............... q / e   (left / right door)
+//   L2 / R2 ............... a / d   (left / right light)
+//   L3 .................... l       (vent light)
+//
+// (Kept out of the driver's optional pad→mouse path: that only activates
+// behind the port's PS2SDL_USE_INPUT_DEVICES compile flag and its state is
+// invisible from here.)
+void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
+                         bool sdl_mouse_button) {
+    if (m_joy == nullptr) return;
+
+    // Refresh the driver's cached axis/hat/button state; poll_pad() reads it
+    // directly instead of using SDL's joystick event queue.
+    SDL_JoystickUpdate();
+
+    // ── D-pad → arrow keys (menu navigation) ───────────────────────────
+    // SDL2 keycode values, which is what the game states check
+    // (MenuState: 1073741906 = up, 1073741905 = down). Held directions
+    // repeat like a keyboard autorepeat. Most states ignore arrows —
+    // StoryState explicitly returns on keys other than 13/32, and
+    // GameplayState matches letters only.
+    const Uint8 hat = SDL_JoystickGetHat(m_joy, 0);
+    {
+        static constexpr std::int32_t kArrowCode[4] = {1073741906, 1073741905,
+                                                       1073741904, 1073741903};
+        static constexpr Uint8 kDirHat[4] = {SDL_HAT_UP, SDL_HAT_DOWN,
+                                             SDL_HAT_LEFT, SDL_HAT_RIGHT};
+        constexpr int kRepeatFirst = 15;  // frames until the first repeat
+        constexpr int kRepeatRate = 6;    // frames between repeats
+
+        for (int d = 0; d < 4; ++d) {
+            const bool active = (hat & kDirHat[d]) != 0;
+            bool send = false;
+            if (active) {
+                if (!m_dpad_held[d]) {
+                    m_dpad_held[d] = true;
+                    m_dpad_wait[d] = kRepeatFirst;
+                    send = true;
+                } else if (--m_dpad_wait[d] <= 0) {
+                    m_dpad_wait[d] = kRepeatRate;
+                    send = true;
+                }
+            } else if (m_dpad_held[d]) {
+                m_dpad_held[d] = false;
+                send = true;
+            }
+            if (send) {
+                Event ev;
+                ev.type = m_dpad_held[d] ? EventType::KeyDown : EventType::KeyUp;
+                ev.key = kArrowCode[d];
+                ev.scan_name = "";
+                out.push_back(std::move(ev));
+            }
+        }
+    }
+
+    // ── Left stick → virtual cursor ────────────────────────────────────
+    int dx = 0, dy = 0;
+
+    // Left stick, proportional: the PS2 driver reports (raw-128)*127, i.e.
+    // about ±16256; the deadzone swallows resting drift.
+    constexpr float kAxisMax = 16256.0f;
+    constexpr int kDeadzone = 2500;
+    constexpr float kStickSpeed = 22.0f;
+    const Sint16 ax = SDL_JoystickGetAxis(m_joy, 0);
+    const Sint16 ay = SDL_JoystickGetAxis(m_joy, 1);
+    if (ax > kDeadzone || ax < -kDeadzone)
+        dx += static_cast<int>(static_cast<float>(ax) * kStickSpeed / kAxisMax);
+    if (ay > kDeadzone || ay < -kDeadzone)
+        dy += static_cast<int>(static_cast<float>(ay) * kStickSpeed / kAxisMax);
+
+    if ((dx != 0 || dy != 0) && !sdl_mouse_motion) {
+        const std::int32_t max_x =
+            m_logical_w ? static_cast<std::int32_t>(m_logical_w) - 1 : 0;
+        const std::int32_t max_y =
+            m_logical_h ? static_cast<std::int32_t>(m_logical_h) - 1 : 0;
+        m_mouse_x = std::min(std::max(m_mouse_x + dx, 0), max_x);
+        m_mouse_y = std::min(std::max(m_mouse_y + dy, 0), max_y);
+
+        Event ev;
+        ev.type = EventType::MouseMotion;
+        ev.x = m_mouse_x;
+        ev.y = m_mouse_y;
+        out.push_back(std::move(ev));
+    }
+
+    // ── Buttons (edge-triggered) ───────────────────────────────────────
+    // Button indices in the port's PS2 joystick driver:
+    //   0 Square 1 Cross 2 Circle 3 Triangle 4 Select 5 Start
+    //   6 L1 7 R1 8 L2 9 R2 10 L3 11 R3
+    std::uint32_t now = 0;
+    for (int i = 0; i < 12; ++i) {
+        if (SDL_JoystickGetButton(m_joy, i)) now |= (1u << i);
+    }
+    const std::uint32_t rose = now & ~m_pad_prev;
+    const std::uint32_t fell = m_pad_prev & ~now;
+    m_pad_prev = now;
+
+    // Triangle → left click at the cursor, suppressed if SDL already
+    // delivered a real button event this frame (the driver's own pad→mouse
+    // path). Cross is Enter, NOT a click: menus must confirm the *highlighted*
+    // entry, and a synthetic click would activate whatever option the cursor
+    // happens to sit on instead.
+    if (!sdl_mouse_button) {
+        if (rose & (1u << 3)) {
+            Event ev;
+            ev.type = EventType::MouseButtonDown;
+            ev.x = m_mouse_x;
+            ev.y = m_mouse_y;
+            out.push_back(std::move(ev));
+        }
+        if (fell & (1u << 3)) {
+            Event ev;
+            ev.type = EventType::MouseButtonUp;
+            ev.x = m_mouse_x;
+            ev.y = m_mouse_y;
+            out.push_back(std::move(ev));
+        }
+    }
+
+    auto key_edges = [&out, rose, fell](std::uint32_t bit, std::int32_t code) {
+        const char* name = SDL_GetKeyName(static_cast<SDLKey>(code));
+        if (rose & bit) {
+            Event ev;
+            ev.type = EventType::KeyDown;
+            ev.key = code;
+            ev.key_name = name ? name : "";
+            ev.scan_name = "";
+            out.push_back(std::move(ev));
+        }
+        if (fell & bit) {
+            Event ev;
+            ev.type = EventType::KeyUp;
+            ev.key = code;
+            ev.key_name = name ? name : "";
+            ev.scan_name = "";
+            out.push_back(std::move(ev));
+        }
+    };
+
+    key_edges(1u << 0, 32);    // Square → Space
+    key_edges(1u << 1, 13);    // Cross → Enter (confirm)
+    key_edges(1u << 2, 27);    // Circle → Escape (back)
+    key_edges(1u << 4, 9);     // Select → Tab (monitor)
+    key_edges(1u << 5, 13);    // Start → Enter
+    key_edges(1u << 6, 'q');   // L1 → left door
+    key_edges(1u << 7, 'e');   // R1 → right door
+    key_edges(1u << 8, 'a');   // L2 → left light
+    key_edges(1u << 9, 'd');   // R2 → right light
+    key_edges(1u << 10, 'l');  // L3 → vent light
 }
 
 float EnginePS2::ticks() const noexcept {
@@ -354,6 +564,36 @@ void EnginePS2::present() {
         SDL_FillRect(m_screen, &r, border);
         r.x = static_cast<Sint16>(m_screen->w - bw);
         SDL_FillRect(m_screen, &r, border);
+
+        // Software cursor: the PS2 has no OS pointer, and △ clicks at the
+        // cursor (office pan, camera buttons) — without this you'd aim blind.
+        // Drawn after the border, before the flip; logical → physical uses
+        // the same mapping as every draw call.
+        const int cx = map_x(m_mouse_x);
+        const int cy = map_y(m_mouse_y);
+        const Uint32 outline = SDL_MapRGB(m_screen->format, 0, 0, 0);
+        const Uint32 mark = SDL_MapRGB(m_screen->format, 255, 255, 255);
+        SDL_Rect c{};
+        c.x = static_cast<Sint16>(cx - 8);
+        c.y = static_cast<Sint16>(cy - 1);
+        c.w = 17;
+        c.h = 3;
+        SDL_FillRect(m_screen, &c, outline);
+        c.x = static_cast<Sint16>(cx - 1);
+        c.y = static_cast<Sint16>(cy - 8);
+        c.w = 3;
+        c.h = 17;
+        SDL_FillRect(m_screen, &c, outline);
+        c.x = static_cast<Sint16>(cx - 7);
+        c.y = static_cast<Sint16>(cy);
+        c.w = 15;
+        c.h = 1;
+        SDL_FillRect(m_screen, &c, mark);
+        c.x = static_cast<Sint16>(cx);
+        c.y = static_cast<Sint16>(cy - 7);
+        c.w = 1;
+        c.h = 15;
+        SDL_FillRect(m_screen, &c, mark);
     }
     SDL_Flip(m_screen);
 }
@@ -363,6 +603,9 @@ void EnginePS2::present() {
 void EnginePS2::set_logical_size(std::uint32_t w, std::uint32_t h) {
     m_logical_w = w;
     m_logical_h = h;
+    // Virtual cursor starts centered (mouse_pos() used to be this stub value).
+    m_mouse_x = static_cast<std::int32_t>(w) / 2;
+    m_mouse_y = static_cast<std::int32_t>(h) / 2;
     update_viewport();
 }
 
@@ -851,8 +1094,10 @@ void EnginePS2::stop_all_sounds() {
 // ── Input ────────────────────────────────────────────────────────────────────
 
 std::pair<std::int32_t, std::int32_t> EnginePS2::mouse_pos() {
-    return {static_cast<std::int32_t>(m_logical_w / 2),
-            static_cast<std::int32_t>(m_logical_h / 2)};
+    // Logical cursor: updated by SDL mouse events in poll_events() and by the
+    // pad's virtual cursor in poll_pad(). (Was a center-screen stub — office
+    // panning and the camera hover trigger read this every frame.)
+    return {m_mouse_x, m_mouse_y};
 }
 
 // ── Volume ───────────────────────────────────────────────────────────────────
