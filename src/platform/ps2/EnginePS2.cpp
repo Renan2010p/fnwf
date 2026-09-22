@@ -160,16 +160,14 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     SifInitRpc(0);
 #endif
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
+    // Video first: the game must reach SDL_SetVideoMode even if the audio
+    // stack (libsd + audsrv RPC on the IOP) fails or hangs. The old order
+    // (audio before video) turned any sound failure into a silent black
+    // screen, because main() reports init failures on stderr — invisible
+    // under PCSX2.
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         return false;
     }
-    if (TTF_Init() != 0) {
-        return false;
-    }
-    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) != 0) {
-        return false;
-    }
-    Mix_AllocateChannels(32);
 
     m_physical_w = 640;
     m_physical_h = 448;
@@ -184,6 +182,12 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 
     SDL_WM_SetCaption("Five Nights With Friends", nullptr);
 
+    // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): green
+    // splash proves video setup completed; it stays on screen if the game
+    // never reaches the main loop.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 0));
+    SDL_Flip(m_screen);
+
     m_logical_w = w;
     m_logical_h = h;
 
@@ -193,8 +197,20 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     m_tpl_alpha = make_surface(1, 1, true);
     update_viewport();
 
+    // Best-effort subsystems — a failure here must not black-screen the game.
+    SDL_Init(SDL_INIT_AUDIO);  // registers the driver; the device opens below
+    m_ttf_ok = (TTF_Init() == 0);
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) == 0) {
+        Mix_AllocateChannels(32);
+    }
+
     m_running = true;
     m_vsync = vsync;
+
+    // TEMP DIAGNOSTIC: white splash = init() completed; a hang while loading
+    // fonts/saves/building states in main() leaves white on screen.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 255, 255, 255));
+    SDL_Flip(m_screen);
 
     return true;
 }
@@ -294,6 +310,37 @@ void EnginePS2::present() {
         // Formats may differ between the backbuffer and SDL's video surface —
         // SDL_BlitSurface converts (this is the classic SDL 1.2 cross-format blit).
         SDL_BlitSurface(m_backbuf, nullptr, m_screen, nullptr);
+
+        // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): border
+        // drawn on top of the presented frame proves present() reaches the
+        // display every loop iteration. Sample the backbuffer to color it:
+        //   yellow  = backbuffer contains drawn (non-zero) content;
+        //   magenta = backbuffer sampled entirely black (missing font/assets).
+        Uint32 content = 0;
+        const Uint8* px = static_cast<const Uint8*>(m_backbuf->pixels);
+        for (int y = 8; y < static_cast<int>(m_backbuf->h) - 8 && content == 0; y += 24) {
+            const Uint32* row = reinterpret_cast<const Uint32*>(px + y * m_backbuf->pitch);
+            for (int x = 8; x < static_cast<int>(m_backbuf->w) - 8; x += 16) {
+                content |= row[x] & 0x00FFFFFFu;
+                if (content != 0) break;
+            }
+        }
+        const Uint32 border = SDL_MapRGB(m_screen->format, 255, content ? 255 : 0, content ? 0 : 255);
+        const int bw = 8;
+        SDL_Rect r{};
+        r.x = 0;
+        r.y = 0;
+        r.w = m_screen->w;
+        r.h = static_cast<Uint16>(bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.y = static_cast<Sint16>(m_screen->h - bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.y = 0;
+        r.h = m_screen->h;
+        r.w = static_cast<Uint16>(bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.x = static_cast<Sint16>(m_screen->w - bw);
+        SDL_FillRect(m_screen, &r, border);
     }
     SDL_Flip(m_screen);
 }
@@ -723,6 +770,7 @@ std::optional<SoundHandle> EnginePS2::load_sound(std::string_view path) {
 }
 
 std::int64_t EnginePS2::load_font(std::string_view path, std::uint16_t size) {
+    if (!m_ttf_ok) return -1;
     TTF_Font* font = TTF_OpenFont(platform_path(path).c_str(), size);
     if (!font) return -1;
 

@@ -148,6 +148,7 @@ private:
     std::int32_t m_off_y{0};
     bool m_running{false};
     bool m_vsync{false};
+    bool m_ttf_ok{false};
 
     int m_master_vol{80};
     int m_sfx_vol{100};
