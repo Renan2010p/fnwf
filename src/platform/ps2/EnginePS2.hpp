@@ -113,6 +113,13 @@ private:
     // Recomputes m_scale/m_off_x/m_off_y (logical size → screen, letterboxed).
     void update_viewport();
 
+    // Reads the DualShock every frame and appends virtual mouse/keyboard
+    // events — the game was built for mouse + keyboard. sdl_mouse_* report
+    // whether SDL already delivered real mouse input this frame (USB mouse or
+    // the port's own pad→mouse emulation) so nothing gets applied twice.
+    void poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
+                  bool sdl_mouse_button);
+
     // Where draws go: active render target, else the backbuffer, else the screen.
     SDL_Surface* draw_target() const {
         return m_target != nullptr ? m_target : (m_backbuf != nullptr ? m_backbuf : m_screen);
@@ -150,6 +157,16 @@ private:
     bool m_vsync{false};
     bool m_ttf_ok{false};
     bool m_audio_ok{false};
+
+    // D-pad → arrow-key autorepeat state (index 0=up 1=down 2=left 3=right).
+    bool m_dpad_held[4]{};
+    int m_dpad_wait[4]{};
+
+    // PS2 pad → virtual mouse/keyboard (see poll_pad()).
+    SDL_Joystick* m_joy{nullptr};
+    std::uint32_t m_pad_prev{0};  // buttons held last frame (edge detection)
+    std::int32_t m_mouse_x{0};    // logical cursor backing mouse_pos()
+    std::int32_t m_mouse_y{0};
 
     int m_master_vol{80};
     int m_sfx_vol{100};
