@@ -60,8 +60,8 @@ pkg-config = 'pkg-config'
 [built-in options]
 c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
 cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
-c_link_args = ['-G0', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
-cpp_link_args = ['-G0', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
+c_link_args = ['-G0', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lSDL_image', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
+cpp_link_args = ['-G0', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lSDL_image', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
 
 [properties]
 needs_exe_wrapper = true
@@ -85,23 +85,27 @@ ninja -C builddir-ps2
 # Clean up cross file after build
 rm -f "$CROSS_FILE"
 
+# Assets must sit next to the ELF: PCSX2's host: root is the ELF's directory
+# (and the game opens them as host:assets/... at runtime).
+cp -r assets builddir-ps2/assets
+
 echo ""
 echo "=== Build complete ==="
 echo "ELF: builddir-ps2/fnwf"
 echo ""
 echo "To test on PCSX2:"
-echo "  pcsx2 builddir-ps2/fnwf"
+echo "  1. Enable Settings > Emulation > Enable Host Filesystem"
+echo "  2. pcsx2 builddir-ps2/fnwf     (assets/ was copied next to the ELF)"
 echo ""
 echo "To build ISO (needs mkisofs):"
-echo "  mkdir -p iso/"
-echo "  cp builddir-ps2/fnwf iso/"
-echo "  mkisofs -o fnwf-ps2.iso -R iso/"
+echo "  ./build-ps2.sh --iso"
 
 # Optionally build ISO
 if [ "$1" = "--iso" ]; then
     echo "Building ISO..."
     mkdir -p iso/
     cp builddir-ps2/fnwf iso/
+    cp -r assets iso/assets
     mkisofs -o fnwf-ps2.iso -R iso/
     echo "ISO: fnwf-ps2.iso"
 fi

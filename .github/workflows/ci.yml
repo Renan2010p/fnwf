@@ -276,6 +276,12 @@ jobs:
           make sdlttf
           make -C sdlttf install
 
+          # Build SDL_image (PNG texture support — SDL_LoadBMP can't read .png)
+          make sdlimage
+          make -C sdlimage install
+          # Fail fast if the header didn't land where meson's -I points
+          ls -la "$PS2SDK/ports/include/SDL/SDL_image.h"
+
           # Diagnostics: show what actually got installed (case-sensitive names!)
           echo "=== \$PS2SDK/ports/lib ==="
           ls -la "$PS2SDK/ports/lib"
@@ -292,7 +298,9 @@ jobs:
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
           REL="fnwf-classic-${VER}-ps2-ee"
           mkdir -p "release/${REL}"
-          cp builddir-ps2/fnwf "release/${REL}/"
+          # host: root = the ELF's directory, so assets must ship next to it
+          cp builddir-ps2/fnwf "release/${REL}/fnwf.elf"
+          cp -r assets "release/${REL}/assets"
           cd release && tar czf "${REL}.tar.gz" "${REL}"
       - name: Upload
         uses: actions/upload-artifact@v4
