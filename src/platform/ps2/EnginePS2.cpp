@@ -298,15 +298,18 @@ std::vector<Event> EnginePS2::poll_events() {
     auto to_ly = [this, s](std::int32_t v) {
         return static_cast<std::int32_t>((static_cast<float>(v - m_off_y)) / s);
     };
+    // NOTE: explicit std::int32_t on every min/max below — on the ps2-elf
+    // target int32_t is `long`, so deducing std::max(v, 0) conflicts
+    // ('long int' vs 'int') and fails to compile (host x86 can't catch it).
     auto clamp_x = [this](std::int32_t v) {
         const std::int32_t mx =
             m_logical_w ? static_cast<std::int32_t>(m_logical_w) - 1 : 0;
-        return std::min(std::max(v, 0), mx);
+        return std::min<std::int32_t>(std::max<std::int32_t>(v, 0), mx);
     };
     auto clamp_y = [this](std::int32_t v) {
         const std::int32_t my =
             m_logical_h ? static_cast<std::int32_t>(m_logical_h) - 1 : 0;
-        return std::min(std::max(v, 0), my);
+        return std::min<std::int32_t>(std::max<std::int32_t>(v, 0), my);
     };
 
     // Set when SDL delivered real mouse input this frame (USB mouse, or the
@@ -447,8 +450,10 @@ void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
             m_logical_w ? static_cast<std::int32_t>(m_logical_w) - 1 : 0;
         const std::int32_t max_y =
             m_logical_h ? static_cast<std::int32_t>(m_logical_h) - 1 : 0;
-        m_mouse_x = std::min(std::max(m_mouse_x + dx, 0), max_x);
-        m_mouse_y = std::min(std::max(m_mouse_y + dy, 0), max_y);
+        m_mouse_x = std::min<std::int32_t>(
+            std::max<std::int32_t>(m_mouse_x + dx, 0), max_x);
+        m_mouse_y = std::min<std::int32_t>(
+            std::max<std::int32_t>(m_mouse_y + dy, 0), max_y);
 
         Event ev;
         ev.type = EventType::MouseMotion;
