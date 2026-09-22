@@ -128,7 +128,59 @@ void force_opaque_pixels(SDL_Surface* s) {
 
 }  // namespace
 
-// ── Viewport (logical size → screen, letterboxed) ────────────────────────────
+// ── Viewport (logical size → screen, letterboxed) ──────────────────────────
+
+// ── Boot thread: pad bring-up with bounded timeout ──────────────────────────
+#ifdef __PS2__
+// padInit() (called inside libpad) does sceSifBindRpc() which can hang if
+// the IOP has no pad server — on some PCSX2 HLE setups, without rom0 loaded
+// first, that bind blocks forever. We run the whole pad bring-up (including
+// SifLoadModule calls) in a separate thread so the main thread can timeout
+// after 1 s and still boot: gray splash = no pad, but the game runs. The
+// thread itself is color-coded:
+//   orange = before SifLoadModule SIO2MAN · purple = before PADMAN ·
+//   blue   = padPortOpen · white = pad ready · gray = NO pad detected.
+void EnginePS2::boot_pad_thread(EnginePS2 *eng, int sem_id) {
+    SDL_Surface *scr = eng->m_screen;
+    auto splash = [scr](int r, int g, int b) {
+        SDL_FillRect(scr, nullptr,
+                     SDL_MapRGB(scr->format, Uint8(r), Uint8(g), Uint8(b)));
+        SDL_Flip(scr);
+    };
+
+    // Load IOP modules first: without them the pad RPC server doesn't exist
+    // and padInit's bind blocks forever. On PCSX2 HLE rom0: loads resolve
+    // to HLE replacements — on real BIOS they come from the console ROM.
+    splash(255, 128, 0);  // orange
+    int r1 = SifLoadModule("rom0:SIO2MAN", 0, nullptr);
+    (void)r1;
+    splash(180, 0, 255);  // purple
+    int r2 = SifLoadModule("rom0:PADMAN", 0, nullptr);
+    (void)r2;
+
+    padInit(0);
+    eng->m_pad_ok = (padPortOpen(0, 0, eng->m_pad_buf) != 0);
+    splash(0, 64, 255);   // blue: settling
+    for (int i = 0; i < 100 && eng->m_pad_ok; ++i) {
+        const int st = padGetState(0, 0);
+        if (st == PAD_STATE_STABLE || st == PAD_STATE_FINDCTP1) break;
+        if (st == PAD_STATE_DISCONN) { eng->m_pad_ok = false; break; }
+        DelayThread(10000);  // 10 ms → ≤ 1 s total
+    }
+    if (eng->m_pad_ok) {
+        const int st = padGetState(0, 0);
+        eng->m_pad_ok = (st == PAD_STATE_STABLE || st == PAD_STATE_FINDCTP1);
+    }
+    if (eng->m_pad_ok) {
+        // Dualshock main mode, locked: makes the analog sticks report.
+        // Fails harmlessly on a digital pad — poll_pad() discards the
+        // all-zero analog reading; D-pad still works.
+        padSetMainMode(0, 0, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
+    }
+
+    SignalSema(sem_id);
+}
+#endif  // __PS2__
 
 void EnginePS2::update_viewport() {
     if (m_screen == nullptr || m_logical_w == 0 || m_logical_h == 0) {
@@ -217,44 +269,48 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     }
 #endif
 
-    // PS2 pad bring-up via libpad DIRECTLY — SDL's joystick driver froze
-    // here (stuck cyan): it starts with SifLoadModule("rom0:SIO2MAN"/
-    // "rom0:PADMAN"), calls that never return on PCSX2's HLE BIOS (no real
-    // ROM), before anything we could color. Every step below is
-    // canary-colored and every wait bounded, so the game always boots:
-    //   orange = about to padInit · purple = padInit done, opening port ·
-    //   blue   = port open, pad settling (≤1 s) ·
-    //   white  = pad ready · gray = init done but NO pad detected.
-    // PCSX2's HLE serves the pad RPC endpoints on bind — no IOP modules
-    // needed (real-hardware builds may want rom0 loads behind a flag).
+    // PS2 pad bring-up in a BOOT THREAD with a 1 s timeout.
+    // padInit() (called inside libpad) does sceSifBindRpc() which can hang
+    // if the IOP has no pad server — on some PCSX2 HLE setups, without
+    // rom0:SIO2MAN/PADMAN loaded first, that bind blocks forever. We run
+    // the whole pad bring-up (including SifLoadModule calls) in a separate
+    // thread so the main thread can timeout after 1 s and still boot: gray
+    // splash = no pad, but the game runs. The thread itself is color-coded:
+    //   orange = before SifLoadModule SIO2MAN · purple = before PADMAN ·
+    //   blue   = padPortOpen · white = pad ready · gray = NO pad detected.
 #ifdef __PS2__
-    auto splash = [this](int r, int g, int b) {
-        SDL_FillRect(m_screen, nullptr,
-                     SDL_MapRGB(m_screen->format, static_cast<Uint8>(r),
-                                static_cast<Uint8>(g), static_cast<Uint8>(b)));
-        SDL_Flip(m_screen);
-    };
-
-    splash(255, 128, 0);  // orange: padInit next
-    padInit(0);
-    splash(180, 0, 255);  // purple: padPortOpen next
-    m_pad_ok = (padPortOpen(0, 0, m_pad_buf) != 0);
-    splash(0, 64, 255);   // blue: settling (bounded)
-    for (int i = 0; i < 100 && m_pad_ok; ++i) {
-        const int st = padGetState(0, 0);
-        if (st == PAD_STATE_STABLE || st == PAD_STATE_FINDCTP1) break;
-        if (st == PAD_STATE_DISCONN) { m_pad_ok = false; break; }
-        DelayThread(10000);  // 10 ms → ≤1 s total
-    }
-    if (m_pad_ok) {
-        const int st = padGetState(0, 0);
-        m_pad_ok = (st == PAD_STATE_STABLE || st == PAD_STATE_FINDCTP1);
-    }
-    if (m_pad_ok) {
-        // Dualshock main mode, locked: makes the analog sticks report.
-        // Fails harmlessly on a digital pad — poll_pad() then simply
-        // discards the all-zero analog reading (D-pad still works).
-        padSetMainMode(0, 0, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
+    {
+        ee_sema_t sem{};
+        sem.count = 0;
+        sem.max_count = 1;
+        sem.init_count = 0;
+        sem.wait_threads = 0;
+        const s32 sem_id = CreateSema(&sem);
+        m_boot_sem_id = sem_id;
+        if (sem_id >= 0) {
+            ee_thread_t th{};
+            alignas(16) uint8_t th_stack[4096];
+            th.func           = reinterpret_cast<void *>(boot_pad_thread);
+            th.stack          = th_stack;
+            th.stack_size     = sizeof(th_stack);
+            th.gp_reg         = &_gp;
+            th.initial_priority = 0x70;  // same as ps2sdk's poweroff thread
+            th.attr           = 0;
+            th.option         = 0;
+            const s32 tid = CreateThread(&th);
+            m_boot_thread_id = tid;
+            if (tid >= 0) {
+                StartThread(tid, this);
+                // Wait up to 1 s for the pad thread (100 × 10 ms).
+                for (int i = 0; i < 100 && !m_pad_ok; ++i) {
+                    DelayThread(10000);
+                }
+                TerminateThread(tid);
+                DeleteThread(tid);
+                m_boot_thread_id = -1;
+            }
+        }
+        if (m_boot_sem_id >= 0) { DeleteSema(m_boot_sem_id); m_boot_sem_id = -1; }
     }
 #endif
 
@@ -303,10 +359,12 @@ void EnginePS2::shutdown() {
     }
 
 #ifdef __PS2__
-    if (m_pad_ok) {
-        padPortClose(0, 0);
+    if (m_boot_thread_id >= 0) {
+        TerminateThread(m_boot_thread_id);
+        DeleteThread(m_boot_thread_id);
+        m_boot_thread_id = -1;
     }
-    m_pad_ok = false;
+    if (m_boot_sem_id >= 0) DeleteSema(m_boot_sem_id);
 #endif
 
     Mix_CloseAudio();

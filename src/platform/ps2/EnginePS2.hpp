@@ -128,6 +128,11 @@ private:
     void poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
                   bool sdl_mouse_button);
 
+    // Runs padInit / SifLoadModule / padPortOpen in a background thread
+    // with a 1 s timeout so the game never freezes on a hung IOP bind.
+    // Only meaningful on PS2 (guarded at the definition site).
+    static void boot_pad_thread(EnginePS2 *eng, int sem_id);
+
     // Where draws go: active render target, else the backbuffer, else the screen.
     SDL_Surface* draw_target() const {
         return m_target != nullptr ? m_target : (m_backbuf != nullptr ? m_backbuf : m_screen);
@@ -176,6 +181,14 @@ private:
     std::uint32_t m_pad_prev{0};  // PAD_* mask held last frame (edge detect)
     std::int32_t m_mouse_x{0};    // logical cursor backing mouse_pos()
     std::int32_t m_mouse_y{0};
+
+#ifdef __PS2__
+    // Boot-thread state: padInit / SifLoadModule hang on some HLE setups, so
+    // we run them in a separate thread with a 1s timeout — the game always
+    // boots (gray splash = no pad) instead of freezing forever.
+    s32 m_boot_thread_id{-1};
+    s32 m_boot_sem_id{-1};
+#endif
 
     int m_master_vol{80};
     int m_sfx_vol{100};
