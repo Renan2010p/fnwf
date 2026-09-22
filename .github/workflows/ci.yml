@@ -254,6 +254,10 @@ jobs:
           # Build SDL_ttf (depends on SDL)
           make sdlttf
           make -C sdlttf install
+
+          # Diagnostics: show what actually got installed (case-sensitive names!)
+          echo "=== \$PS2SDK/ports/lib ==="
+          ls -la "$PS2SDK/ports/lib"
       - name: Build
         run: |
           export PS2DEV=/usr/local/ps2dev

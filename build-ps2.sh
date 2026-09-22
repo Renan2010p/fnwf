@@ -50,13 +50,13 @@ c = '${EE_BIN}/${PREFIX}-gcc'
 cpp = '${EE_BIN}/${PREFIX}-g++'
 ar = '${EE_BIN}/${PREFIX}-ar'
 strip = '${EE_BIN}/${PREFIX}-strip'
-pkgconfig = 'pkg-config'
+pkg-config = 'pkg-config'
 
 [built-in options]
 c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
 cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
-c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-lto', '-Wl,-melf32lr5900', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-lSDL', '-lSDL_ttf', '-lSDL_mixer', '-laudsrv', '-lpad']
-cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-lto', '-Wl,-melf32lr5900', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-lSDL', '-lSDL_ttf', '-lSDL_mixer', '-laudsrv', '-lpad']
+c_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-lto', '-Wl,-melf32lr5900', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lm']
+cpp_link_args = ['-march=r5900', '-mabi=eabi', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-lto', '-Wl,-melf32lr5900', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lm']
 
 [properties]
 needs_exe_wrapper = true
