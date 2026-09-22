@@ -52,11 +52,16 @@ ar = '${EE_BIN}/${PREFIX}-ar'
 strip = '${EE_BIN}/${PREFIX}-strip'
 pkg-config = 'pkg-config'
 
+# Flags follow the official ps2sdk sample conventions
+# (samples/Makefile.eeglobal_sample + samples/ps2dev.cmake):
+#   EE_CFLAGS  = -D_EE -G0 -O2 [-Wall -gdwarf-2]
+#   EE_LDFLAGS = -L... -Wl,-zmax-page-size=128 -T$PS2SDK/ee/startup/linkfile
+# No -mabi / -march / -mgp32 / -mno-abicalls: the toolchain defaults are correct.
 [built-in options]
-c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=32', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
-cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-march=r5900', '-mabi=32', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
-c_link_args = ['-march=r5900', '-mabi=32', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-lto', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
-cpp_link_args = ['-march=r5900', '-mabi=32', '-mno-abicalls', '-fno-pic', '-mgp32', '-mfp32', '-G0', '-fno-lto', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
+c_args = ['-D_EE', '-D__PS2__', '-DPS2', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
+cpp_args = ['-D_EE', '-D__PS2__', '-DPS2', '-G0', '-fno-exceptions', '-fno-rtti', '-fno-strict-aliasing', '-std=c++17', '-O2', '-DNDEBUG', '-I${SCRIPT_DIR}/src/platform/ps2/compat', '-I${PS2SDK}/ee/include', '-I${PS2SDK}/common/include', '-I${PS2SDK}/ports/include', '-I${PS2SDK}/ports/include/SDL']
+c_link_args = ['-G0', '-fno-lto', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
+cpp_link_args = ['-G0', '-fno-lto', '-Wl,-zmax-page-size=128', '-T${PS2SDK}/ee/startup/linkfile', '-L${PS2SDK}/ee/lib', '-L${PS2SDK}/common/lib', '-L${PS2SDK}/ports/lib', '-L${GSKIT}/lib', '-lsdl', '-lsdlmixer', '-lSDL_ttf', '-lfreetype', '-lpng', '-lz', '-logg', '-lvorbis', '-lvorbisfile', '-laudsrv', '-lpad', '-lgskit', '-ldmakit', '-lm']
 
 [properties]
 needs_exe_wrapper = true
