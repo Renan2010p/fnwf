@@ -222,7 +222,7 @@ jobs:
       - name: Install build tools
         run: |
           apk update
-          apk add meson ninja-build pkgconf python3 cmake git
+          apk add meson ninja-build pkgconf python3 cmake git make
       - name: Build gsKit and SDL ports
         run: |
           export PS2DEV=/usr/local/ps2dev
