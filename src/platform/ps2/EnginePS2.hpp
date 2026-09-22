@@ -10,6 +10,13 @@
 // PS2SDK: include only what we need — tamtypes.h 128-bit types break with -mgp32.
 // libpad.h and sifrpc.h pull in their own type definitions.
 #include <kernel.h>
+// ps2sdk moved DelayThread out of kernel.h into its own header; older
+// releases still have it in kernel.h — include only if present.
+#if defined(__has_include)
+#  if __has_include(<delaythread.h>)
+#    include <delaythread.h>
+#  endif
+#endif
 #include <sifrpc.h>
 #include <loadfile.h>
 #include <libpad.h>
@@ -113,10 +120,11 @@ private:
     // Recomputes m_scale/m_off_x/m_off_y (logical size → screen, letterboxed).
     void update_viewport();
 
-    // Reads the DualShock every frame and appends virtual mouse/keyboard
-    // events — the game was built for mouse + keyboard. sdl_mouse_* report
-    // whether SDL already delivered real mouse input this frame (USB mouse or
-    // the port's own pad→mouse emulation) so nothing gets applied twice.
+    // Reads the DualShock every frame (libpad directly — SDL's joystick
+    // driver hangs loading IOP modules under PCSX2's HLE) and appends
+    // virtual mouse/keyboard events — the game was built for mouse +
+    // keyboard. sdl_mouse_* report whether SDL already delivered real mouse
+    // input this frame (USB mouse) so nothing gets applied twice.
     void poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
                   bool sdl_mouse_button);
 
@@ -162,9 +170,10 @@ private:
     bool m_dpad_held[4]{};
     int m_dpad_wait[4]{};
 
-    // PS2 pad → virtual mouse/keyboard (see poll_pad()).
-    SDL_Joystick* m_joy{nullptr};
-    std::uint32_t m_pad_prev{0};  // buttons held last frame (edge detection)
+    // PS2 pad → virtual mouse/keyboard (see poll_pad(); libpad directly).
+    bool m_pad_ok{false};
+    alignas(64) std::uint8_t m_pad_buf[256]{};  // padPortOpen DMA buffer
+    std::uint32_t m_pad_prev{0};  // PAD_* mask held last frame (edge detect)
     std::int32_t m_mouse_x{0};    // logical cursor backing mouse_pos()
     std::int32_t m_mouse_y{0};
 

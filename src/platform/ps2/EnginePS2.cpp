@@ -217,26 +217,56 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     }
 #endif
 
-    // PS2 pad input: brings the pad driver up on the IOP (HLE'd by PCSX2).
-    // Deliberately last and after the cyan splash, so a hang in here leaves
-    // cyan on screen (revert point) instead of a black/white freeze. The pad
-    // is translated into mouse/keyboard events in poll_pad().
-    if (SDL_Init(SDL_INIT_JOYSTICK) == 0 && SDL_NumJoysticks() > 0) {
-        m_joy = SDL_JoystickOpen(0);
+    // PS2 pad bring-up via libpad DIRECTLY — SDL's joystick driver froze
+    // here (stuck cyan): it starts with SifLoadModule("rom0:SIO2MAN"/
+    // "rom0:PADMAN"), calls that never return on PCSX2's HLE BIOS (no real
+    // ROM), before anything we could color. Every step below is
+    // canary-colored and every wait bounded, so the game always boots:
+    //   orange = about to padInit · purple = padInit done, opening port ·
+    //   blue   = port open, pad settling (≤1 s) ·
+    //   white  = pad ready · gray = init done but NO pad detected.
+    // PCSX2's HLE serves the pad RPC endpoints on bind — no IOP modules
+    // needed (real-hardware builds may want rom0 loads behind a flag).
+#ifdef __PS2__
+    auto splash = [this](int r, int g, int b) {
+        SDL_FillRect(m_screen, nullptr,
+                     SDL_MapRGB(m_screen->format, static_cast<Uint8>(r),
+                                static_cast<Uint8>(g), static_cast<Uint8>(b)));
+        SDL_Flip(m_screen);
+    };
+
+    splash(255, 128, 0);  // orange: padInit next
+    padInit(0);
+    splash(180, 0, 255);  // purple: padPortOpen next
+    m_pad_ok = (padPortOpen(0, 0, m_pad_buf) != 0);
+    splash(0, 64, 255);   // blue: settling (bounded)
+    for (int i = 0; i < 100 && m_pad_ok; ++i) {
+        const int st = padGetState(0, 0);
+        if (st == PAD_STATE_STABLE || st == PAD_STATE_FINDCTP1) break;
+        if (st == PAD_STATE_DISCONN) { m_pad_ok = false; break; }
+        DelayThread(10000);  // 10 ms → ≤1 s total
     }
-    // poll_pad() reads pad state directly every frame; SDL's own joystick
-    // event queue would only add noise to the event loop.
-    SDL_JoystickEventState(SDL_DISABLE);
+    if (m_pad_ok) {
+        const int st = padGetState(0, 0);
+        m_pad_ok = (st == PAD_STATE_STABLE || st == PAD_STATE_FINDCTP1);
+    }
+    if (m_pad_ok) {
+        // Dualshock main mode, locked: makes the analog sticks report.
+        // Fails harmlessly on a digital pad — poll_pad() then simply
+        // discards the all-zero analog reading (D-pad still works).
+        padSetMainMode(0, 0, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
+    }
+#endif
 
     m_running = true;
     m_vsync = vsync;
 
-    // TEMP DIAGNOSTIC: splash = init() completed. White = pad opened;
-    // gray = no joystick found (controls will not respond). A hang while
+    // TEMP DIAGNOSTIC: splash = init() completed. White = pad ready;
+    // gray = no pad detected (controls will not respond). A hang while
     // loading fonts/saves/building states in main() leaves it on screen.
     SDL_FillRect(m_screen, nullptr,
-                 m_joy != nullptr ? SDL_MapRGB(m_screen->format, 255, 255, 255)
-                                  : SDL_MapRGB(m_screen->format, 96, 96, 96));
+                 m_pad_ok ? SDL_MapRGB(m_screen->format, 255, 255, 255)
+                          : SDL_MapRGB(m_screen->format, 96, 96, 96));
     SDL_Flip(m_screen);
 
     return true;
@@ -272,10 +302,12 @@ void EnginePS2::shutdown() {
         m_tpl_alpha = nullptr;
     }
 
-    if (m_joy != nullptr) {
-        SDL_JoystickClose(m_joy);
-        m_joy = nullptr;
+#ifdef __PS2__
+    if (m_pad_ok) {
+        padPortClose(0, 0);
     }
+    m_pad_ok = false;
+#endif
 
     Mix_CloseAudio();
     TTF_Quit();
@@ -360,8 +392,10 @@ std::vector<Event> EnginePS2::poll_events() {
 }
 
 // The game is a mouse + keyboard title; on PS2 the DualShock stands in for
-// both. The pad is read through SDL's joystick API every frame and translated
-// into the same events a real mouse/keyboard would produce:
+// both. The pad is read through libpad every frame (NOT SDL's joystick
+// driver — that path SifLoadModule()s rom0 modules and freezes under
+// PCSX2's HLE) and translated into the same events a real mouse/keyboard
+// would produce:
 //
 //   D-pad ................. arrow keys — console-style menu navigation
 //                           (MenuState moves the highlight on up/down)
@@ -377,17 +411,24 @@ std::vector<Event> EnginePS2::poll_events() {
 //   L1 / R1 ............... q / e   (left / right door)
 //   L2 / R2 ............... a / d   (left / right light)
 //   L3 .................... l       (vent light)
-//
-// (Kept out of the driver's optional pad→mouse path: that only activates
-// behind the port's PS2SDL_USE_INPUT_DEVICES compile flag and its state is
-// invisible from here.)
 void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
                          bool sdl_mouse_button) {
-    if (m_joy == nullptr) return;
+#ifndef __PS2__
+    (void)out;
+    (void)sdl_mouse_motion;
+    (void)sdl_mouse_button;
+#else
+    if (!m_pad_ok) return;
 
-    // Refresh the driver's cached axis/hat/button state; poll_pad() reads it
-    // directly instead of using SDL's joystick event queue.
-    SDL_JoystickUpdate();
+    // Fresh sample, or nothing new this frame (padRead returns 0 when the
+    // pad hasn't been serviced since the last read).
+    struct padButtonStatus pbs;
+    if (padRead(0, 0, &pbs) == 0) return;
+
+    // btns is active-low: flip it so a set bit means "pressed" — the same
+    // trick the SDL ps2 driver uses.
+    const std::uint32_t pressed =
+        (~static_cast<std::uint32_t>(pbs.btns)) & 0xFFFFu;
 
     // ── D-pad → arrow keys (menu navigation) ───────────────────────────
     // SDL2 keycode values, which is what the game states check
@@ -395,17 +436,16 @@ void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
     // repeat like a keyboard autorepeat. Most states ignore arrows —
     // StoryState explicitly returns on keys other than 13/32, and
     // GameplayState matches letters only.
-    const Uint8 hat = SDL_JoystickGetHat(m_joy, 0);
     {
         static constexpr std::int32_t kArrowCode[4] = {1073741906, 1073741905,
                                                        1073741904, 1073741903};
-        static constexpr Uint8 kDirHat[4] = {SDL_HAT_UP, SDL_HAT_DOWN,
-                                             SDL_HAT_LEFT, SDL_HAT_RIGHT};
+        static constexpr std::uint32_t kDirBtn[4] = {PAD_UP, PAD_DOWN,
+                                                     PAD_LEFT, PAD_RIGHT};
         constexpr int kRepeatFirst = 15;  // frames until the first repeat
         constexpr int kRepeatRate = 6;    // frames between repeats
 
         for (int d = 0; d < 4; ++d) {
-            const bool active = (hat & kDirHat[d]) != 0;
+            const bool active = (pressed & kDirBtn[d]) != 0;
             bool send = false;
             if (active) {
                 if (!m_dpad_held[d]) {
@@ -433,17 +473,25 @@ void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
     // ── Left stick → virtual cursor ────────────────────────────────────
     int dx = 0, dy = 0;
 
-    // Left stick, proportional: the PS2 driver reports (raw-128)*127, i.e.
-    // about ±16256; the deadzone swallows resting drift.
-    constexpr float kAxisMax = 16256.0f;
-    constexpr int kDeadzone = 2500;
+    // Raw stick values are 0..255 centered on 128 (libpad's scale — not the
+    // SDL driver's ×16256). An all-zero reading means a digital pad or
+    // analog not active: treat it as centered so a dead stick can't drift
+    // the cursor. The deadzone swallows resting drift.
+    constexpr int kAxisMax = 128;   // raw units from center at full deflection
+    constexpr int kDeadzone = 6;     // raw units
     constexpr float kStickSpeed = 22.0f;
-    const Sint16 ax = SDL_JoystickGetAxis(m_joy, 0);
-    const Sint16 ay = SDL_JoystickGetAxis(m_joy, 1);
+    int ax = 0, ay = 0;
+    if (!(pbs.ljoy_h == 0 && pbs.ljoy_v == 0 && pbs.rjoy_h == 0 &&
+          pbs.rjoy_v == 0)) {
+        ax = static_cast<int>(pbs.ljoy_h) - 128;
+        ay = static_cast<int>(pbs.ljoy_v) - 128;
+    }
     if (ax > kDeadzone || ax < -kDeadzone)
-        dx += static_cast<int>(static_cast<float>(ax) * kStickSpeed / kAxisMax);
+        dx += static_cast<int>(static_cast<float>(ax) * kStickSpeed /
+                               static_cast<float>(kAxisMax));
     if (ay > kDeadzone || ay < -kDeadzone)
-        dy += static_cast<int>(static_cast<float>(ay) * kStickSpeed / kAxisMax);
+        dy += static_cast<int>(static_cast<float>(ay) * kStickSpeed /
+                               static_cast<float>(kAxisMax));
 
     if ((dx != 0 || dy != 0) && !sdl_mouse_motion) {
         const std::int32_t max_x =
@@ -462,32 +510,25 @@ void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
         out.push_back(std::move(ev));
     }
 
-    // ── Buttons (edge-triggered) ───────────────────────────────────────
-    // Button indices in the port's PS2 joystick driver:
-    //   0 Square 1 Cross 2 Circle 3 Triangle 4 Select 5 Start
-    //   6 L1 7 R1 8 L2 9 R2 10 L3 11 R3
-    std::uint32_t now = 0;
-    for (int i = 0; i < 12; ++i) {
-        if (SDL_JoystickGetButton(m_joy, i)) now |= (1u << i);
-    }
-    const std::uint32_t rose = now & ~m_pad_prev;
-    const std::uint32_t fell = m_pad_prev & ~now;
-    m_pad_prev = now;
+    // ── Buttons (edge-triggered on the PAD_* mask) ─────────────────────
+    const std::uint32_t rose = pressed & ~m_pad_prev;
+    const std::uint32_t fell = m_pad_prev & ~pressed;
+    m_pad_prev = pressed;
 
     // Triangle → left click at the cursor, suppressed if SDL already
-    // delivered a real button event this frame (the driver's own pad→mouse
-    // path). Cross is Enter, NOT a click: menus must confirm the *highlighted*
-    // entry, and a synthetic click would activate whatever option the cursor
-    // happens to sit on instead.
+    // delivered a real button event this frame (USB mouse). Cross is
+    // Enter, NOT a click: menus must confirm the *highlighted* entry, and
+    // a synthetic click would activate whatever option the cursor happens
+    // to sit on instead.
     if (!sdl_mouse_button) {
-        if (rose & (1u << 3)) {
+        if (rose & PAD_TRIANGLE) {
             Event ev;
             ev.type = EventType::MouseButtonDown;
             ev.x = m_mouse_x;
             ev.y = m_mouse_y;
             out.push_back(std::move(ev));
         }
-        if (fell & (1u << 3)) {
+        if (fell & PAD_TRIANGLE) {
             Event ev;
             ev.type = EventType::MouseButtonUp;
             ev.x = m_mouse_x;
@@ -516,16 +557,17 @@ void EnginePS2::poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
         }
     };
 
-    key_edges(1u << 0, 32);    // Square → Space
-    key_edges(1u << 1, 13);    // Cross → Enter (confirm)
-    key_edges(1u << 2, 27);    // Circle → Escape (back)
-    key_edges(1u << 4, 9);     // Select → Tab (monitor)
-    key_edges(1u << 5, 13);    // Start → Enter
-    key_edges(1u << 6, 'q');   // L1 → left door
-    key_edges(1u << 7, 'e');   // R1 → right door
-    key_edges(1u << 8, 'a');   // L2 → left light
-    key_edges(1u << 9, 'd');   // R2 → right light
-    key_edges(1u << 10, 'l');  // L3 → vent light
+    key_edges(PAD_SQUARE, 32);    // Square → Space
+    key_edges(PAD_CROSS, 13);     // Cross → Enter (confirm)
+    key_edges(PAD_CIRCLE, 27);    // Circle → Escape (back)
+    key_edges(PAD_SELECT, 9);     // Select → Tab (monitor)
+    key_edges(PAD_START, 13);     // Start → Enter
+    key_edges(PAD_L1, 'q');       // L1 → left door
+    key_edges(PAD_R1, 'e');       // R1 → right door
+    key_edges(PAD_L2, 'a');       // L2 → left light
+    key_edges(PAD_R2, 'd');       // R2 → right light
+    key_edges(PAD_L3, 'l');       // L3 → vent light
+#endif
 }
 
 float EnginePS2::ticks() const noexcept {
