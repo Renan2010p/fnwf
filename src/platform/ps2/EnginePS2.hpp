@@ -17,10 +17,12 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
+#include <SDL_image.h>
 #else
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
+#include <SDL_image.h>
 #endif
 
 #include <unordered_map>
@@ -108,7 +110,29 @@ private:
                      std::int32_t sw, std::int32_t sh,
                      std::uint8_t alpha);
 
+    // Recomputes m_scale/m_off_x/m_off_y (logical size → screen, letterboxed).
+    void update_viewport();
+
+    // Where draws go: active render target, else the backbuffer, else the screen.
+    SDL_Surface* draw_target() const {
+        return m_target != nullptr ? m_target : (m_backbuf != nullptr ? m_backbuf : m_screen);
+    }
+
+    // Logical (game) → physical (screen) coordinate mapping.
+    std::int32_t map_x(std::int32_t v) const {
+        return m_off_x + static_cast<std::int32_t>(static_cast<float>(v) * m_scale);
+    }
+    std::int32_t map_y(std::int32_t v) const {
+        return m_off_y + static_cast<std::int32_t>(static_cast<float>(v) * m_scale);
+    }
+
     SDL_Surface* m_screen{nullptr};
+    // Offscreen buffer in the engine's canonical pixel format. All screen-space
+    // drawing targets it; present() blits it onto m_screen (which may be in a
+    // different format chosen by SDL's PS2 video driver).
+    SDL_Surface* m_backbuf{nullptr};
+    // 1x1 surface used purely as an SDL_PixelFormat template for conversions.
+    SDL_Surface* m_tpl_alpha{nullptr};
     SDL_Surface* m_target{nullptr};
     std::unordered_map<std::uint32_t, SDL_Surface*> m_textures{};
     std::unordered_map<std::uint32_t, Mix_Chunk*> m_chunks{};
@@ -119,6 +143,9 @@ private:
     std::uint32_t m_logical_h{};
     std::uint32_t m_physical_w{};
     std::uint32_t m_physical_h{};
+    float m_scale{1.0f};
+    std::int32_t m_off_x{0};
+    std::int32_t m_off_y{0};
     bool m_running{false};
     bool m_vsync{false};
 
