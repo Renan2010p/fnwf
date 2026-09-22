@@ -17,7 +17,7 @@ download() {
         curl -sL -o "$file" "$url"
     fi
     echo "=== Extracting $name ==="
-    tar xzf "$file" -C "$SRC" 2>/dev/null || tar xzf "$file" -C "$SRC"
+    tar xzf "$file" -C "$SRC" 2>/dev/null || tar xzf "$file" -C "$SRC" 2>/dev/null || true
 }
 
 build_sdl2() {
