@@ -149,6 +149,7 @@ private:
     bool m_running{false};
     bool m_vsync{false};
     bool m_ttf_ok{false};
+    bool m_audio_ok{false};
 
     int m_master_vol{80};
     int m_sfx_vol{100};

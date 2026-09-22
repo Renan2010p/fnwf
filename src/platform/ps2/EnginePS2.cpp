@@ -197,12 +197,25 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     m_tpl_alpha = make_surface(1, 1, true);
     update_viewport();
 
-    // Best-effort subsystems — a failure here must not black-screen the game.
-    SDL_Init(SDL_INIT_AUDIO);  // registers the driver; the device opens below
+    // TEMP DIAGNOSTIC: cyan splash = backbuffer + viewport ready.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 255));
+    SDL_Flip(m_screen);
+
     m_ttf_ok = (TTF_Init() == 0);
+
+    // Audio is DISABLED on PS2 for now: the green splash froze on PCSX2
+    // (log silent right after video init), i.e. the libsd/audsrv IOP RPC
+    // chain inside SDL_Init(SDL_INIT_AUDIO)/Mix_OpenAudio never returns.
+    // Every Mix call tolerates a closed device (Mix_LoadWAV/Mix_CloseAudio
+    // check audio_opened), so the game runs silent until audio gets its own
+    // debugging pass. Re-enable with -DFNWF_PS2_ENABLE_AUDIO.
+#ifdef FNWF_PS2_ENABLE_AUDIO
+    SDL_Init(SDL_INIT_AUDIO);  // registers the driver; the device opens below
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) == 0) {
         Mix_AllocateChannels(32);
+        m_audio_ok = true;
     }
+#endif
 
     m_running = true;
     m_vsync = vsync;
@@ -761,6 +774,9 @@ std::optional<TextureHandle> EnginePS2::create_target(std::uint32_t w, std::uint
 }
 
 std::optional<SoundHandle> EnginePS2::load_sound(std::string_view path) {
+    // With audio disabled (see init), fail fast instead of re-opening the
+    // file on every play attempt — SoundManager only caches successful loads.
+    if (!m_audio_ok) return std::nullopt;
     Mix_Chunk* chunk = Mix_LoadWAV(platform_path(path).c_str());
     if (!chunk) return std::nullopt;
 
