@@ -222,7 +222,7 @@ jobs:
       - name: Install build tools
         run: |
           apk update
-          apk add meson ninja-build pkgconf python3 cmake git make
+          apk add meson ninja-build pkgconf python3 cmake git build-base bash
       - name: Build gsKit and SDL ports
         run: |
           export PS2DEV=/usr/local/ps2dev
@@ -241,6 +241,7 @@ jobs:
           # Build SDL, SDL_mixer, SDL_ttf from ps2sdk-ports
           git clone --depth 1 https://github.com/ps2dev/ps2sdk-ports.git
           cd ps2sdk-ports
+          chmod +x fetch.sh build-cmakelibs.sh
 
           # Build SDL first (depends on gsKit)
           make sdl
