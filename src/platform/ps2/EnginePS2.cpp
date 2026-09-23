@@ -325,9 +325,10 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 #ifdef __PS2__
     // ── gsKit hardware renderer init ────────────────────────────────────────
     // Initialize DMA first (required before gsKit), then gsKit global + screen.
-    // All drawing (clear, rects, textured sprites) runs on the GS GPU via the
-    // persistent draw queue, then we flip with vsync limiting to 60 fps.
-    // SDL stays for video init, input polling, audio, and asset loading only.
+    // gsKit takes over the GS directly — it must be initialized AFTER SDL
+    // has set up the video mode, because gsKit reconfigures the GS hardware.
+    // If gsKit fails, m_gsGlobal stays nullptr and all drawing falls back
+    // to SDL software rendering (slower but functional).
     dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC,
                 D_CTRL_STD_OFF, D_CTRL_RCYC_8, 1 << DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
@@ -342,12 +343,19 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
         m_gsGlobal->ZBuffering = GS_SETTING_OFF;
         m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
-        gsKit_init_screen(m_gsGlobal);
-        gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
-        gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 0, 0));
+        // gsKit_init_screen reconfigures the GS display — must happen AFTER
+        // SDL_SetVideoMode has already set up the video mode.
+        if (m_screen != nullptr) {
+            gsKit_init_screen(m_gsGlobal);
+            gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
+            gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 255, 0));
+        } else {
+            // SDL video failed — don't use gsKit.
+            m_gsGlobal = nullptr;
+        }
     }
-    // If m_gsGlobal is nullptr, gsKit failed to init — rendering will fall
-    // back to SDL in present() / clear() / draw_rect() / draw_texture().
+    // If m_gsGlobal is nullptr, gsKit failed to init — rendering falls back
+    // to SDL in present() / clear() / draw_rect() / draw_texture().
 #endif
 
     // Audio is DISABLED on PS2 for now: the green splash froze on PCSX2
@@ -739,11 +747,11 @@ float EnginePS2::ticks() const noexcept {
 void EnginePS2::present() {
 #ifdef __PS2__
     if (m_gsGlobal == nullptr) {
-        // gsKit not initialized — fall back to SDL.
+        // gsKit not initialized or failed — fall back to SDL.
         if (m_screen != nullptr) SDL_Flip(m_screen);
         return;
     }
-    // Execute all queued draws and flip buffers with vsync.
+    // Execute queued draws and flip buffers with vsync.
     gsKit_queue_exec(m_gsGlobal);
     gsKit_sync_flip(m_gsGlobal);
 #else
