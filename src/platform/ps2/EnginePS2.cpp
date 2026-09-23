@@ -221,8 +221,8 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         return false;
     }
 
-    m_physical_w = 640;
-    m_physical_h = 448;
+    m_physical_w = 320;
+    m_physical_h = 240;
 
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
@@ -662,7 +662,7 @@ void EnginePS2::set_vsync(bool on) {
 void EnginePS2::set_resolution(std::uint32_t /*w*/, std::uint32_t /*h*/) {}
 
 std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
-    return {{640, 448, 60}, {640, 480, 60}};
+    return {{320, 240, 60}, {320, 240, 60}};
 }
 
 // ── Drawing primitives ───────────────────────────────────────────────────────
