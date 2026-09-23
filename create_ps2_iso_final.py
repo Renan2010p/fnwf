@@ -106,7 +106,13 @@ def create_ps2_iso(src_dir, output_path):
         
         # File data
         iso[file_data_off:file_data_off+len(data)] = data
+        # Align to next sector boundary
         file_data_off += len(data)
+        file_data_off = ((file_data_off + SECTOR - 1) // SECTOR) * SECTOR
+    
+    print(f"\nFile data layout:")
+    print(f"  FNWF.ELF: sector 19, size 15848780 bytes")
+    print(f"  Next file should be at sector {(19*SECTOR + 15848780 + SECTOR-1)//SECTOR}")
     
     # Write
     with open(output_path, 'wb') as f:
