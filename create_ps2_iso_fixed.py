@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a proper PS2 bootable ISO with CORRECT sector layout."""
+"""Create a proper PS2 bootable ISO with correct sector layout."""
 
 import struct
 import os
@@ -18,66 +18,79 @@ def create_ps2_iso(src_dir, output_path):
             files.append((rel, data))
     
     print(f"Found {len(files)} files")
+    for rel, data in files:
+        print(f"  {rel} ({len(data)/1024:.1f} KB)")
     
-    # === CALCULATE LAYOUT ===
+    # Calculate layout
+    total_data = sum(len(d) for _, d in files)
+    num_files = len(files)
+    
+    # Directory entries: . + .. + files
+    num_dir_entries = 2 + num_files
+    dir_entries_size = num_dir_entries * 34
+    
+    # Sector layout:
     # Sectors 0-15: System area (zeros)
-    # Sector 16: PVD
-    # Sector 17: Root directory (. and ..)
-    # Sector 18+: File directory entries (34 bytes each)
+    # Sector 16: Primary Volume Descriptor (PVD)
+    # Sector 17: Root directory entries (. + ..)
+    # Sector 18+: File directory entries
     # After entries: File data
     
-    num_files = len(files)
-    num_entries = num_files + 2  # . + ..
-    dir_entries_size = num_entries * 34
+    pvd_sector = 16
+    root_dir_sector = 17
+    file_entries_sector = 18
     
-    # Where file data starts (after all directory entries)
-    # Entry sector = 18
-    # Entry offset within sector = 0
-    # Total entry space = num_entries * 34
-    data_start_offset = 18 * SECTOR + dir_entries_size
-    # Round up to sector boundary
-    data_start_offset = ((data_start_offset + SECTOR - 1) // SECTOR) * SECTOR
-    data_start_sector = data_start_offset // SECTOR
+    # Root directory entry size (2 entries: . and ..)
+    root_dir_size = 2 * 34
     
-    total_data = sum(len(d) for _, d in files)
-    total_size = data_start_offset + total_data
+    # File entries start at sector 18
+    file_entries_start = file_entries_sector * SECTOR
+    
+    # File data starts after root dir + file entries
+    file_data_start = file_entries_start + num_dir_entries * 34
+    file_data_start = ((file_data_start + SECTOR - 1) // SECTOR) * SECTOR
+    file_data_sector = file_data_start // SECTOR
+    
+    total_size = file_data_start + total_data
     total_size = ((total_size + SECTOR - 1) // SECTOR) * SECTOR
-    total_sectors = total_size // SECTOR
     
-    print(f"Directory entries: {dir_entries_size} bytes (sectors 17-{17 + dir_entries_size//SECTOR})")
-    print(f"File data starts: sector {data_start_sector} (offset {data_start_offset})")
-    print(f"Total: {total_sectors} sectors ({total_size/1024/1024:.2f} MB)")
+    print(f"\nLayout:")
+    print(f"  PVD: sector {pvd_sector}")
+    print(f"  Root dir: sector {root_dir_sector} ({root_dir_size} bytes)")
+    print(f"  File entries: sector {file_entries_sector}")
+    print(f"  File data: sector {file_data_sector}")
+    print(f"  Total: {total_size // SECTOR} sectors ({total_size/1024/1024:.2f} MB)")
     
-    # === CREATE ISO ===
+    # Create ISO
     iso = bytearray(total_size)
     
-    # --- PVD (sector 16) ---
+    # === PVD (sector 16) ===
     pvd = bytearray(SECTOR)
-    pvd[0] = 2  # Type
+    pvd[0] = 2  # Type: Primary Volume Descriptor
     pvd[1:6] = b'CD001'
     pvd[6] = 1
     pvd[41:73] = b'PLAYSTATION 2'
     pvd[73:105] = b'SLUS-20001'
-    struct.pack_into('<Q', pvd, 129, total_sectors)
-    struct.pack_into('<Q', pvd, 155, total_sectors)
+    struct.pack_into('<Q', pvd, 129, total_size // SECTOR)
+    struct.pack_into('<Q', pvd, 155, total_size // SECTOR)
     struct.pack_into('<H', pvd, 163, SECTOR)
     iso[16*SECTOR:17*SECTOR] = pvd
     
-    # --- Root Directory (sector 17) ---
-    root_off = 17 * SECTOR
+    # === Root Directory (sector 17) ===
+    root_off = root_dir_sector * SECTOR
     
     # Entry for .
     iso[root_off] = 34
-    struct.pack_into('<I', iso, root_off+1, 17)  # extent
-    struct.pack_into('<I', iso, root_off+5, dir_entries_size)  # size
+    struct.pack_into('<I', iso, root_off+1, root_dir_sector)
+    struct.pack_into('<I', iso, root_off+5, root_dir_size + num_files * 34)
     iso[root_off+9] = 90
-    iso[root_off+16] = 0x03  # flags: directory
+    iso[root_off+16] = 0x03
     iso[root_off+21] = 1
     iso[root_off+22] = ord('.')
     
     # Entry for ..
     iso[root_off+34] = 34
-    struct.pack_into('<I', iso, root_off+35, 16)  # extent = PVD sector
+    struct.pack_into('<I', iso, root_off+35, pvd_sector)
     struct.pack_into('<I', iso, root_off+39, SECTOR)
     iso[root_off+43] = 90
     iso[root_off+50] = 0x02
@@ -85,9 +98,9 @@ def create_ps2_iso(src_dir, output_path):
     iso[root_off+56] = ord('.')
     iso[root_off+57] = ord('.')
     
-    # --- File Entries (sector 18+) ---
-    entry_off = 18 * SECTOR
-    file_data_off = data_start_offset
+    # === File Directory Entries (sector 18+) ===
+    entry_off = file_entries_sector * SECTOR
+    file_data_off = file_data_start
     
     for i, (rel, data) in enumerate(files):
         name = os.path.basename(rel).split(';')[0][:31]
@@ -98,7 +111,7 @@ def create_ps2_iso(src_dir, output_path):
         struct.pack_into('<I', iso, entry_off+1, file_data_off // SECTOR)
         struct.pack_into('<I', iso, entry_off+5, len(data))
         iso[entry_off+9] = 90
-        iso[entry_off+16] = 0x00  # flags: file
+        iso[entry_off+16] = 0x00
         iso[entry_off+21] = name_len
         for j, c in enumerate(name):
             iso[entry_off+22+j] = ord(c)
@@ -108,13 +121,14 @@ def create_ps2_iso(src_dir, output_path):
         iso[file_data_off:file_data_off+len(data)] = data
         file_data_off += len(data)
     
-    # Write
+    # Write ISO
     with open(output_path, 'wb') as f:
         f.write(iso)
     
-    print(f"\n✅ ISO: {output_path}")
+    print(f"\n✅ ISO created: {output_path}")
+    print(f"📊 Size: {len(iso)/1024/1024:.2f} MB")
     
-    # === VERIFY ===
+    # Verify
     print("\n=== Verification ===")
     with open(output_path, 'rb') as f:
         # Check PVD
@@ -124,13 +138,8 @@ def create_ps2_iso(src_dir, output_path):
         print(f"PVD Sig: {pvd[1:6]}")
         print(f"Volume: {pvd[73:105].decode().strip()}")
         
-        # Check root dir
+        # Check directory entries
         f.seek(17*SECTOR)
-        root = f.read(68)
-        print(f"\nRoot dir: entry1 len={root[0]}, entry2 len={root[34]}")
-        
-        # Check file entries
-        f.seek(18*SECTOR)
         entries = []
         for i in range(30):
             entry = f.read(34)
@@ -141,29 +150,20 @@ def create_ps2_iso(src_dir, output_path):
             size = struct.unpack('<I', entry[5:9])[0]
             entries.append((name, sector, size))
         
-        print(f"\nFiles: {len(entries)}")
+        print(f"\nEntries: {len(entries)}")
         for name, sector, size in entries:
-            print(f"  {name:30s} sector={sector:5d} ({size/1024:.1f} KB)")
+            print(f"  {name:30s} sector={sector:5d} size={size:8d}")
         
-        # Verify SYSTEM.CNF content
+        # Read SYSTEM.CNF
         for name, sector, size in entries:
             if 'SYSTEM' in name:
                 f.seek(sector*SECTOR)
                 data = f.read(size)
+                print(f"\nSYSTEM.CNF content:")
                 text = data.decode('ascii', errors='ignore')
-                print(f"\n=== SYSTEM.CNF (sector {sector}) ===")
                 for line in text.split('\n'):
-                    if '=' in line or line.strip():
+                    if '=' in line:
                         print(f"  {line.strip()}")
-                break
-        
-        # Verify FNWF.ELF is valid
-        for name, sector, size in entries:
-            if 'FNWF' in name:
-                f.seek(sector*SECTOR)
-                header = f.read(4)
-                print(f"\n=== FNWF.ELF (sector {sector}) ===")
-                print(f"  ELF magic: {header.hex()} (expected: 7f454c46)")
                 break
 
 
