@@ -279,33 +279,56 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     SifInitRpc(0);
 #endif
 
-    // Initialize timers first (needed for input polling).
-    // Video is handled by gsKit — do NOT initialize SDL video here.
-    if (SDL_Init(SDL_INIT_TIMER) != 0) {
+    // Video first: the game must reach SDL_SetVideoMode even if the audio
+    // stack (libsd + audsrv RPC on the IOP) fails or hangs. The old order
+    // (audio before video) turned any sound failure into a silent black
+    // screen, because main() reports init failures on stderr — invisible
+    // under PCSX2.
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         return false;
     }
 
     m_physical_w = 640;
     m_physical_h = 448;
 
-    // No SDL video surface — gsKit will handle display directly.
-    m_screen = nullptr;
+    m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
+                                static_cast<int>(m_physical_h),
+                                32,
+                                SDL_SWSURFACE | SDL_HWSURFACE);
+    if (m_screen == nullptr) {
+        return false;
+    }
+
+    SDL_WM_SetCaption("Five Nights With Friends", nullptr);
+
+    // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): green
+    // splash proves video setup completed; it stays on screen if the game
+    // never reaches the main loop.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 0));
+    SDL_Flip(m_screen);
 
     m_logical_w = w;
     m_logical_h = h;
 
-    // Create backbuffer for software rendering fallback.
+    // All screen-space drawing happens on the backbuffer (canonical format);
+    // present() scales nothing — coordinates are mapped at draw time instead.
     m_backbuf = make_surface(m_physical_w, m_physical_h, false);
     m_tpl_alpha = make_surface(1, 1, true);
     update_viewport();
+
+    // TEMP DIAGNOSTIC: cyan splash = backbuffer + viewport ready.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 255));
+    SDL_Flip(m_screen);
 
     m_ttf_ok = (TTF_Init() == 0);
 
 #ifdef __PS2__
     // ── gsKit hardware renderer init ────────────────────────────────────────
     // Initialize DMA first (required before gsKit), then gsKit global + screen.
-    // gsKit takes over the GS directly and handles all display output.
-    // SDL is used ONLY for input and audio — NOT video.
+    // gsKit takes over the GS directly — it must be initialized AFTER SDL
+    // has set up the video mode, because gsKit reconfigures the GS hardware.
+    // If gsKit fails, m_gsGlobal stays nullptr and all drawing falls back
+    // to SDL software rendering (slower but functional).
     dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC,
                 D_CTRL_STD_OFF, D_CTRL_RCYC_8, 1 << DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
@@ -320,17 +343,19 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
         m_gsGlobal->ZBuffering = GS_SETTING_OFF;
         m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
-        
-        // Manually setup framebuffers since we don't have SDL video surface
-        // Allocate two 640x448x4 = 1.1MB buffers for double buffering
-        m_gsGlobal->ScreenBuffer[0] = static_cast<u32>(reinterpret_cast<uiptr>(memalign(64, 640 * 448 * 4)));
-        m_gsGlobal->ScreenBuffer[1] = static_cast<u32>(reinterpret_cast<uiptr>(memalign(64, 640 * 448 * 4)));
-        
-        gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
-        gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 255, 0));
+        // gsKit_init_screen reconfigures the GS display — must happen AFTER
+        // SDL_SetVideoMode has already set up the video mode.
+        if (m_screen != nullptr) {
+            gsKit_init_screen(m_gsGlobal);
+            gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
+            gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 255, 0));
+        } else {
+            // SDL video failed — don't use gsKit.
+            m_gsGlobal = nullptr;
+        }
     }
     // If m_gsGlobal is nullptr, gsKit failed to init — rendering falls back
-    // to SDL software rendering (slower but functional).
+    // to SDL in present() / clear() / draw_rect() / draw_texture().
 #endif
 
     // Audio is DISABLED on PS2 for now: the green splash froze on PCSX2
@@ -721,18 +746,14 @@ float EnginePS2::ticks() const noexcept {
 
 void EnginePS2::present() {
 #ifdef __PS2__
-    if (m_gsGlobal != nullptr) {
-        // gsKit path: execute queued draws and flip buffers with vsync.
-        gsKit_queue_exec(m_gsGlobal);
-        gsKit_sync_flip(m_gsGlobal);
+    if (m_gsGlobal == nullptr) {
+        // gsKit not initialized or failed — fall back to SDL.
+        if (m_screen != nullptr) SDL_Flip(m_screen);
         return;
     }
-    // Fallback: no gsKit — use SDL software rendering.
-    if (m_screen == nullptr) return;
-    if (m_backbuf != nullptr) {
-        SDL_BlitSurface(m_backbuf, nullptr, m_screen, nullptr);
-    }
-    SDL_Flip(m_screen);
+    // Execute queued draws and flip buffers with vsync.
+    gsKit_queue_exec(m_gsGlobal);
+    gsKit_sync_flip(m_gsGlobal);
 #else
     if (m_screen == nullptr) return;
     if (m_backbuf != nullptr) {
