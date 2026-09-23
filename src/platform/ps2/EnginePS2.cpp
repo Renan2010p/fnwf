@@ -15,7 +15,7 @@
 // (enable Settings > Emulation > Enable Host Filesystem in PCSX2).
 // Override at build time for other media, e.g. -DFNWF_PS2_DEVICE='"mass:/"'.
 #ifndef FNWF_PS2_DEVICE
-#define FNWF_PS2_DEVICE "host:"
+#define FNWF_PS2_DEVICE "mass:"
 #endif
 
 namespace fnwf {
