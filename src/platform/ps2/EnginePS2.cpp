@@ -221,8 +221,8 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         return false;
     }
 
-    m_physical_w = 320;
-    m_physical_h = 240;
+    m_physical_w = 480;
+    m_physical_h = 270;
 
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
