@@ -15,7 +15,7 @@
 // (enable Settings > Emulation > Enable Host Filesystem in PCSX2).
 // Override at build time for other media, e.g. -DFNWF_PS2_DEVICE='"mass:/"'.
 #ifndef FNWF_PS2_DEVICE
-#define FNWF_PS2_DEVICE "mass:"
+#define FNWF_PS2_DEVICE "mass:/"
 #endif
 
 namespace fnwf {
@@ -53,7 +53,13 @@ bool is_canonical32(const SDL_PixelFormat* f) {
 std::string platform_path(std::string_view p) {
     std::string s(p);
     if (s.find(':') != std::string::npos) return s;
-    return std::string(FNWF_PS2_DEVICE) + s;
+    std::string result = std::string(FNWF_PS2_DEVICE) + s;
+    // Debug: log the first few path attempts
+    static int s_log_count = 0;
+    if (s_log_count++ < 5) {
+        std::fprintf(stderr, "PS2 PATH: %s\n", result.c_str());
+    }
+    return result;
 }
 
 // Nearest-neighbour downscale into the canonical alpha format. Runs once at
@@ -1077,11 +1083,18 @@ bool EnginePS2::draw_text_rotated(std::string_view text, std::int32_t x, std::in
 
 std::optional<TextureHandle> EnginePS2::load_texture(std::string_view path) {
     const std::string p = platform_path(path);
+    std::fprintf(stderr, "LOAD TEXTURE: %s\n", p.c_str());
 
     // SDL_image reads PNG (our assets are all .png); BMP is the fallback.
     SDL_Surface* surf = IMG_Load(p.c_str());
-    if (surf == nullptr) surf = SDL_LoadBMP(p.c_str());
-    if (surf == nullptr) return std::nullopt;
+    if (surf == nullptr) {
+        std::fprintf(stderr, "ERROR: IMG_Load failed for %s: %s\n", p.c_str(), SDL_GetError());
+        surf = SDL_LoadBMP(p.c_str());
+    }
+    if (surf == nullptr) {
+        std::fprintf(stderr, "ERROR: Both IMG_Load and SDL_LoadBMP failed for %s\n", p.c_str());
+        return std::nullopt;
+    }
 
     // Sources without an alpha channel must end up fully opaque.
     const bool force_opaque = (surf->format->Amask == 0);
