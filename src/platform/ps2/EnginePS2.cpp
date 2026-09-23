@@ -221,16 +221,23 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         return false;
     }
 
-    m_physical_w = 480;
-    m_physical_h = 270;
+    m_physical_w = 640;
+    m_physical_h = 448;
 
+    // Request hardware surface - SDL PS2 port will use gsKit automatically
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
                                 32,
-                                SDL_SWSURFACE | SDL_HWSURFACE);
+                                SDL_HWSURFACE);
     if (m_screen == nullptr) {
         return false;
     }
+    
+    // Debug: verify hardware surface was created
+    std::fprintf(stderr, "DEBUG: SDL surface created, flags=0x%08X\n", m_screen->flags);
+    std::fprintf(stderr, "DEBUG: HWSURFACE=%d, DOUBLEBUF=%d\n",
+                 (m_screen->flags & SDL_HWSURFACE) ? 1 : 0,
+                 (m_screen->flags & SDL_DOUBLEBUF) ? 1 : 0);
 
     SDL_WM_SetCaption("Five Nights With Friends", nullptr);
 
