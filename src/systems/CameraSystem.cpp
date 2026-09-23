@@ -13,12 +13,9 @@ CameraSystem::CameraSystem(Engine& eng) : m_eng(eng) {
     map_x = SCREEN_WIDTH - map_w - 20;
     map_y = SCREEN_HEIGHT - map_h - 60;
 
-    auto mt1 = m_eng.create_target(SCREEN_WIDTH, SCREEN_HEIGHT);
-    monitor_tex = mt1 ? *mt1 : TextureHandle{};
-    auto mt2 = m_eng.create_target(map_w, map_h);
-    map_tex = mt2 ? *mt2 : TextureHandle{};
-    auto mt3 = m_eng.create_target(map_w, map_h);
-    map_base_tex = mt3 ? *mt3 : TextureHandle{};
+    monitor_tex = *m_eng.create_target(SCREEN_WIDTH, SCREEN_HEIGHT);
+    map_tex = *m_eng.create_target(map_w, map_h);
+    map_base_tex = *m_eng.create_target(map_w, map_h);
 }
 
 auto CameraSystem::ease_out_cubic(float v) const -> float {

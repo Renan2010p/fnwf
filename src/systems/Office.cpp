@@ -10,10 +10,8 @@ namespace fnwf {
 static constexpr float PI = 3.14159265f;
 
 Office::Office(Engine& eng) : m_eng(eng) {
-    auto ot1 = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
-    office_tex = ot1 ? *ot1 : TextureHandle{};
-    auto ot2 = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
-    office_static_tex = ot2 ? *ot2 : TextureHandle{};
+    office_tex = *eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+    office_static_tex = *eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
 
     vp_x = GameSettings::OFFICE_WIDTH / 2;
     vp_y = GameSettings::SCREEN_HEIGHT / 2 - 30;
@@ -96,7 +94,6 @@ auto Office::draw(Engine& eng,
                   const std::string& anim_in_office) -> void {
     float t = static_cast<float>(clock()) / CLOCKS_PER_SEC;
     eng.set_render_target(office_tex);
-    eng.clear(0, 0, 0);
     eng.draw_texture(
         office_static_tex, 0, 0, GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
 
