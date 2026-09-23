@@ -57,15 +57,11 @@ std::string platform_path(std::string_view p) {
 
     // Known possible paths to try - prioritize CD-ROM first for ISO playback
     static const char* s_paths[] = {
-        "cdrom:/fnwf/",           // CD-ROM (ISO) - PRIORITY for disc playback
-        "cdrom0:/fnwf/",          // CD-ROM alternate
-        "usbmass:/fnwf/",         // USB flash drive
-        "mass:/fnwf/",            // Memory Stick
-        "host:/fnwf/",            // PCSX2 host filesystem
-        "cdrom:/",                // CD-ROM root
-        "usbmass:/",              // USB root
-        "mass:/",                 // Memory Stick root
-        "host:/",                 // PCSX2 host root
+        "cdrom:/",              // CD-ROM root (assets are at /ASSETS/...)
+        "cdrom0:/",             // CD-ROM alternate
+        "usbmass:/fnwf/",       // USB flash drive
+        "mass:/fnwf/",          // Memory Stick
+        "host:/fnwf/",          // PCSX2 host filesystem
         nullptr
     };
 
