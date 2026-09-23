@@ -10,11 +10,14 @@ namespace fnwf {
 
 StoryState::StoryState(int night_, Engine& eng) : m_eng(eng), night(night_) {
     DrawUtils::load_sprite(eng, "cedro");
-    cedro_avatar = *DrawUtils::get_sprite("cedro");
+    auto cedro = DrawUtils::get_sprite("cedro");
+    if (cedro) cedro_avatar = *cedro;
     DrawUtils::load_sprite(eng, "renan");
-    renan_avatar = *DrawUtils::get_sprite("renan");
+    auto renan = DrawUtils::get_sprite("renan");
+    if (renan) renan_avatar = *renan;
     DrawUtils::load_sprite(eng, "mafia");
-    unknown_avatar = *DrawUtils::get_sprite("mafia");
+    auto mafia = DrawUtils::get_sprite("mafia");
+    if (mafia) unknown_avatar = *mafia;
     build_messages();
 }
 

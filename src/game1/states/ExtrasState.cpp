@@ -21,7 +21,8 @@ ExtrasState::ExtrasState(
                     {"Renan", "renan", Localization::get_text("renan_desc")}};
     for (auto& a : animatronics) {
         DrawUtils::load_sprite(eng, a.sprite);
-        sprites[a.sprite] = *DrawUtils::get_sprite(a.sprite);
+        auto tex = DrawUtils::get_sprite(a.sprite);
+        if (tex) sprites[a.sprite] = *tex;
     }
 
     achievements_list = {{"survive_n1",
