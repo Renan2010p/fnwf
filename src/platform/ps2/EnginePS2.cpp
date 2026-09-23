@@ -346,7 +346,7 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         // Disable double buffering — handle buffer swap manually in present()
         // to avoid the half-white-screen bug caused by gsKit_sync_flip's
         // DISPFB2 register handling on some PCSX2 versions.
-        m_gsGlobal->DoubleBuffering = GS_SETTING_OFF;
+        m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
         m_gsGlobal->ZBuffering = GS_SETTING_OFF;
         m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
         // gsKit_init_screen reconfigures the GS display — must happen AFTER
@@ -757,22 +757,9 @@ void EnginePS2::present() {
         if (m_screen != nullptr) SDL_Flip(m_screen);
         return;
     }
-    // Execute queued draws.
+    // Execute queued draws and flip buffers with vsync.
     gsKit_queue_exec(m_gsGlobal);
-
-    // Manual buffer flip (single-buffered mode):
-    // Wait for vsync, then tell the GS to display the buffer we just drew to.
-    // This avoids the half-white-screen bug caused by gsKit_sync_flip's
-    // handling of DISPFB2 register in double-buffered mode.
-    if (!m_gsGlobal->FirstFrame) {
-        // Wait for vsync
-        *GS_CSR = *GS_CSR & 8;
-        while(!(*GS_CSR & 8));
-        // Set display buffer to current working buffer
-        GS_SET_DISPFB2(m_gsGlobal->ScreenBuffer[0] / 8192,
-                       m_gsGlobal->Width / 64, m_gsGlobal->PSM, 0, 0);
-    }
-    m_gsGlobal->FirstFrame = GS_SETTING_OFF;
+    gsKit_sync_flip(m_gsGlobal);
 #else
     if (m_screen == nullptr) return;
     if (m_backbuf != nullptr) {
