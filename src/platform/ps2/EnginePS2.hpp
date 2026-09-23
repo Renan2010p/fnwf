@@ -21,7 +21,7 @@
 #include <loadfile.h>
 #include <libpad.h>
 #include <audsrv.h>
-#include <fileio.h>  // For fioGetstat
+#include <sys/stat.h>  // For stat()
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>

@@ -70,9 +70,9 @@ std::string platform_path(std::string_view p) {
     // Try each prefix
     for (int i = 0; s_paths[i] != nullptr; ++i) {
         std::string test = std::string(s_paths[i]) + s;
-        // Check if file exists using fioGetstat
-        io_stat_t st;
-        if (fioGetstat(test.c_str(), &st) >= 0) {
+        // Check if file exists using POSIX stat
+        struct stat st;
+        if (stat(test.c_str(), &st) >= 0) {
             if (s_log_count++ < 10) {
                 std::fprintf(stderr, "FOUND: %s\n", test.c_str());
             }
