@@ -739,13 +739,11 @@ float EnginePS2::ticks() const noexcept {
 void EnginePS2::present() {
 #ifdef __PS2__
     if (m_gsGlobal == nullptr) {
-        // gsKit not initialized — fall back to SDL (should not happen).
+        // gsKit not initialized — fall back to SDL.
         if (m_screen != nullptr) SDL_Flip(m_screen);
         return;
     }
-    // Reset the oneshot queue each frame, execute both persistent + oneshot
-    // queues, then flip with vsync limiting to 60 fps.
-    gsKit_queue_reset(m_gsGlobal->Os_Queue);
+    // Execute all queued draws and flip buffers with vsync.
     gsKit_queue_exec(m_gsGlobal);
     gsKit_sync_flip(m_gsGlobal);
 #else
@@ -785,8 +783,8 @@ std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
 void EnginePS2::clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t /*a*/) {
 #ifdef __PS2__
     if (m_gsGlobal != nullptr) {
-        // gsKit clear: sets bg color in GS context, no queue op needed.
-        GS_SETREG_BGCOLOR(r, g, b);
+        // gsKit clear: sets bg color in GS context via direct register write.
+        GS_SET_BGCOLOR(r, g, b);
     } else {
         SDL_Surface* target = draw_target();
         if (target != nullptr)
