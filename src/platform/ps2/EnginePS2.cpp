@@ -50,16 +50,41 @@ bool is_canonical32(const SDL_PixelFormat* f) {
 }
 
 // Prepend the PS2 file device to a path unless it already has one.
+// Try multiple device prefixes to find the asset location.
 std::string platform_path(std::string_view p) {
     std::string s(p);
     if (s.find(':') != std::string::npos) return s;
-    std::string result = std::string(FNWF_PS2_DEVICE) + s;
-    // Debug: log the first few path attempts
+
+    // Known possible paths to try - prioritize USB mass storage
+    static const char* s_paths[] = {
+        "usbmass:/fnwf/",     // USB flash drive (most common)
+        "mass:/fnwf/",        // Memory Stick
+        "usbmass:/",          // USB root
+        "mass:/",             // Memory Stick root
+        nullptr
+    };
+
+    // Debug: log attempts
     static int s_log_count = 0;
-    if (s_log_count++ < 5) {
-        std::fprintf(stderr, "PS2 PATH: %s\n", result.c_str());
+    
+    // Try each prefix
+    for (int i = 0; s_paths[i] != nullptr; ++i) {
+        std::string test = std::string(s_paths[i]) + s;
+        // Check if file exists using fioGetstat
+        io_stat_t st;
+        if (fioGetstat(test.c_str(), &st) >= 0) {
+            if (s_log_count++ < 10) {
+                std::fprintf(stderr, "FOUND: %s\n", test.c_str());
+            }
+            return test;
+        }
     }
-    return result;
+
+    // Fallback to usbmass:/
+    if (s_log_count++ < 10) {
+        std::fprintf(stderr, "FALLBACK: %s\n", s.c_str());
+    }
+    return std::string("usbmass:/") + s;
 }
 
 // Nearest-neighbour downscale into the canonical alpha format. Runs once at
@@ -1088,11 +1113,11 @@ std::optional<TextureHandle> EnginePS2::load_texture(std::string_view path) {
     // SDL_image reads PNG (our assets are all .png); BMP is the fallback.
     SDL_Surface* surf = IMG_Load(p.c_str());
     if (surf == nullptr) {
-        std::fprintf(stderr, "ERROR: IMG_Load failed for %s: %s\n", p.c_str(), SDL_GetError());
+        std::fprintf(stderr, "WARN: IMG_Load failed for %s: %s\n", p.c_str(), SDL_GetError());
         surf = SDL_LoadBMP(p.c_str());
     }
     if (surf == nullptr) {
-        std::fprintf(stderr, "ERROR: Both IMG_Load and SDL_LoadBMP failed for %s\n", p.c_str());
+        std::fprintf(stderr, "ERROR: Both loads failed for %s\n", p.c_str());
         return std::nullopt;
     }
 
