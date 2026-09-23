@@ -324,28 +324,30 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 
 #ifdef __PS2__
     // ── gsKit hardware renderer init ────────────────────────────────────────
-    // All drawing (clear, rects, textured sprites) runs on the GS GPU via
-    // the persistent draw queue, then we flip with vsync limiting to 60 fps.
+    // Initialize DMA first (required before gsKit), then gsKit global + screen.
+    // All drawing (clear, rects, textured sprites) runs on the GS GPU via the
+    // persistent draw queue, then we flip with vsync limiting to 60 fps.
     // SDL stays for video init, input polling, audio, and asset loading only.
     dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC,
                 D_CTRL_STD_OFF, D_CTRL_RCYC_8, 1 << DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
 
     m_gsGlobal = gsKit_init_global();
-    m_gsGlobal->Mode = GS_MODE_NTSC;
-    m_gsGlobal->Interlace = GS_INTERLACED;
-    m_gsGlobal->Field = GS_FIELD;
-    m_gsGlobal->Width = static_cast<u32>(m_physical_w);
-    m_gsGlobal->Height = static_cast<u32>(m_physical_h);
-    m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
-    m_gsGlobal->ZBuffering = GS_SETTING_OFF;
-    m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
-    gsKit_init_screen(m_gsGlobal);
-    gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
-    gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 0, 0));
-    // Note: gsKit manages the display buffers internally (ScreenBuffer[0/1]).
-    // We do NOT upload to a separate backbuffer — all drawing goes straight
-    // to the GS via the persistent + oneshot queues, and present() flips.
+    if (m_gsGlobal != nullptr) {
+        m_gsGlobal->Mode = GS_MODE_NTSC;
+        m_gsGlobal->Interlace = GS_INTERLACED;
+        m_gsGlobal->Field = GS_FIELD;
+        m_gsGlobal->Width = static_cast<u32>(m_physical_w);
+        m_gsGlobal->Height = static_cast<u32>(m_physical_h);
+        m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
+        m_gsGlobal->ZBuffering = GS_SETTING_OFF;
+        m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+        gsKit_init_screen(m_gsGlobal);
+        gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
+        gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 0, 0));
+    }
+    // If m_gsGlobal is nullptr, gsKit failed to init — rendering will fall
+    // back to SDL in present() / clear() / draw_rect() / draw_texture().
 #endif
 
     // Audio is DISABLED on PS2 for now: the green splash froze on PCSX2
