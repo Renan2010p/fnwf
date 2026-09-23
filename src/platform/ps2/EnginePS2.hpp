@@ -25,17 +25,11 @@
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
 #include <SDL_image.h>
-#ifdef __PS2__
-#include <gsKit.h>
-#endif
 #else
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
 #include <SDL_image.h>
-#ifdef __PS2__
-#include <gsKit.h>
-#endif
 #endif
 
 #include <unordered_map>
@@ -153,9 +147,6 @@ private:
     }
 
     SDL_Surface* m_screen{nullptr};
-#ifdef __PS2__
-    GSGLOBAL* m_gsGlobal{nullptr};
-#endif
     // Offscreen buffer in the engine's canonical pixel format. All screen-space
     // drawing targets it; present() blits it onto m_screen (which may be in a
     // different format chosen by SDL's PS2 video driver).
