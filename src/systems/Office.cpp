@@ -96,8 +96,6 @@ auto Office::draw(Engine& eng,
                   const std::string& anim_in_office) -> void {
     float t = static_cast<float>(clock()) / CLOCKS_PER_SEC;
     eng.set_render_target(office_tex);
-    // Clear before copying static layer — prevents frame accumulation trails.
-    eng.clear(0, 0, 0);
     eng.draw_texture(
         office_static_tex, 0, 0, GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
 
