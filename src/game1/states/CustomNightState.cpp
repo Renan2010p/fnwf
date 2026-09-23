@@ -37,7 +37,8 @@ CustomNightState::CustomNightState(Engine& eng) {
                     {"Sonk", "Sonk", 220, 220}};
     for (auto& a : animatronics) {
         DrawUtils::load_sprite(eng, a.sprite);
-        sprites[a.sprite] = *DrawUtils::get_sprite(a.sprite);
+        auto tex = DrawUtils::get_sprite(a.sprite);
+        if (tex) sprites[a.sprite] = *tex;
     }
 
     presets = {{"Custom", {}, false},

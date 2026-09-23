@@ -9,9 +9,11 @@ namespace fnwf {
 
 NightTransitionState::NightTransitionState(int night_, Engine& eng) : night(night_) {
     DrawUtils::load_sprite(eng, "cedro");
-    cedro_avatar = *DrawUtils::get_sprite("cedro");
+    auto cedro = DrawUtils::get_sprite("cedro");
+    if (cedro) cedro_avatar = *cedro;
     DrawUtils::load_sprite(eng, "renan");
-    renan_avatar = *DrawUtils::get_sprite("renan");
+    auto renan = DrawUtils::get_sprite("renan");
+    if (renan) renan_avatar = *renan;
 
     struct RawMsg
     {
