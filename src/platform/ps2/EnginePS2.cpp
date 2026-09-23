@@ -224,13 +224,21 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     m_physical_w = 640;
     m_physical_h = 448;
 
+    // Request hardware surface with double buffering
+    // SDL PS2 port will automatically use gsKit/GS for rendering
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
                                 32,
-                                SDL_SWSURFACE | SDL_HWSURFACE);
+                                SDL_HWSURFACE | SDL_DOUBLEBUF);
     if (m_screen == nullptr) {
         return false;
     }
+    
+    // Debug: check if hardware acceleration is active
+    std::fprintf(stderr, "DEBUG: SDL flags=0x%08X HWSURFACE=%d DOUBLEBUF=%d\n", 
+                 m_screen->flags,
+                 (m_screen->flags & SDL_HWSURFACE) ? 1 : 0,
+                 (m_screen->flags & SDL_DOUBLEBUF) ? 1 : 0);
 
     SDL_WM_SetCaption("Five Nights With Friends", nullptr);
 
