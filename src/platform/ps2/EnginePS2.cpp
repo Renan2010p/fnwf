@@ -57,6 +57,7 @@ std::string platform_path(std::string_view p) {
 
     // Known possible paths to try - prioritize USB mass storage
     static const char* s_paths[] = {
+        "cdrom:/fnwf/",          // CD-ROM (ISO)
         "usbmass:/fnwf/",     // USB flash drive (most common)
         "mass:/fnwf/",        // Memory Stick
         "usbmass:/",          // USB root
