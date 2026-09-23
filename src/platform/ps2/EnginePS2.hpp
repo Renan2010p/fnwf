@@ -204,7 +204,6 @@ private:
     // via SDL_image, font rendering via SDL_ttf); pixels are then DMA'd
     // into GS VRAM via gsKit_texture_upload().
     GSGLOBAL* m_gsGlobal{nullptr};
-    GSTEXTURE m_gsBackbuf{};
     std::unordered_map<std::uint32_t, GSTEXTURE> m_gsTextures;
 #endif
 

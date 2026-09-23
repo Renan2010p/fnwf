@@ -343,8 +343,9 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     gsKit_init_screen(m_gsGlobal);
     gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
     gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 0, 0));
-    // Upload the blank backbuffer surface so present() has a display target.
-    gsKit_upload_surface(m_gsGlobal, &m_gsBackbuf, m_backbuf);
+    // Note: gsKit manages the display buffers internally (ScreenBuffer[0/1]).
+    // We do NOT upload to a separate backbuffer — all drawing goes straight
+    // to the GS via the persistent + oneshot queues, and present() flips.
 #endif
 
     // Audio is DISABLED on PS2 for now: the green splash froze on PCSX2
@@ -464,7 +465,6 @@ void EnginePS2::shutdown() {
     }
     m_gsTextures.clear();
     if (m_gsGlobal != nullptr) {
-        if (m_gsBackbuf.Mem != nullptr) { free(m_gsBackbuf.Mem); m_gsBackbuf.Mem = nullptr; }
         m_gsGlobal = nullptr;
     }
 #endif
@@ -741,8 +741,9 @@ void EnginePS2::present() {
         if (m_screen != nullptr) SDL_Flip(m_screen);
         return;
     }
-    // Reset the persistent draw queue each frame, then execute all queued
-    // draws and flip with vsync limiting to 60 fps.
+    // Reset the oneshot queue each frame, execute both persistent + oneshot
+    // queues (persistent has clear/state setup, oneshot has per-frame draws),
+    // then flip with vsync limiting to 60 fps.
     gsKit_queue_reset(m_gsGlobal->Os_Queue);
     gsKit_queue_exec(m_gsGlobal);
     gsKit_sync_flip(m_gsGlobal);
