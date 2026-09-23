@@ -32,6 +32,75 @@ constexpr Uint32 GMASK = 0x0000FF00u;
 constexpr Uint32 BMASK = 0x000000FFu;
 constexpr Uint32 AMASK = 0xFF000000u;
 
+}  // namespace
+
+#ifdef __PS2__
+namespace {
+
+// Convert an SDL surface (canonical 32bpp RGBA) into a gsKit GSTEXTURE.
+// Allocates aligned EE memory, copies pixels (swizzling RGBA↔GS byte order),
+// allocates VRAM, and DMA-transfers the texture data. Returns true on success.
+bool gsKit_upload_surface(GSGLOBAL *gsGlobal, GSTEXTURE *tex, SDL_Surface *surf) {
+    if (surf == nullptr || gsGlobal == nullptr) return false;
+    const int w = surf->w, h = surf->h;
+    tex->Width = w;
+    tex->Height = h;
+    tex->PSM = GS_PSM_CT32;
+    tex->ClutPSM = 0;
+    tex->Clut = nullptr;
+    tex->Filter = GS_FILTER_NEAREST;
+    tex->ClutStorageMode = GS_CLUT_STOREMODE_NOLOAD;
+    tex->Delayed = 0;
+    // gsKit needs the texture base width as a power-of-2 in 64-pixel blocks.
+    gsKit_setup_tbw(tex);
+    // Allocate aligned EE memory for the pixel data (8-byte align minimum for DMA).
+    const u32 size = gsKit_texture_size(tex->Width, tex->Height, tex->PSM);
+    tex->Mem = reinterpret_cast<u32 *>(memalign(64, size));
+    if (tex->Mem == nullptr) return false;
+    // Copy pixels: SDL stores RGBA (R=0x00FF0000), GS CT32 expects RGBA too,
+    // but we need to byte-swizzle for the GS DMA (GS uses big-endian pixel words).
+    const bool locked = SDL_MUSTLOCK(surf) != 0;
+    if (locked && SDL_LockSurface(surf) != 0) { free(tex->Mem); tex->Mem = nullptr; return false; }
+    const int bpp = surf->format->BytesPerPixel;
+    for (int y = 0; y < h; ++y) {
+        const Uint8* srow = static_cast<const Uint8*>(surf->pixels) +
+                            static_cast<std::size_t>(y) * surf->pitch;
+        u32* drow = tex->Mem + y * tex->TBW;
+        for (int x = 0; x < w; ++x) {
+            Uint32 px = 0;
+            switch (bpp) {
+                case 1: px = *srow++; break;
+                case 2: px = *reinterpret_cast<const Uint16*>(srow); srow += 2; break;
+                case 3: px = static_cast<Uint32>(srow[0]) | (static_cast<Uint32>(srow[1]) << 8) |
+                           (static_cast<Uint32>(srow[2]) << 16); srow += 3; break;
+                default: px = *reinterpret_cast<const Uint32*>(srow); srow += 4; break;
+            }
+            // SDL canonical format: R=0x00FF0000, G=0x0000FF00, B=0x000000FF, A=0xFF000000
+            // GS CT32 wants the same layout — but DMA transfers are 8-byte aligned
+            // and the GS reads in a specific order. For CT32 the layout matches SDL's
+            // canonical RGBA, so we can copy directly after byte-swapping each word
+            // for the GS's big-endian DMA word order.
+            const Uint8 r = (px & RMASK) >> 16;
+            const Uint8 g = (px & GMASK) >> 8;
+            const Uint8 b = (px & BMASK);
+            const Uint8 a = (px & AMASK) >> 24;
+            // GS CT32 pixel word (big-endian DMA): ABGR in the 32-bit word
+            drow[x] = (static_cast<u32>(a) << 24) | (static_cast<u32>(r) << 16) |
+                      (static_cast<u32>(g) << 8) | static_cast<u32>(b);
+        }
+    }
+    if (locked) SDL_UnlockSurface(surf);
+    // Allocate VRAM and upload via DMA.
+    tex->Vram = gsKit_vram_alloc(gsGlobal, gsKit_texture_size(tex->Width, tex->Height, tex->PSM),
+                                 GSKIT_ALLOC_USERBUFFER);
+    if (tex->Vram == GSKIT_ALLOC_ERROR) { free(tex->Mem); tex->Mem = nullptr; return false; }
+    gsKit_texture_upload(gsGlobal, tex);
+    return true;
+}
+
+}  // namespace
+#endif  // __PS2__
+
 SDL_Color make_color(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) {
     SDL_Color c;
     c.r = r; c.g = g; c.b = b;
@@ -126,12 +195,10 @@ void force_opaque_pixels(SDL_Surface* s) {
     if (locked) SDL_UnlockSurface(s);
 }
 
-}  // namespace
-
 // ── Viewport (logical size → screen, letterboxed) ──────────────────────────
 
-// ── Boot thread: pad bring-up with bounded timeout ──────────────────────────
 #ifdef __PS2__
+// ── Boot thread: pad bring-up with bounded timeout ──────────────────────────
 // padInit() (called inside libpad) does sceSifBindRpc() which can hang if
 // the IOP has no pad server — on some PCSX2 HLE setups, without rom0 loaded
 // first, that bind blocks forever. We run the whole pad bring-up (including
@@ -255,6 +322,31 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 
     m_ttf_ok = (TTF_Init() == 0);
 
+#ifdef __PS2__
+    // ── gsKit hardware renderer init ────────────────────────────────────────
+    // All drawing (clear, rects, textured sprites) runs on the GS GPU via
+    // the persistent draw queue, then we flip with vsync limiting to 60 fps.
+    // SDL stays for video init, input polling, audio, and asset loading only.
+    dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC,
+                D_CTRL_STD_OFF, D_CTRL_RCYC_8, 1 << DMA_CHANNEL_GIF);
+    dmaKit_chan_init(DMA_CHANNEL_GIF);
+
+    m_gsGlobal = gsKit_init_global();
+    m_gsGlobal->Mode = GS_MODE_NTSC;
+    m_gsGlobal->Interlace = GS_INTERLACED;
+    m_gsGlobal->Field = GS_FIELD;
+    m_gsGlobal->Width = static_cast<u32>(m_physical_w);
+    m_gsGlobal->Height = static_cast<u32>(m_physical_h);
+    m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
+    m_gsGlobal->ZBuffering = GS_SETTING_OFF;
+    m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+    gsKit_init_screen(m_gsGlobal);
+    gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
+    gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 0, 0));
+    // Upload the blank backbuffer surface so present() has a display target.
+    gsKit_upload_surface(m_gsGlobal, &m_gsBackbuf, m_backbuf);
+#endif
+
     // Audio is DISABLED on PS2 for now: the green splash froze on PCSX2
     // (log silent right after video init), i.e. the libsd/audsrv IOP RPC
     // chain inside SDL_Init(SDL_INIT_AUDIO)/Mix_OpenAudio never returns.
@@ -365,6 +457,16 @@ void EnginePS2::shutdown() {
         m_boot_thread_id = -1;
     }
     if (m_boot_sem_id >= 0) DeleteSema(m_boot_sem_id);
+    // Free EE-side texture memory. gsKit manages GS VRAM internally;
+    // the VRAM pool is freed when the application exits.
+    for (auto& [id, tex] : m_gsTextures) {
+        if (tex.Mem != nullptr) { free(tex.Mem); tex.Mem = nullptr; }
+    }
+    m_gsTextures.clear();
+    if (m_gsGlobal != nullptr) {
+        if (m_gsBackbuf.Mem != nullptr) { free(m_gsBackbuf.Mem); m_gsBackbuf.Mem = nullptr; }
+        m_gsGlobal = nullptr;
+    }
 #endif
 
     Mix_CloseAudio();
@@ -633,74 +735,24 @@ float EnginePS2::ticks() const noexcept {
 }
 
 void EnginePS2::present() {
+#ifdef __PS2__
+    if (m_gsGlobal == nullptr) {
+        // gsKit not initialized — fall back to SDL (should not happen).
+        if (m_screen != nullptr) SDL_Flip(m_screen);
+        return;
+    }
+    // Reset the persistent draw queue each frame, then execute all queued
+    // draws and flip with vsync limiting to 60 fps.
+    gsKit_queue_reset(m_gsGlobal->Os_Queue);
+    gsKit_queue_exec(m_gsGlobal);
+    gsKit_sync_flip(m_gsGlobal);
+#else
     if (m_screen == nullptr) return;
     if (m_backbuf != nullptr) {
-        // Formats may differ between the backbuffer and SDL's video surface —
-        // SDL_BlitSurface converts (this is the classic SDL 1.2 cross-format blit).
         SDL_BlitSurface(m_backbuf, nullptr, m_screen, nullptr);
-
-        // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): border
-        // drawn on top of the presented frame proves present() reaches the
-        // display every loop iteration. Sample the backbuffer to color it:
-        //   yellow  = backbuffer contains drawn (non-zero) content;
-        //   magenta = backbuffer sampled entirely black (missing font/assets).
-        Uint32 content = 0;
-        const Uint8* px = static_cast<const Uint8*>(m_backbuf->pixels);
-        for (int y = 8; y < static_cast<int>(m_backbuf->h) - 8 && content == 0; y += 24) {
-            const Uint32* row = reinterpret_cast<const Uint32*>(px + y * m_backbuf->pitch);
-            for (int x = 8; x < static_cast<int>(m_backbuf->w) - 8; x += 16) {
-                content |= row[x] & 0x00FFFFFFu;
-                if (content != 0) break;
-            }
-        }
-        const Uint32 border = SDL_MapRGB(m_screen->format, 255, content ? 255 : 0, content ? 0 : 255);
-        const int bw = 8;
-        SDL_Rect r{};
-        r.x = 0;
-        r.y = 0;
-        r.w = m_screen->w;
-        r.h = static_cast<Uint16>(bw);
-        SDL_FillRect(m_screen, &r, border);
-        r.y = static_cast<Sint16>(m_screen->h - bw);
-        SDL_FillRect(m_screen, &r, border);
-        r.y = 0;
-        r.h = m_screen->h;
-        r.w = static_cast<Uint16>(bw);
-        SDL_FillRect(m_screen, &r, border);
-        r.x = static_cast<Sint16>(m_screen->w - bw);
-        SDL_FillRect(m_screen, &r, border);
-
-        // Software cursor: the PS2 has no OS pointer, and △ clicks at the
-        // cursor (office pan, camera buttons) — without this you'd aim blind.
-        // Drawn after the border, before the flip; logical → physical uses
-        // the same mapping as every draw call.
-        const int cx = map_x(m_mouse_x);
-        const int cy = map_y(m_mouse_y);
-        const Uint32 outline = SDL_MapRGB(m_screen->format, 0, 0, 0);
-        const Uint32 mark = SDL_MapRGB(m_screen->format, 255, 255, 255);
-        SDL_Rect c{};
-        c.x = static_cast<Sint16>(cx - 8);
-        c.y = static_cast<Sint16>(cy - 1);
-        c.w = 17;
-        c.h = 3;
-        SDL_FillRect(m_screen, &c, outline);
-        c.x = static_cast<Sint16>(cx - 1);
-        c.y = static_cast<Sint16>(cy - 8);
-        c.w = 3;
-        c.h = 17;
-        SDL_FillRect(m_screen, &c, outline);
-        c.x = static_cast<Sint16>(cx - 7);
-        c.y = static_cast<Sint16>(cy);
-        c.w = 15;
-        c.h = 1;
-        SDL_FillRect(m_screen, &c, mark);
-        c.x = static_cast<Sint16>(cx);
-        c.y = static_cast<Sint16>(cy - 7);
-        c.w = 1;
-        c.h = 15;
-        SDL_FillRect(m_screen, &c, mark);
     }
     SDL_Flip(m_screen);
+#endif
 }
 
 // ── Window ───────────────────────────────────────────────────────────────────
@@ -729,14 +781,69 @@ std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
 // ── Drawing primitives ───────────────────────────────────────────────────────
 
 void EnginePS2::clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t /*a*/) {
+#ifdef __PS2__
+    if (m_gsGlobal != nullptr) {
+        gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(r, g, b, 0, 0));
+    } else {
+        SDL_Surface* target = draw_target();
+        if (target != nullptr)
+            SDL_FillRect(target, nullptr, SDL_MapRGB(target->format, r, g, b));
+    }
+#else
     SDL_Surface* target = draw_target();
     if (target == nullptr) return;
     SDL_FillRect(target, nullptr, SDL_MapRGB(target->format, r, g, b));
+#endif
 }
 
 void EnginePS2::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::uint32_t h,
                            std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
                            bool filled) {
+#ifdef __PS2__
+    if (m_gsGlobal == nullptr) return;
+    std::int32_t x0 = map_x(x);
+    std::int32_t y0 = map_y(y);
+    std::int32_t x1 = map_x(static_cast<std::int32_t>(x) + static_cast<std::int32_t>(w));
+    std::int32_t y1 = map_y(static_cast<std::int32_t>(y) + static_cast<std::int32_t>(h));
+    x1 = std::max<std::int32_t>(x1, x0 + 1);
+    y1 = std::max<std::int32_t>(y1, y0 + 1);
+    const u64 color = GS_SETREG_RGBAQ(r, g, b, a, 0);
+    if (filled) {
+        gsKit_prim_quad(m_gsGlobal,
+            static_cast<float>(x0), static_cast<float>(y0),
+            static_cast<float>(x0), static_cast<float>(y1),
+            static_cast<float>(x1), static_cast<float>(y0),
+            static_cast<float>(x1), static_cast<float>(y1),
+            0.f, color);
+    } else {
+        // Outline: four edges as thin quads.
+        const u64 oc = GS_SETREG_RGBAQ(r, g, b, 255, 0);
+        gsKit_prim_quad(m_gsGlobal,
+            static_cast<float>(x0), static_cast<float>(y0),
+            static_cast<float>(x0), static_cast<float>(y0 + 1),
+            static_cast<float>(x1), static_cast<float>(y0),
+            static_cast<float>(x1), static_cast<float>(y0 + 1),
+            0.f, oc);
+        gsKit_prim_quad(m_gsGlobal,
+            static_cast<float>(x0), static_cast<float>(y1 - 1),
+            static_cast<float>(x0), static_cast<float>(y1),
+            static_cast<float>(x1), static_cast<float>(y1 - 1),
+            static_cast<float>(x1), static_cast<float>(y1),
+            0.f, oc);
+        gsKit_prim_quad(m_gsGlobal,
+            static_cast<float>(x0), static_cast<float>(y0),
+            static_cast<float>(x0), static_cast<float>(y1),
+            static_cast<float>(x0 + 1), static_cast<float>(y0),
+            static_cast<float>(x0 + 1), static_cast<float>(y1),
+            0.f, oc);
+        gsKit_prim_quad(m_gsGlobal,
+            static_cast<float>(x1 - 1), static_cast<float>(y0),
+            static_cast<float>(x1 - 1), static_cast<float>(y1),
+            static_cast<float>(x1), static_cast<float>(y0),
+            static_cast<float>(x1), static_cast<float>(y1),
+            0.f, oc);
+    }
+#else
     SDL_Surface* target = draw_target();
     if (target == nullptr) return;
 
@@ -763,7 +870,6 @@ void EnginePS2::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::
         if (a < 255) {
             SDL_Surface* tmp = make_surface(rw, rh, true);
             if (tmp) {
-                // Enable per-pixel alpha so MapRGBA's alpha actually applies.
                 SDL_SetAlpha(tmp, SDL_SRCALPHA, 255);
                 SDL_FillRect(tmp, nullptr, SDL_MapRGBA(tmp->format, r, g, b, a));
                 SDL_BlitSurface(tmp, nullptr, target, &rect);
@@ -783,6 +889,7 @@ void EnginePS2::draw_rect(std::int32_t x, std::int32_t y, std::uint32_t w, std::
         SDL_FillRect(target, &lft, color);
         SDL_FillRect(target, &rgt, color);
     }
+#endif
 }
 
 void EnginePS2::line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
@@ -983,11 +1090,60 @@ void EnginePS2::draw_texture(const TextureHandle& tex, std::int32_t dx, std::int
                               std::int32_t sx, std::int32_t sy,
                               std::int32_t sw, std::int32_t sh,
                               std::optional<std::uint8_t> alpha) {
+#ifdef __PS2__
+    if (m_gsGlobal == nullptr) return;
+    auto it = m_gsTextures.find(tex.id);
+    if (it == m_gsTextures.end()) return;
+    const GSTEXTURE& gstex = it->second;
+
+    // Map logical → physical coordinates.
+    std::int32_t x0 = map_x(dx);
+    std::int32_t y0 = map_y(dy);
+    std::int32_t x1 = map_x(static_cast<std::int32_t>(dx) + static_cast<std::int32_t>(dw));
+    std::int32_t y1 = map_y(static_cast<std::int32_t>(dy) + static_cast<std::int32_t>(dh));
+    x1 = std::max<std::int32_t>(x1, x0 + 1);
+    y1 = std::max<std::int32_t>(y1, y0 + 1);
+
+    // Source UV: which part of the texture to sample. (-1,-1,-1,-1) means whole texture.
+    float u0 = 0.f, v0 = 0.f, u1 = 1.f, v1 = 1.f;
+    if (sx >= 0 && sw > 0) {
+        u0 = static_cast<float>(sx) / static_cast<float>(gstex.Width);
+        u1 = u0 + static_cast<float>(sw) / static_cast<float>(gstex.Width);
+    }
+    if (sy >= 0 && sh > 0) {
+        v0 = static_cast<float>(sy) / static_cast<float>(gstex.Height);
+        v1 = v0 + static_cast<float>(sh) / static_cast<float>(gstex.Height);
+    }
+    u0 = std::max(0.f, std::min(1.f, u0));
+    v0 = std::max(0.f, std::min(1.f, v0));
+    u1 = std::max(0.f, std::min(1.f, u1));
+    v1 = std::max(0.f, std::min(1.f, v1));
+
+    const Uint8 a = alpha.value_or(255);
+    gs_rgbaq color{};
+    color.color.components.r = a;
+    color.color.components.g = a;
+    color.color.components.b = a;
+    color.color.components.a = a;
+    color.color.q = 0.f;
+    // Build one quad vertex (top-left corner). gsKit sprite = 1 quad = 1 GSPRIMUVPOINTFLAT.
+    GSPRIMUVPOINTFLAT vert{};
+    vert.xyz2.xyz.x = static_cast<u16>(x0);
+    vert.xyz2.xyz.y = static_cast<u16>(y0);
+    vert.xyz2.xyz.z = 0;
+    // UV in gsKit is in 1/16-pixel units, max 1024*16.
+    vert.uv.coord.u = static_cast<u16>(
+        std::min<int>(static_cast<int>(u0 * static_cast<float>(gstex.Width) * 16.0f), 16383));
+    vert.uv.coord.v = static_cast<u16>(
+        std::min<int>(static_cast<int>(v0 * static_cast<float>(gstex.Height) * 16.0f), 16383));
+    gskit_prim_list_sprite_texture_uv_flat_color(m_gsGlobal, &gstex, color, 1, &vert);
+#else
     auto it = m_textures.find(tex.id);
     if (it == m_textures.end()) return;
 
     Uint8 a = alpha.value_or(255);
     blit_scaled(it->second, dx, dy, dw, dh, sx, sy, sw, sh, a);
+#endif
 }
 
 void EnginePS2::draw_texture_rotated(const TextureHandle& tex,
@@ -1108,6 +1264,19 @@ std::optional<TextureHandle> EnginePS2::load_texture(std::string_view path) {
 
     const std::uint32_t id = m_next_id++;
     m_textures[id] = converted;
+
+#ifdef __PS2__
+    // Also upload to GS VRAM for hardware-accelerated rendering.
+    GSTEXTURE gstex{};
+    if (gsKit_upload_surface(m_gsGlobal, &gstex, converted)) {
+        m_gsTextures[id] = gstex;
+    } else {
+        // GS upload failed — fall back to software rendering (texture will
+        // still work via SDL_BlitSurface in draw_texture).
+        if (gstex.Mem != nullptr) { free(gstex.Mem); gstex.Mem = nullptr; }
+    }
+#endif
+
     return TextureHandle{id};
 }
 
