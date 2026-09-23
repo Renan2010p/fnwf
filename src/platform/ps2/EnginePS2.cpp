@@ -742,8 +742,7 @@ void EnginePS2::present() {
         return;
     }
     // Reset the oneshot queue each frame, execute both persistent + oneshot
-    // queues (persistent has clear/state setup, oneshot has per-frame draws),
-    // then flip with vsync limiting to 60 fps.
+    // queues, then flip with vsync limiting to 60 fps.
     gsKit_queue_reset(m_gsGlobal->Os_Queue);
     gsKit_queue_exec(m_gsGlobal);
     gsKit_sync_flip(m_gsGlobal);
