@@ -21,6 +21,14 @@
 #include <loadfile.h>
 #include <libpad.h>
 #include <audsrv.h>
+#include <malloc.h>
+// gsKit — hardware 2D/3D renderer on the GS (Graphics Synthesizer).
+// Drives the PS2 GPU directly: clears, rects, and textured sprites all
+// run on the GS instead of the EE, enabling 60 FPS gameplay.
+#include <gsKit.h>
+#include <dmaKit.h>
+// SDL kept for: video init (SetVideoMode), input polling, audio (Mix), and
+// asset loading (IMG_Load → surface → gsKit texture upload via DMA).
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
@@ -188,6 +196,15 @@ private:
     // boots (gray splash = no pad) instead of freezing forever.
     s32 m_boot_thread_id{-1};
     s32 m_boot_sem_id{-1};
+
+    // gsKit hardware renderer. Initialized once in init(); all drawing
+    // (clear, rects, textured sprites) is queued in persistent mode and
+    // executed each frame, then the buffer is flipped with vsync limiting
+    // to 60 fps. SDL surfaces are used only for asset loading (PNG decoding
+    // via SDL_image, font rendering via SDL_ttf); pixels are then DMA'd
+    // into GS VRAM via gsKit_texture_upload().
+    GSGLOBAL* m_gsGlobal{nullptr};
+    std::unordered_map<std::uint32_t, GSTEXTURE> m_gsTextures;
 #endif
 
     int m_master_vol{80};
