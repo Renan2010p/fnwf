@@ -234,8 +234,10 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 
     SDL_WM_SetCaption("Five Nights With Friends", nullptr);
 
-    // Quick green splash
-    SDL_FillRect(m_screen, nullptr, 0x00FF00);
+    // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): green
+    // splash proves video setup completed; it stays on screen if the game
+    // never reaches the main loop.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 0));
     SDL_Flip(m_screen);
 
     m_logical_w = w;
@@ -247,8 +249,8 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     m_tpl_alpha = make_surface(1, 1, true);
     update_viewport();
 
-    // Cyan splash
-    SDL_FillRect(m_screen, nullptr, 0x00FFFF);
+    // TEMP DIAGNOSTIC: cyan splash = backbuffer + viewport ready.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 255));
     SDL_Flip(m_screen);
 
     m_ttf_ok = (TTF_Init() == 0);
@@ -633,10 +635,71 @@ float EnginePS2::ticks() const noexcept {
 void EnginePS2::present() {
     if (m_screen == nullptr) return;
     if (m_backbuf != nullptr) {
-        // Simple blit from backbuffer to screen
+        // Formats may differ between the backbuffer and SDL's video surface —
+        // SDL_BlitSurface converts (this is the classic SDL 1.2 cross-format blit).
         SDL_BlitSurface(m_backbuf, nullptr, m_screen, nullptr);
+
+        // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): border
+        // drawn on top of the presented frame proves present() reaches the
+        // display every loop iteration. Sample the backbuffer to color it:
+        //   yellow  = backbuffer contains drawn (non-zero) content;
+        //   magenta = backbuffer sampled entirely black (missing font/assets).
+        Uint32 content = 0;
+        const Uint8* px = static_cast<const Uint8*>(m_backbuf->pixels);
+        for (int y = 8; y < static_cast<int>(m_backbuf->h) - 8 && content == 0; y += 24) {
+            const Uint32* row = reinterpret_cast<const Uint32*>(px + y * m_backbuf->pitch);
+            for (int x = 8; x < static_cast<int>(m_backbuf->w) - 8; x += 16) {
+                content |= row[x] & 0x00FFFFFFu;
+                if (content != 0) break;
+            }
+        }
+        const Uint32 border = SDL_MapRGB(m_screen->format, 255, content ? 255 : 0, content ? 0 : 255);
+        const int bw = 8;
+        SDL_Rect r{};
+        r.x = 0;
+        r.y = 0;
+        r.w = m_screen->w;
+        r.h = static_cast<Uint16>(bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.y = static_cast<Sint16>(m_screen->h - bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.y = 0;
+        r.h = m_screen->h;
+        r.w = static_cast<Uint16>(bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.x = static_cast<Sint16>(m_screen->w - bw);
+        SDL_FillRect(m_screen, &r, border);
+
+        // Software cursor: the PS2 has no OS pointer, and △ clicks at the
+        // cursor (office pan, camera buttons) — without this you'd aim blind.
+        // Drawn after the border, before the flip; logical → physical uses
+        // the same mapping as every draw call.
+        const int cx = map_x(m_mouse_x);
+        const int cy = map_y(m_mouse_y);
+        const Uint32 outline = SDL_MapRGB(m_screen->format, 0, 0, 0);
+        const Uint32 mark = SDL_MapRGB(m_screen->format, 255, 255, 255);
+        SDL_Rect c{};
+        c.x = static_cast<Sint16>(cx - 8);
+        c.y = static_cast<Sint16>(cy - 1);
+        c.w = 17;
+        c.h = 3;
+        SDL_FillRect(m_screen, &c, outline);
+        c.x = static_cast<Sint16>(cx - 1);
+        c.y = static_cast<Sint16>(cy - 8);
+        c.w = 3;
+        c.h = 17;
+        SDL_FillRect(m_screen, &c, outline);
+        c.x = static_cast<Sint16>(cx - 7);
+        c.y = static_cast<Sint16>(cy);
+        c.w = 15;
+        c.h = 1;
+        SDL_FillRect(m_screen, &c, mark);
+        c.x = static_cast<Sint16>(cx);
+        c.y = static_cast<Sint16>(cy - 7);
+        c.w = 1;
+        c.h = 15;
+        SDL_FillRect(m_screen, &c, mark);
     }
-    // Flip to display
     SDL_Flip(m_screen);
 }
 
