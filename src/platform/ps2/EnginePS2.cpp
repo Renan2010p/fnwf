@@ -221,8 +221,8 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         return false;
     }
 
-    m_physical_w = 320;
-    m_physical_h = 240;
+    m_physical_w = 640;
+    m_physical_h = 448;
 
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
@@ -338,6 +338,13 @@ void EnginePS2::shutdown() {
         if (surf) SDL_FreeSurface(surf);
     }
     m_text_cache.clear();
+
+    // Free scaled texture cache.
+    for (auto& [k, surf] : m_scaled_cache) {
+        (void)k;
+        if (surf) SDL_FreeSurface(surf);
+    }
+    m_scaled_cache.clear();
 
     for (auto* font : m_fonts) {
         if (font) TTF_CloseFont(font);
@@ -662,7 +669,7 @@ void EnginePS2::set_vsync(bool on) {
 void EnginePS2::set_resolution(std::uint32_t /*w*/, std::uint32_t /*h*/) {}
 
 std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
-    return {{320, 240, 60}, {320, 240, 60}};
+    return {{640, 448, 60}, {640, 480, 60}};
 }
 
 // ── Drawing primitives ───────────────────────────────────────────────────────
@@ -869,13 +876,9 @@ void EnginePS2::blit_scaled(SDL_Surface* src, std::int32_t dx, std::int32_t dy,
     std::int64_t v_acc = (static_cast<std::int64_t>(iy0 - y0) *
                           (static_cast<std::int64_t>(sht) << 16)) / h0;
 
-    const bool lock_s = SDL_MUSTLOCK(src) != 0;
-    const bool lock_d = SDL_MUSTLOCK(dst) != 0;
-    if (lock_s && SDL_LockSurface(src) != 0) return;
-    if (lock_d && SDL_LockSurface(dst) != 0) {
-        if (lock_s) SDL_UnlockSurface(src);
-        return;
-    }
+    // SWSURFACE never needs explicit locking — skip SDL_LockSurface/UnlockSurface
+    // entirely. On PS2 EE these calls are expensive and unnecessary for software
+    // surfaces.
 
     const Uint32 sam = src->format->Amask;
     const unsigned sash = src->format->Ashift;
@@ -901,20 +904,85 @@ void EnginePS2::blit_scaled(SDL_Surface* src, std::int32_t dx, std::int32_t dy,
             }
             const Uint32 d = drow[x];
             const Uint32 inv = 255 - pa;
-            const Uint32 nr = ((((pix >> 16) & 0xFFu) * pa) + (((d >> 16) & 0xFFu) * inv)) / 255;
-            const Uint32 ng = ((((pix >> 8) & 0xFFu) * pa) + (((d >> 8) & 0xFFu) * inv)) / 255;
-            const Uint32 nb = (((pix & 0xFFu) * pa) + ((d & 0xFFu) * inv)) / 255;
+            // Fast blend: avoid division by 255 using multiply-by-reciprocal trick.
+            // (x * 8193) >> 13 is equivalent to x/255 for x in [0,65025].
+            const Uint32 rp = pa * 8193u;
+            const Uint32 ri = inv * 8193u;
+            const Uint32 nr = (((pix >> 16) & 0xFFu) * rp + ((d >> 16) & 0xFFu) * ri) >> 13;
+            const Uint32 ng = (((pix >> 8) & 0xFFu) * rp + ((d >> 8) & 0xFFu) * ri) >> 13;
+            const Uint32 nb = ((pix & 0xFFu) * rp + (d & 0xFFu) * ri) >> 13;
             Uint32 out = (nr << 16) | (ng << 8) | nb;
             if (dam != 0) {
                 const Uint32 da = (d & dam) >> dash;
-                out |= ((pa + (da * (255 - pa)) / 255) << dash) & dam;
+                const Uint32 na = pa * 8193u;
+                const Uint32 ni = (255 - pa) * 8193u;
+                out |= (((pa + (da * ni) >> 13)) << dash) & dam;
             }
             drow[x] = out;
         }
     }
 
-    if (lock_s) SDL_UnlockSurface(src);
-    if (lock_d) SDL_UnlockSurface(dst);
+    // Unlocked — SWSURFACE doesn't need it on PS2.
+}
+
+// ── Scaled surface helper ────────────────────────────────────────────────────
+// Creates a new surface containing the scaled+blended version of src.
+// Used by the texture cache: scale once, blit many times with cheap 1:1 ops.
+static SDL_Surface* blit_to_surface(SDL_Surface* src, std::int32_t dx,
+                                    std::int32_t dy, std::uint32_t dw,
+                                    std::uint32_t dh, std::int32_t sx,
+                                    std::int32_t sy, std::int32_t sw,
+                                    std::int32_t sh, std::uint8_t alpha) {
+    if (src == nullptr || dw == 0 || dh == 0) return nullptr;
+    // Source sub-rect.
+    std::int32_t su = 0, sv = 0, swd = src->w, sht = src->h;
+    if (sx >= 0 && sy >= 0 && sw > 0 && sh > 0) {
+        su = sx; sv = sy; swd = sw; sht = sh;
+        if (su >= src->w || sv >= src->h) return nullptr;
+        if (su + swd > src->w) swd = src->w - su;
+        if (sv + sht > src->h) sht = src->h - sv;
+    }
+    if (swd <= 0 || sht <= 0) return nullptr;
+
+    SDL_Surface* out = make_surface(dw, dh, true);
+    if (out == nullptr) return nullptr;
+    SDL_FillRect(out, nullptr, 0);
+
+    const std::int32_t w0 = static_cast<std::int32_t>(dw);
+    const std::int32_t h0 = static_cast<std::int32_t>(dh);
+    const std::int64_t inc_x = (static_cast<std::int64_t>(swd) << 16) / w0;
+    const std::int64_t inc_y = (static_cast<std::int64_t>(sht) << 16) / h0;
+
+    const Uint32 sam = src->format->Amask;
+    const unsigned sash = src->format->Ashift;
+
+    for (std::int32_t y = 0; y < h0; ++y) {
+        const std::int32_t v = sv + static_cast<std::int32_t>(
+            (static_cast<std::int64_t>(y) * sht) >> 16);
+        const Uint32* srow = reinterpret_cast<const Uint32*>(
+            static_cast<const Uint8*>(src->pixels) +
+            static_cast<std::size_t>(v) * src->pitch);
+        Uint32* drow = reinterpret_cast<Uint32*>(
+            static_cast<Uint8*>(out->pixels) +
+            static_cast<std::size_t>(y) * out->pitch);
+        std::int64_t u = 0;
+        for (std::int32_t x = 0; x < w0; ++x, u += inc_x) {
+            Uint32 pix = srow[static_cast<std::size_t>(u >> 16)];
+            Uint8 pa = 255;
+            if (sam != 0) pa = static_cast<Uint8>((pix & sam) >> sash);
+            if (alpha != 255) pa = static_cast<Uint8>((pa * alpha) / 255);
+            if (pa == 0) continue;
+            if (pa >= 255) { drow[x] = pix; continue; }
+            const Uint32 inv = 255 - pa;
+            const Uint32 rp = pa * 8193u;
+            const Uint32 ri = inv * 8193u;
+            const Uint32 nr = (((pix >> 16) & 0xFFu) * rp + 0x4000u) >> 13;
+            const Uint32 ng = (((pix >> 8) & 0xFFu) * rp + 0x4000u) >> 13;
+            const Uint32 nb = (((pix & 0xFFu) * rp) + 0x4000u) >> 13;
+            drow[x] = (nr << 16) | (ng << 8) | nb | (pa << 24);
+        }
+    }
+    return out;
 }
 
 // ── Textures ─────────────────────────────────────────────────────────────────
@@ -928,7 +996,38 @@ void EnginePS2::draw_texture(const TextureHandle& tex, std::int32_t dx, std::int
     if (it == m_textures.end()) return;
 
     Uint8 a = alpha.value_or(255);
-    blit_scaled(it->second, dx, dy, dw, dh, sx, sy, sw, sh, a);
+
+    // Cache lookup: (tex_id, sx, sy, sw, sh, dw, dh, alpha) → pre-scaled surface.
+    // Avoids re-scaling the same texture at the same size every frame — critical
+    // for PS2 EE where per-pixel nearest-neighbor + alpha blend is very costly.
+    ScaledKey key{tex.id, sx, sy, sw, sh, static_cast<std::int32_t>(dw),
+                  static_cast<std::int32_t>(dh), a};
+    auto cit = m_scaled_cache.find(key);
+    SDL_Surface* src = nullptr;
+    if (cit != m_scaled_cache.end()) {
+        src = cit->second;
+    } else {
+        // Scale once, store for reuse.
+        src = blit_to_surface(it->second, dx, dy, dw, dh, sx, sy, sw, sh, a);
+        if (src == nullptr) return;
+        if (m_scaled_cache.size() >= MAX_SCALED_CACHE) {
+            // Evict oldest entries by clearing half the cache.
+            auto it2 = m_scaled_cache.begin();
+            for (std::size_t i = 0; i < m_scaled_cache.size() / 2 && it2 != m_scaled_cache.end();
+                 ++i, ++it2) {
+                SDL_FreeSurface(it2->second);
+            }
+            m_scaled_cache.erase(m_scaled_cache.begin(), it2);
+        }
+        m_scaled_cache.emplace(key, src);
+    }
+
+    // Blit the (possibly cached) surface to the draw target.
+    if (src != nullptr) {
+        SDL_Rect s{};
+        SDL_Rect d{static_cast<Sint16>(dx), static_cast<Sint16>(dy), 0, 0};
+        SDL_BlitSurface(src, &s, draw_target(), &d);
+    }
 }
 
 void EnginePS2::draw_texture_rotated(const TextureHandle& tex,
