@@ -212,50 +212,33 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     SifInitRpc(0);
 #endif
 
-    // Initialize timers first (needed for input polling).
-    if (SDL_Init(SDL_INIT_TIMER) != 0) {
+    // Video first: the game must reach SDL_SetVideoMode even if the audio
+    // stack (libsd + audsrv RPC on the IOP) fails or hangs. The old order
+    // (audio before video) turned any sound failure into a silent black
+    // screen, because main() reports init failures on stderr — invisible
+    // under PCSX2.
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         return false;
     }
 
     m_physical_w = 640;
     m_physical_h = 448;
 
-    // Initialize gsKit for GPU-accelerated rendering
-#ifdef __PS2__
-    dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC,
-                D_CTRL_STD_OFF, D_CTRL_RCYC_8, 1 << DMA_CHANNEL_GIF);
-    dmaKit_chan_init(DMA_CHANNEL_GIF);
-
-    m_gsGlobal = gsKit_init_global();
-    if (m_gsGlobal != nullptr) {
-        m_gsGlobal->Mode = GS_MODE_NTSC;
-        m_gsGlobal->Interlace = GS_INTERLACED;
-        m_gsGlobal->Field = GS_FIELD;
-        m_gsGlobal->Width = m_physical_w;
-        m_gsGlobal->Height = m_physical_h;
-        m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
-        m_gsGlobal->ZBuffering = GS_SETTING_OFF;
-        m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
-        gsKit_init_screen(m_gsGlobal);
-        gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
-        gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 255, 0));
-        std::fprintf(stderr, "DEBUG: gsKit initialized\n");
-    } else {
-        std::fprintf(stderr, "DEBUG: gsKit init failed, falling back to SDL\n");
-        // Fallback to SDL
-        if (SDL_Init(SDL_INIT_VIDEO) == 0) {
-            m_screen = SDL_SetVideoMode(m_physical_w, m_physical_h, 32, SDL_SWSURFACE);
-        }
-    }
-#else
-    m_screen = SDL_SetVideoMode(m_physical_w, m_physical_h, 32, SDL_SWSURFACE);
-#endif
-
-    if (m_screen == nullptr && m_gsGlobal == nullptr) {
+    m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
+                                static_cast<int>(m_physical_h),
+                                32,
+                                SDL_SWSURFACE | SDL_HWSURFACE);
+    if (m_screen == nullptr) {
         return false;
     }
 
     SDL_WM_SetCaption("Five Nights With Friends", nullptr);
+
+    // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): green
+    // splash proves video setup completed; it stays on screen if the game
+    // never reaches the main loop.
+    SDL_FillRect(m_screen, nullptr, SDL_MapRGB(m_screen->format, 0, 255, 0));
+    SDL_Flip(m_screen);
 
     m_logical_w = w;
     m_logical_h = h;
@@ -650,14 +633,6 @@ float EnginePS2::ticks() const noexcept {
 }
 
 void EnginePS2::present() {
-#ifdef __PS2__
-    if (m_gsGlobal != nullptr) {
-        // Use gsKit for GPU rendering
-        gsKit_queue_exec(m_gsGlobal);
-        gsKit_sync_flip(m_gsGlobal);
-        return;
-    }
-#endif
     if (m_screen == nullptr) return;
     if (m_backbuf != nullptr) {
         // Formats may differ between the backbuffer and SDL's video surface —
