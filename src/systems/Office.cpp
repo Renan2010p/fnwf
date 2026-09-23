@@ -10,8 +10,10 @@ namespace fnwf {
 static constexpr float PI = 3.14159265f;
 
 Office::Office(Engine& eng) : m_eng(eng) {
-    office_tex = *eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
-    office_static_tex = *eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+    auto ot1 = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+    office_tex = ot1 ? *ot1 : TextureHandle{};
+    auto ot2 = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+    office_static_tex = ot2 ? *ot2 : TextureHandle{};
 
     vp_x = GameSettings::OFFICE_WIDTH / 2;
     vp_y = GameSettings::SCREEN_HEIGHT / 2 - 30;
