@@ -21,6 +21,14 @@
 #include <loadfile.h>
 #include <libpad.h>
 #include <audsrv.h>
+#include <malloc.h>
+// gsKit — hardware 2D/3D renderer on the GS (Graphics Synthesizer).
+// Drives the PS2 GPU directly: clears, rects, and textured sprites all
+// run on the GS instead of the EE, enabling 60 FPS gameplay.
+#include <gsKit.h>
+#include <dmaKit.h>
+// SDL kept for: video init (SetVideoMode), input polling, audio (Mix), and
+// asset loading (IMG_Load → surface → gsKit texture upload via DMA).
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
@@ -155,35 +163,6 @@ private:
     SDL_Surface* m_tpl_alpha{nullptr};
     SDL_Surface* m_target{nullptr};
     std::unordered_map<std::uint32_t, SDL_Surface*> m_textures{};
-    // Cache for pre-scaled textures: key = (tex_id << 32) | (dw << 16) | dh.
-    // Avoids re-scaling the same texture at the same size every frame — big
-    // win on the PS2 EE where per-pixel scaling is very expensive.
-    struct ScaledKey {
-        std::uint32_t tex_id;
-        std::int32_t sx, sy, sw, sh;  // source sub-rect (-1 = full)
-        std::int32_t dw, dh;           // dest size
-        std::uint8_t alpha;
-        bool operator==(const ScaledKey& o) const {
-            return tex_id == o.tex_id && sx == o.sx && sy == o.sy &&
-                   sw == o.sw && sh == o.sh && dw == o.dw && dh == o.dh &&
-                   alpha == o.alpha;
-        }
-    };
-    struct ScaledKeyHash {
-        std::size_t operator()(const ScaledKey& k) const {
-            std::size_t h = std::hash<std::uint32_t>{}(k.tex_id);
-            h ^= std::hash<std::int32_t>{}(k.sx) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<std::int32_t>{}(k.sy) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<std::int32_t>{}(k.sw) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<std::int32_t>{}(k.sh) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<std::int32_t>{}(k.dw) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<std::int32_t>{}(k.dh) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= std::hash<std::uint8_t>{}(k.alpha) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            return h;
-        }
-    };
-    std::unordered_map<ScaledKey, SDL_Surface*, ScaledKeyHash> m_scaled_cache{};
-    static constexpr std::size_t MAX_SCALED_CACHE = 64u;
     std::unordered_map<std::uint32_t, Mix_Chunk*> m_chunks{};
     std::vector<TTF_Font*> m_fonts{};
     std::unordered_map<std::uint64_t, SDL_Surface*> m_text_cache{};
@@ -217,6 +196,15 @@ private:
     // boots (gray splash = no pad) instead of freezing forever.
     s32 m_boot_thread_id{-1};
     s32 m_boot_sem_id{-1};
+
+    // gsKit hardware renderer. Initialized once in init(); all drawing
+    // (clear, rects, textured sprites) is queued in persistent mode and
+    // executed each frame, then the buffer is flipped with vsync limiting
+    // to 60 fps. SDL surfaces are used only for asset loading (PNG decoding
+    // via SDL_image, font rendering via SDL_ttf); pixels are then DMA'd
+    // into GS VRAM via gsKit_texture_upload().
+    GSGLOBAL* m_gsGlobal{nullptr};
+    std::unordered_map<std::uint32_t, GSTEXTURE> m_gsTextures;
 #endif
 
     int m_master_vol{80};
