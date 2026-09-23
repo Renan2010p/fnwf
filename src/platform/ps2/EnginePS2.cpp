@@ -785,7 +785,8 @@ std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
 void EnginePS2::clear(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t /*a*/) {
 #ifdef __PS2__
     if (m_gsGlobal != nullptr) {
-        gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(r, g, b, 0, 0));
+        // gsKit clear: sets bg color in GS context, no queue op needed.
+        GS_SETREG_BGCOLOR(r, g, b);
     } else {
         SDL_Surface* target = draw_target();
         if (target != nullptr)
