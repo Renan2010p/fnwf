@@ -1114,10 +1114,13 @@ std::optional<TextureHandle> EnginePS2::load_texture(std::string_view path) {
 std::optional<TextureHandle> EnginePS2::create_target(std::uint32_t w, std::uint32_t h) {
     // Render targets are opaque canonical surfaces in logical coordinates.
     SDL_Surface* surf = make_surface(w, h, false);
-    if (!surf) return std::nullopt;
-
+    if (!surf) {
+        std::fprintf(stderr, "DEBUG: create_target FAILED %ux%u\n", w, h);
+        return std::nullopt;
+    }
     const std::uint32_t id = m_next_id++;
     m_textures[id] = surf;
+    std::fprintf(stderr, "DEBUG: create_target OK id=%u %ux%u\n", id, w, h);
     return TextureHandle{id};
 }
 
