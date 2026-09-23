@@ -222,17 +222,16 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
     }
 
     m_physical_w = 640;
-    m_physical_h = 360;
+    m_physical_h = 448;
 
-    // SDL PS2 port automatically uses gsKit/GS for rendering when HWSURFACE is available
     m_screen = SDL_SetVideoMode(static_cast<int>(m_physical_w),
                                 static_cast<int>(m_physical_h),
                                 32,
-                                SDL_HWSURFACE | SDL_DOUBLEBUF);
+                                SDL_SWSURFACE | SDL_HWSURFACE);
     if (m_screen == nullptr) {
         return false;
     }
-    
+
     SDL_WM_SetCaption("Five Nights With Friends", nullptr);
 
     // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): green
@@ -640,7 +639,36 @@ void EnginePS2::present() {
         // SDL_BlitSurface converts (this is the classic SDL 1.2 cross-format blit).
         SDL_BlitSurface(m_backbuf, nullptr, m_screen, nullptr);
 
-        // Simple blit without diagnostic scan for better performance
+        // TEMP DIAGNOSTIC (black-screen triage, remove once resolved): border
+        // drawn on top of the presented frame proves present() reaches the
+        // display every loop iteration. Sample the backbuffer to color it:
+        //   yellow  = backbuffer contains drawn (non-zero) content;
+        //   magenta = backbuffer sampled entirely black (missing font/assets).
+        Uint32 content = 0;
+        const Uint8* px = static_cast<const Uint8*>(m_backbuf->pixels);
+        for (int y = 8; y < static_cast<int>(m_backbuf->h) - 8 && content == 0; y += 24) {
+            const Uint32* row = reinterpret_cast<const Uint32*>(px + y * m_backbuf->pitch);
+            for (int x = 8; x < static_cast<int>(m_backbuf->w) - 8; x += 16) {
+                content |= row[x] & 0x00FFFFFFu;
+                if (content != 0) break;
+            }
+        }
+        const Uint32 border = SDL_MapRGB(m_screen->format, 255, content ? 255 : 0, content ? 0 : 255);
+        const int bw = 8;
+        SDL_Rect r{};
+        r.x = 0;
+        r.y = 0;
+        r.w = m_screen->w;
+        r.h = static_cast<Uint16>(bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.y = static_cast<Sint16>(m_screen->h - bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.y = 0;
+        r.h = m_screen->h;
+        r.w = static_cast<Uint16>(bw);
+        SDL_FillRect(m_screen, &r, border);
+        r.x = static_cast<Sint16>(m_screen->w - bw);
+        SDL_FillRect(m_screen, &r, border);
 
         // Software cursor: the PS2 has no OS pointer, and △ clicks at the
         // cursor (office pan, camera buttons) — without this you'd aim blind.
@@ -695,7 +723,7 @@ void EnginePS2::set_vsync(bool on) {
 void EnginePS2::set_resolution(std::uint32_t /*w*/, std::uint32_t /*h*/) {}
 
 std::vector<std::array<std::int32_t, 3>> EnginePS2::get_display_modes() {
-    return {{640, 360, 60}, {640, 360, 60}};
+    return {{640, 448, 60}, {640, 480, 60}};
 }
 
 // ── Drawing primitives ───────────────────────────────────────────────────────
