@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <unistd.h>   // For stat()
 
 // File device used for asset access. "host:" is the PCSX2 / ps2link host
 // filesystem, which resolves relative paths against the ELF's directory
@@ -57,7 +58,7 @@ std::string platform_path(std::string_view p) {
 
     // Known possible paths to try - prioritize CD-ROM first for ISO playback
     static const char* s_paths[] = {
-        "cdrom:/",              // CD-ROM root (assets are at /ASSETS/...)
+        "cdrom:/",              // CD-ROM root (assets are at /assets/...)
         "cdrom0:/",             // CD-ROM alternate
         "usbmass:/fnwf/",       // USB flash drive
         "mass:/fnwf/",          // Memory Stick
@@ -67,25 +68,44 @@ std::string platform_path(std::string_view p) {
 
     // Debug: log attempts
     static int s_log_count = 0;
-    
+    if (s_log_count++ < 20) {
+        std::fprintf(stderr, "TRY: %s\n", s.c_str());
+    }
+
     // Try each prefix
     for (int i = 0; s_paths[i] != nullptr; ++i) {
         std::string test = std::string(s_paths[i]) + s;
-        // Check if file exists using POSIX stat
-        struct stat st;
-        if (stat(test.c_str(), &st) >= 0) {
-            if (s_log_count++ < 10) {
+        // Use SDL file functions to check if file exists (more reliable on PS2)
+        FILE* f = fopen(test.c_str(), "rb");
+        if (f != nullptr) {
+            fclose(f);
+            if (s_log_count <= 25) {
                 std::fprintf(stderr, "FOUND: %s\n", test.c_str());
             }
             return test;
         }
     }
 
-    // Fallback to usbmass:/
-    if (s_log_count++ < 10) {
-        std::fprintf(stderr, "FALLBACK: %s\n", s.c_str());
+    // Also try with uppercase (ISO9660 convention)
+    std::string upper = s;
+    std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+    for (int i = 0; s_paths[i] != nullptr; ++i) {
+        std::string test = std::string(s_paths[i]) + upper;
+        FILE* f = fopen(test.c_str(), "rb");
+        if (f != nullptr) {
+            fclose(f);
+            if (s_log_count <= 25) {
+                std::fprintf(stderr, "FOUND (UPPER): %s\n", test.c_str());
+            }
+            return test;
+        }
     }
-    return std::string("usbmass:/") + s;
+
+    // Fallback
+    if (s_log_count <= 25) {
+        std::fprintf(stderr, "NOT FOUND: %s\n", s.c_str());
+    }
+    return std::string("cdrom:/") + s;
 }
 
 // Nearest-neighbour downscale into the canonical alpha format. Runs once at
