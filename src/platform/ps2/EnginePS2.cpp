@@ -335,11 +335,14 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
 
     m_gsGlobal = gsKit_init_global();
     if (m_gsGlobal != nullptr) {
-        m_gsGlobal->Mode = GS_MODE_NTSC;
-        m_gsGlobal->Interlace = GS_INTERLACED;
-        m_gsGlobal->Field = GS_FIELD;
-        m_gsGlobal->Width = static_cast<u32>(m_physical_w);
-        m_gsGlobal->Height = static_cast<u32>(m_physical_h);
+        // Use progressive scan (DTV_480P) instead of interlaced NTSC.
+        // Interlaced mode causes "white screen by half" on PCSX2 because
+        // the GS expects field-based rendering but we provide frame data.
+        m_gsGlobal->Mode = GS_MODE_DTV_480P;
+        m_gsGlobal->Interlace = GS_NONINTERLACED;
+        m_gsGlobal->Field = GS_FRAME;
+        m_gsGlobal->Width = 640;
+        m_gsGlobal->Height = 480;
         m_gsGlobal->DoubleBuffering = GS_SETTING_ON;
         m_gsGlobal->ZBuffering = GS_SETTING_OFF;
         m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
