@@ -321,7 +321,9 @@ bool EnginePS2::init(std::string_view /*title*/, std::uint32_t w, std::uint32_t 
         m_gsGlobal->ZBuffering = GS_SETTING_OFF;
         m_gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
         // Initialize gsKit screen — this sets up the GS display mode.
-        gsKit_init_screen(m_gsGlobal);
+        // NOTE: gsKit_init_screen requires a valid screen surface from SDL.
+        // Since we're not using SDL video, we skip this and let gsKit
+        // use its default initialization from gsKit_init_global().
         gsKit_mode_switch(m_gsGlobal, GS_PERSISTENT);
         gsKit_clear(m_gsGlobal, GS_SETREG_RGBAQ(0, 0, 0, 255, 0));
     }
