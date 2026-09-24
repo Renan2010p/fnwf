@@ -13,9 +13,18 @@ CameraSystem::CameraSystem(Engine& eng) : m_eng(eng) {
     map_x = SCREEN_WIDTH - map_w - 20;
     map_y = SCREEN_HEIGHT - map_h - 60;
 
-    monitor_tex = *m_eng.create_target(SCREEN_WIDTH, SCREEN_HEIGHT);
-    map_tex = *m_eng.create_target(map_w, map_h);
-    map_base_tex = *m_eng.create_target(map_w, map_h);
+    auto monitor_t = m_eng.create_target(SCREEN_WIDTH, SCREEN_HEIGHT);
+    auto map_t = m_eng.create_target(map_w, map_h);
+    auto map_base_t = m_eng.create_target(map_w, map_h);
+
+    if (!monitor_t.has_value() || !map_t.has_value() || !map_base_t.has_value()) {
+        std::fprintf(stderr, "ERROR: Failed to create camera render targets\n");
+        return;
+    }
+
+    monitor_tex = *monitor_t;
+    map_tex = *map_t;
+    map_base_tex = *map_base_t;
 }
 
 auto CameraSystem::ease_out_cubic(float v) const -> float {
