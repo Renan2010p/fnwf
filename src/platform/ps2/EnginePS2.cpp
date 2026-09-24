@@ -1201,9 +1201,18 @@ std::optional<SoundHandle> EnginePS2::load_sound(std::string_view path) {
 
 std::int64_t EnginePS2::load_font(std::string_view path, std::uint16_t size) {
     if (!m_ttf_ok) return -1;
-    TTF_Font* font = TTF_OpenFont(platform_path(path).c_str(), size);
-    if (!font) return -1;
-
+    const std::string p = platform_path(path);
+    std::fprintf(stderr, "LOAD FONT: %s\n", p.c_str());
+    TTF_Font* font = TTF_OpenFont(p.c_str(), size);
+    if (!font) {
+        std::string upper = p;
+        std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+        font = TTF_OpenFont(upper.c_str(), size);
+    }
+    if (!font) {
+        std::fprintf(stderr, "ERROR: Failed to load font\n");
+        return -1;
+    }
     const std::int64_t idx = static_cast<std::int64_t>(m_fonts.size());
     m_fonts.push_back(font);
     return idx;
