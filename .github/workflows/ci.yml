@@ -213,8 +213,8 @@ jobs:
           name: fnwf-web-wasm
           path: build_web/
 
-  # === PlayStation 2 (EE) ===
-  build-ps2-ee:
+  # === PlayStation 2 (EE) + ISO ===
+  build-ps2-full:
     runs-on: ubuntu-latest
     container: ps2dev/ps2dev
     steps:
@@ -222,7 +222,14 @@ jobs:
       - name: Install build tools
         run: |
           apk update
-          apk add meson ninja-build pkgconf python3 cmake git build-base bash
+          apk add meson ninja-build pkgconf python3 cmake git build-base bash curl unzip
+      - name: Download mkps2iso
+        run: |
+          mkdir -p /tmp/mkps2iso-bin
+          curl -sL "https://github.com/N4gtan/mkps2iso/releases/download/v1.1.1/mkps2iso-1.1.1-Linux.zip" \
+            -o /tmp/mkps2iso.zip
+          unzip -o /tmp/mkps2iso.zip -d /tmp/mkps2iso-bin
+          chmod +x /tmp/mkps2iso-bin/mkps2iso-1.1.1-Linux/bin/mkps2iso
       - name: Build gsKit and SDL ports
         run: |
           export PS2DEV=/usr/local/ps2dev
@@ -230,62 +237,25 @@ jobs:
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
 
-          # gsKit upstream enables IPO/LTO (set(CMAKE_INTERPROCEDURAL_OPTIMIZATION
-          # TRUE) at CMakeLists.txt:35, which a -D cache entry cannot override
-          # since plain set() shadows cache vars). We do NOT pass -fno-lto at
-          # link time (that's what suppressed gcc's LTO plugin and caused
-          # "plugin needed to handle lto object"), but keeping gsKit LTO-free
-          # anyway avoids relying on the plugin at all. Patch + verify.
           cd /tmp
           git clone --depth 1 https://github.com/ps2dev/gsKit.git
           cd gsKit
-          sed -i 's/set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)/set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)/' CMakeLists.txt
-          grep -q 'set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)' CMakeLists.txt \
-            || { echo "ERROR: failed to patch gsKit IPO off"; exit 1; }
           make
           make install
           cd /tmp
 
-          # Diagnostics: headers/libs landed where the SDL guard expects them,
-          # and whether the archives contain LTO bytecode (.gnu.lto_* sections).
-          # LTO here is not fatal: our link no longer passes -fno-lto, so gcc's
-          # LTO plugin processes these objects (same as official ps2sdk samples).
-          echo "=== gsKit install check ==="
-          ls -la "$GSKIT/include/gsKit.h" "$GSKIT/lib/libgskit.a" "$GSKIT/lib/libdmakit.a" 2>&1 || true
-          echo "=== gsKit LTO check ==="
-          if mips64r5900el-ps2-elf-readelf -S "$GSKIT/lib/libgskit.a" 2>&1 | grep -q '\.gnu\.lto_'; then
-            echo "WARNING: libgskit.a still has LTO sections (sed patch ineffective)"
-          else
-            echo "libgskit.a: no LTO sections (OK)"
-          fi
-
-          # Build SDL, SDL_mixer, SDL_ttf from ps2sdk-ports
           git clone --depth 1 https://github.com/ps2dev/ps2sdk-ports.git
           cd ps2sdk-ports
           chmod +x fetch.sh build-cmakelibs.sh
-
-          # Build SDL first (depends on gsKit)
           make sdl
           make -C sdl install
-
-          # Build SDL_mixer (depends on SDL)
           make sdlmixer
           make -C sdlmixer install
-
-          # Build SDL_ttf (depends on SDL)
           make sdlttf
           make -C sdlttf install
-
-          # Build SDL_image (PNG texture support — SDL_LoadBMP can't read .png)
           make sdlimage
           make -C sdlimage install
-          # Fail fast if the header didn't land where meson's -I points
-          ls -la "$PS2SDK/ports/include/SDL/SDL_image.h"
-
-          # Diagnostics: show what actually got installed (case-sensitive names!)
-          echo "=== \$PS2SDK/ports/lib ==="
-          ls -la "$PS2SDK/ports/lib"
-      - name: Build
+      - name: Build ELF
         run: |
           export PS2DEV=/usr/local/ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
@@ -293,20 +263,32 @@ jobs:
           export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
           chmod +x build-ps2.sh
           ./build-ps2.sh
-      - name: Package
+      - name: Build ISO
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export GSKIT=$PS2DEV/gsKit
+          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
+          chmod +x build-ps2-iso.sh
+          ./build-ps2-iso.sh
+      - name: Package ELF
         run: |
           VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
           REL="fnwf-classic-${VER}-ps2-ee"
           mkdir -p "release/${REL}"
-          # host: root = the ELF's directory, so assets must ship next to it
-          cp builddir-ps2/fnwf "release/${REL}/fnwf.elf"
-          cp -r assets "release/${REL}/assets"
+          cp builddir-ps2/fnwf.elf "release/${REL}/"
+          cp -r assets "release/${REL}/"
           cd release && tar czf "${REL}.tar.gz" "${REL}"
-      - name: Upload
+      - name: Upload ELF artifact
         uses: actions/upload-artifact@v4
         with:
           name: fnwf-ps2-ee
           path: release/fnwf-classic-*-ps2-ee.tar.gz
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-ps2-iso
+          path: fnwf-ps2.iso
 
   # === Deploy to GitHub Pages ===
   deploy:
@@ -330,7 +312,7 @@ jobs:
 
   # === Create Release ===
   create-release:
-    needs: [build-linux-amd64, build-linux-aarch64, build-windows-amd64, build-macos-aarch64, build-ps2-ee]
+    needs: [build-linux-amd64, build-linux-aarch64, build-windows-amd64, build-macos-aarch64, build-ps2-full]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -347,4 +329,5 @@ jobs:
           gh release create "${TAG}" \
             --title "Classic ${VER}" \
             --generate-notes \
-            artifacts/*/*.tar.gz
+            artifacts/*/*.tar.gz \
+            artifacts/fnwf-ps2-iso/fnwf-ps2.iso
