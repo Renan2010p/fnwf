@@ -1,0 +1,104 @@
+name: Build PS2 ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/platform/ps2/**'
+      - 'build-ps2.sh'
+      - 'build-ps2-iso.sh'
+      - '.github/workflows/build-ps2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ps2-iso:
+    runs-on: ubuntu-latest
+    container: ps2dev/ps2dev
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Install build tools
+        run: |
+          apk update
+          apk add meson ninja-build pkgconf python3 cmake git build-base bash curl unzip
+      
+      - name: Download mkps2iso
+        run: |
+          mkdir -p /tmp/mkps2iso-bin
+          curl -sL "https://github.com/N4gtan/mkps2iso/releases/download/v1.1.1/mkps2iso-1.1.1-Linux.zip" \
+            -o /tmp/mkps2iso.zip
+          unzip -o /tmp/mkps2iso.zip -d /tmp/mkps2iso-bin
+          chmod +x /tmp/mkps2iso-bin/mkps2iso-1.1.1-Linux/bin/mkps2iso
+      
+      - name: Build gsKit and SDL ports
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export GSKIT=$PS2DEV/gsKit
+          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
+          
+          # Clone and build gsKit
+          cd /tmp
+          git clone --depth 1 https://github.com/ps2dev/gsKit.git
+          cd gsKit
+          make
+          make install
+          
+          # Clone and build SDL ports
+          git clone --depth 1 https://github.com/ps2dev/ps2sdk-ports.git
+          cd ps2sdk-ports
+          chmod +x fetch.sh build-cmakelibs.sh
+          make sdl
+          make -C sdl install
+          make sdlmixer
+          make -C sdlmixer install
+          make sdlttf
+          make -C sdlttf install
+          make sdlimage
+          make -C sdlimage install
+        env:
+          PS2DEV: /usr/local/ps2dev
+          PS2SDK: /usr/local/ps2dev/ps2sdk
+          GSKIT: /usr/local/ps2dev/gsKit
+      
+      - name: Build ELF
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export GSKIT=$PS2DEV/gsKit
+          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
+          chmod +x build-ps2.sh
+          ./build-ps2.sh
+      
+      - name: Build ISO
+        run: |
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export GSKIT=$PS2DEV/gsKit
+          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
+          chmod +x build-ps2-iso.sh
+          ./build-ps2-iso.sh
+      
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-ps2-iso
+          path: fnwf-ps2.iso
+          retention-days: 30
+      
+      - name: Create Release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep "^version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+          TAG="v${VER}-ps2"
+          gh release create "${TAG}" \
+            --title "PS2 Release v${VER}" \
+            --notes "PlayStation 2 ISO build\n\nDisc ID: SLUS-99001\nRegion: NTSC-U\n\nTo play:\n1. Burn to DVD-R at 1x-4x speed\n2. Insert into PS2\n3. Game will boot automatically" \
+            fnwf-ps2.iso
