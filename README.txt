@@ -78,6 +78,23 @@ and a reference for how the game worked.
     Sonk   — Runs when you watch him too long
 
 ===========================================
+  Repository layout
+===========================================
+
+  src/engine/       Abstract Engine interface (no platform code)
+  src/core/         Engines-agnostic services (draw, save, audio, i18n)
+  src/systems/      Gameplay systems (office, cameras, doors, power, AI)
+  src/game1/        Game states + settings (colors, constants, assets)
+  src/platform/     Backends: sdl2/ (desktop/web/mobile), ps2/ (gsKit)
+  assets/           Sprites, audio and font
+  scripts/          Helper scripts (web server, packaging helpers)
+  docs/             Architecture and platform guides
+  cross/            Meson cross-compile files
+  subprojects/      Vendored dependencies (SDL2)
+
+  See docs/ARCHITECTURE.md and CONTRIBUTING.md.
+
+===========================================
   Building from Source
 ===========================================
 
@@ -125,10 +142,10 @@ and a reference for how the game worked.
   Run:
     - PCSX2: File > Run CDVD > fnwf-ps2.iso
     - Real hardware: burn the ISO, or use the USB layout
-      described in PS2-BUILD.md
+      described in docs/PS2-BUILD.md
 
   On PS2 the game renders through gsKit (the GS/GPU) at 60 FPS,
-  with a flat office and real loading screens. See PS2-BUILD.md.
+  with a flat office and real loading screens. See docs/PS2-BUILD.md.
 
 ===========================================
   Releasing
