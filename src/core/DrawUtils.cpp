@@ -175,23 +175,7 @@ auto DrawUtils::trapezoid(Engine& eng,
                           std::int32_t p3y,
                           std::int32_t p4x,
                           std::int32_t p4y) -> void {
-    std::int32_t y_min = std::min(p1y, p2y);
-    std::int32_t y_max = std::max(p3y, p4y);
-    if (y_max == y_min)
-        return;
-
-    for (std::int32_t py = y_min; py <= y_max; ++py) {
-        float prog = static_cast<float>(py - y_min) / static_cast<float>(y_max - y_min);
-        float x_left =
-            static_cast<float>(p1x) + (static_cast<float>(p4x) - static_cast<float>(p1x)) * prog;
-        float x_right =
-            static_cast<float>(p2x) + (static_cast<float>(p3x) - static_cast<float>(p2x)) * prog;
-        auto xl = static_cast<std::int32_t>(std::floor(x_left));
-        auto xr = static_cast<std::int32_t>(std::floor(x_right));
-        if (xr > xl) {
-            eng.line(xl, py, xr, py, r, g, b);
-        }
-    }
+    eng.fill_quad(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, r, g, b);
 }
 
 auto DrawUtils::star(Engine& eng,

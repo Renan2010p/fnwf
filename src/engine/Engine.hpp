@@ -2,6 +2,7 @@
 
 // Engine — pure abstract interface. No platform headers here.
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -60,6 +61,27 @@ public:
                            bool filled = true) = 0;
     virtual void line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
                       std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255) = 0;
+    // Fills a convex quad p1→p2→p3→p4. The default scanline-fills between the
+    // p1→p4 (left) and p2→p3 (right) edges; platforms with a real polygon
+    // primitive (e.g. PS2/gsKit) override it, which turns hundreds of 1px
+    // lines into a single filled shape.
+    virtual void fill_quad(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
+                           std::int32_t x3, std::int32_t y3, std::int32_t x4, std::int32_t y4,
+                           std::uint8_t r, std::uint8_t g, std::uint8_t b,
+                           std::uint8_t a = 255) {
+        const std::int32_t y0 = std::min(y1, y2);
+        const std::int32_t y1b = std::max(y3, y4);
+        if (y1b <= y0) return;
+        const float span = static_cast<float>(y1b - y0);
+        for (std::int32_t py = y0; py <= y1b; ++py) {
+            const float t = static_cast<float>(py - y0) / span;
+            const std::int32_t xl =
+                static_cast<std::int32_t>(static_cast<float>(x1) + (x4 - x1) * t);
+            const std::int32_t xr =
+                static_cast<std::int32_t>(static_cast<float>(x2) + (x3 - x2) * t);
+            if (xr > xl) line(xl, py, xr, py, r, g, b, a);
+        }
+    }
     virtual void circle(std::int32_t cx, std::int32_t cy, std::int32_t radius,
                         std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a = 255,
                         bool filled = true) = 0;
