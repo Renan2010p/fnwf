@@ -55,6 +55,10 @@ ensure_mkps2iso() {
     echo "Prebuilt mkps2iso cannot run here — building it from source..."
     rm -rf /tmp/mkps2iso-src
     git clone --depth 1 https://github.com/N4gtan/mkps2iso.git /tmp/mkps2iso-src
+    # musl (Alpine) has no struct stat64 / stat64(); use the portable stat().
+    sed -i 's/struct stat64/struct stat/g; s/stat64(/stat(/g' \
+        /tmp/mkps2iso-src/src/shared/platform.h \
+        /tmp/mkps2iso-src/src/shared/platform.cpp
     cmake -S /tmp/mkps2iso-src -B /tmp/mkps2iso-src/build -DCMAKE_BUILD_TYPE=Release >/dev/null
     cmake --build /tmp/mkps2iso-src/build -j"$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)"
     MKPS2ISO="/tmp/mkps2iso-src/build/mkps2iso"
