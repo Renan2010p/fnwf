@@ -27,14 +27,6 @@ jobs:
           apk update
           apk add meson ninja-build pkgconf python3 cmake git build-base bash curl unzip
       
-      - name: Download mkps2iso
-        run: |
-          mkdir -p /tmp/mkps2iso-bin
-          curl -sL "https://github.com/N4gtan/mkps2iso/releases/download/v1.1.1/mkps2iso-1.1.1-Linux.zip" \
-            -o /tmp/mkps2iso.zip
-          unzip -o /tmp/mkps2iso.zip -d /tmp/mkps2iso-bin
-          chmod +x /tmp/mkps2iso-bin/mkps2iso-1.1.1-Linux/bin/mkps2iso
-      
       - name: Build gsKit and SDL ports
         run: |
           export PS2DEV=/usr/local/ps2dev

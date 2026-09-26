@@ -10,7 +10,8 @@ cd "$SCRIPT_DIR"
 PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
 PS2SDK="${PS2SDK:-$PS2DEV/ps2sdk}"
 GSKIT="${GSKIT:-$PS2DEV/gsKit}"
-MKPS2ISO="/tmp/mkps2iso-bin/mkps2iso-1.1.1-Linux/bin/mkps2iso"
+MKPS2ISO="${MKPS2ISO:-}"
+PREBUILT_MKPS2ISO="/tmp/mkps2iso-bin/mkps2iso-1.1.1-Linux/bin/mkps2iso"
 ISO_OUTPUT="./fnwf-ps2.iso"
 ELF="builddir-ps2/fnwf.elf"
 
@@ -26,15 +27,44 @@ if [ ! -f "$ELF" ]; then
     exit 1
 fi
 
-# ── Check mkps2iso ──
-if [ ! -f "$MKPS2ISO" ]; then
-    echo "Downloading mkps2iso..."
-    mkdir -p /tmp/mkps2iso-bin
-    curl -sL "https://github.com/N4gtan/mkps2iso/releases/download/v1.1.1/mkps2iso-1.1.1-Linux.zip" \
-        -o /tmp/mkps2iso.zip
-    unzip -o /tmp/mkps2iso.zip -d /tmp/mkps2iso-bin
-    chmod +x "$MKPS2ISO"
-fi
+# ── Ensure mkps2iso ──
+# Prefer a system install, then the prebuilt release if it can actually run
+# (it is dynamically linked against glibc, so it fails on musl/Alpine), and
+# finally build it from source.
+ensure_mkps2iso() {
+    if command -v mkps2iso >/dev/null 2>&1; then
+        MKPS2ISO="$(command -v mkps2iso)"
+        return
+    fi
+    if [ -x "$PREBUILT_MKPS2ISO" ] && "$PREBUILT_MKPS2ISO" --help >/dev/null 2>&1; then
+        MKPS2ISO="$PREBUILT_MKPS2ISO"
+        return
+    fi
+    if [ ! -x "$PREBUILT_MKPS2ISO" ]; then
+        echo "Downloading mkps2iso..."
+        mkdir -p /tmp/mkps2iso-bin
+        curl -sL "https://github.com/N4gtan/mkps2iso/releases/download/v1.1.1/mkps2iso-1.1.1-Linux.zip" \
+            -o /tmp/mkps2iso.zip || true
+        unzip -oq /tmp/mkps2iso.zip -d /tmp/mkps2iso-bin 2>/dev/null || true
+        chmod +x "$PREBUILT_MKPS2ISO" 2>/dev/null || true
+        if [ -x "$PREBUILT_MKPS2ISO" ] && "$PREBUILT_MKPS2ISO" --help >/dev/null 2>&1; then
+            MKPS2ISO="$PREBUILT_MKPS2ISO"
+            return
+        fi
+    fi
+    echo "Prebuilt mkps2iso cannot run here — building it from source..."
+    rm -rf /tmp/mkps2iso-src
+    git clone --depth 1 https://github.com/N4gtan/mkps2iso.git /tmp/mkps2iso-src
+    cmake -S /tmp/mkps2iso-src -B /tmp/mkps2iso-src/build -DCMAKE_BUILD_TYPE=Release >/dev/null
+    cmake --build /tmp/mkps2iso-src/build -j"$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)"
+    MKPS2ISO="/tmp/mkps2iso-src/build/mkps2iso"
+    if [ ! -x "$MKPS2ISO" ]; then
+        echo "ERROR: could not build mkps2iso from source"
+        exit 1
+    fi
+}
+ensure_mkps2iso
+echo "Using mkps2iso: $MKPS2ISO"
 
 # ── Clean and create ISO structure ──
 SRC_DIR="/tmp/fnwf-ps2-iso"
