@@ -99,10 +99,26 @@ and a reference for how the game worked.
 ===========================================
 
   Requirements:
-    - C++23 compiler (GCC 13+, Clang 16+, MSVC 2022+)
-    - Meson build system
+    - C++17 compiler
+    - CMake 3.24+ (recommended) or Meson
     - SDL2, SDL2_ttf, SDL2_image, SDL2_mixer
-    - ffmpeg (for sound generation)
+
+  CMake — downloads and builds SDL2 automatically (FetchContent):
+
+    cmake -S . -B build
+    cmake --build build -j
+    ./build/fnwf
+
+    Add -DFNWF_USE_SYSTEM_DEPS=ON to use SDL2 already installed on the system.
+
+    PlayStation 2:
+      cmake -S . -B build-ps2 \
+        -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/ps2.cmake
+      cmake --build build-ps2 -j
+
+    Web (Emscripten): use the emsdk (SDL2 ports), see cmake/platform/web.cmake.
+
+  Meson (legacy, still supported while the migration is gradual):
 
   Linux (Ubuntu/Debian):
     sudo apt install meson ninja-build g++ pkg-config \
