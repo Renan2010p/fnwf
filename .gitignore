@@ -28,3 +28,4 @@ build_deps/
 *.iso
 *.tar.gz
 create_ps2_iso*.py
+subprojects/packagecache/
