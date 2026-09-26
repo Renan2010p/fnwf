@@ -44,6 +44,30 @@ auto SoundManager::set_engine(Engine* eng) -> void {
     s_eng = eng;
 }
 
+// Loads every known sound into RAM up front (the DVD is slow, so doing it on
+// first play would stutter). Already-loaded entries are skipped.
+auto SoundManager::preload_all() -> void {
+    if (!s_eng)
+        return;
+    for (const auto& [name, fname] : s_filename_map) {
+        if (s_cache.count(name))
+            continue;
+        std::string path = GameSettings::asset_full("audio/" + fname);
+        auto snd = s_eng->load_sound(path);
+        if (snd)
+            s_cache[name] = *snd;
+    }
+    // The ambient/menu loops aren't in the filename map under those names.
+    for (const char* extra : {"ambient", "menu_ambient"}) {
+        if (s_cache.count(extra))
+            continue;
+        std::string path = GameSettings::asset_full(std::string("audio/") + extra + ".ogg");
+        auto snd = s_eng->load_sound(path);
+        if (snd)
+            s_cache[extra] = *snd;
+    }
+}
+
 auto SoundManager::play_sound(const std::string& name, int loops, int channel) -> void {
     if (!s_eng)
         return;

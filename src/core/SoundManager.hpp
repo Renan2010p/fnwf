@@ -8,6 +8,7 @@ class Engine;
 
 namespace SoundManager {
 auto set_engine(Engine* eng) -> void;
+auto preload_all() -> void;
 auto play_sound(const std::string& name, int loops = 0, int channel = -1) -> void;
 auto stop_channel(int channel) -> void;
 auto stop_all_sounds() -> void;

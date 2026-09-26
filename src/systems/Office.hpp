@@ -37,6 +37,20 @@ private:
     auto project_depth(float nx, float z, float height = 0.0f) -> std::tuple<int, int, float>;
     auto precalculate_projection() -> void;
     auto build_static_layer() -> void;
+
+    // Flat path used on platforms without cylindrical compositing (PS2):
+    // draws the cached static room and the dynamic props straight to the
+    // screen, no panorama slicing/warp.
+    auto draw_flat(Engine& eng,
+                   float left_door_anim,
+                   float right_door_anim,
+                   bool left_light,
+                   bool right_light,
+                   const std::string& anim_at_left,
+                   const std::string& anim_at_right,
+                   const std::string& anim_at_vent,
+                   const std::string& anim_in_office) -> void;
+
     auto draw_ceiling(Engine& eng) -> void;
     auto draw_floor(Engine& eng) -> void;
     auto draw_back_wall_base(Engine& eng) -> void;

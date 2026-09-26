@@ -1,5 +1,6 @@
 #pragma once
 #include "core/GameState.hpp"
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
@@ -15,6 +16,13 @@ public:
     auto set_factory(StateFactory f) -> void {
         next_factory = std::move(f);
     }
+
+    // Sprites to actually load while the loading screen is up (one per frame,
+    // with a progress bar). Empty = nothing to load, just the minimum display.
+    auto set_preload(std::vector<std::string> names) -> void {
+        preload = std::move(names);
+    }
+
     auto handle_event(const Event& ev) -> void override;
     auto update(float dt) -> void override;
     auto draw(Engine& eng) -> void override;
@@ -31,8 +39,10 @@ public:
 private:
     Engine& m_eng;
     StateFactory next_factory{};
+    std::vector<std::string> preload{};
+    std::size_t loaded{0};
     float timer{0.0f};
-    float duration{4.0f};
+    float duration{0.6f};
     std::string tip{};
     bool done{false};
     std::unique_ptr<GameState> next_state{};

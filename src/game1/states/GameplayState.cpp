@@ -2,6 +2,7 @@
 #include "core/DrawUtils.hpp"
 #include "core/Localization.hpp"
 #include "core/Rng.hpp"
+#include "core/SaveManager.hpp"
 #include "core/SoundManager.hpp"
 #include "game1/GameSettings.hpp"
 #include <algorithm>
@@ -81,6 +82,13 @@ auto GameplayState::update(float dt) -> void {
     auto [mouse_x, mouse_y] = m_eng.mouse_pos();
     if (!cameras.is_animating)
         cameras.check_mouse_trigger(mouse_x, mouse_y);
+
+    // Update save notification timer
+    if (m_save_notify) {
+        m_save_notify_timer -= dt;
+        if (m_save_notify_timer <= 0)
+            m_save_notify = false;
+    }
 
     if (!cameras.is_visible())
         office.update(mouse_x, dt);
@@ -263,6 +271,24 @@ auto GameplayState::handle_event(const Event& ev) -> void {
             fading_out = true;
             fade_alpha = 0;
         }
+        // F5 = save game
+        if (key == 29) {
+            auto snap = capture_snapshot();
+            if (SaveManager::save_game(snap)) {
+                m_save_notify = true;
+                m_save_notify_timer = 2.0f;
+            }
+        }
+        // F8 = load game
+        if (key == 31) {
+            auto loaded = SaveManager::load_game();
+            if (loaded) {
+                restore_snapshot(*loaded);
+                m_result = "load_done";
+                fading_out = true;
+                fade_alpha = 0;
+            }
+        }
         if (key == 'p')
             time_elapsed = night_duration;
     }
@@ -339,6 +365,7 @@ auto GameplayState::draw(Engine& eng) -> void {
     eng.draw_rect(SCREEN_WIDTH - 64, 0, 64, SCREEN_HEIGHT, 30, 45, 90, 22);
 
     draw_hud(eng);
+    draw_save_notify(eng);
 
     if (!is_blackout || blackout_alpha < 150) {
         float noise =
@@ -426,10 +453,115 @@ auto GameplayState::draw_power_out(Engine& eng) -> void {
     }
 }
 
+auto GameplayState::draw_save_notify(Engine& eng) -> void {
+    if (!m_save_notify)
+        return;
+
+    int alpha = (int)(200 * std::min(1.0f, m_save_notify_timer));
+    // Top center notification
+    DrawUtils::text(eng, "\xe2\x93\xa1  GAME SAVED!",
+                    GameSettings::SCREEN_WIDTH / 2, 10, 18,
+                    255, 255, 255, alpha, true);
+}
+
 auto GameplayState::draw_fade(Engine& eng) -> void {
     if (fade_alpha > 0)
         eng.draw_rect(
             0, 0, GameSettings::SCREEN_WIDTH, GameSettings::SCREEN_HEIGHT, 0, 0, 0, fade_alpha);
+}
+
+auto GameplayState::capture_snapshot() const -> GameSnapshot {
+    GameSnapshot s;
+    s.night = night;
+    s.custom_ai = custom_ai_data;
+    s.time_elapsed = time_elapsed;
+    s.night_duration = night_duration;
+    s.current_hour = current_hour;
+
+    s.power = power.power;
+    s.power_usage_level = power.usage_level;
+    s.power_is_dead = power.is_dead;
+    s.power_dead_timer = power.dead_timer;
+
+    s.door_left_closed = doors.left_closed;
+    s.door_right_closed = doors.right_closed;
+    s.door_left_light = doors.left_light;
+    s.door_right_light = doors.right_light;
+    s.door_left_anim = doors.left_anim;
+    s.door_right_anim = doors.right_anim;
+
+    s.cam_open = cameras.is_open;
+    s.cam_current = cameras.current_cam;
+    s.cam_mask_open = cameras.is_mask_open;
+
+    s.office_vent_light = office.vent_light;
+
+    s.mask_on = mask_on;
+    s.oxygen = oxygen;
+    s.max_oxygen = max_oxygen;
+
+    s.is_blackout = is_blackout;
+    s.blackout_alpha = blackout_alpha;
+    s.blackout_timer = blackout_timer;
+
+    s.cedro_pos = animatronics.cedro.position;
+    s.eser_pos = animatronics.eser.position;
+    s.alice_pos = animatronics.alice.position;
+    s.sonk_pos = animatronics.sonk.position;
+    s.sonk_stage = animatronics.sonk.stage;
+    s.sonk_charging = animatronics.sonk.is_charging;
+    s.sonk_charge_timer = animatronics.sonk.charge_timer;
+
+    return s;
+}
+
+void GameplayState::restore_snapshot(const GameSnapshot& s) {
+    night = s.night;
+    custom_ai_data = s.custom_ai;
+    time_elapsed = s.time_elapsed;
+    night_duration = s.night_duration;
+    current_hour = s.current_hour;
+
+    power.power = s.power;
+    power.usage_level = s.power_usage_level;
+    power.is_dead = s.power_is_dead;
+    power.dead_timer = s.power_dead_timer;
+
+    doors.left_closed = s.door_left_closed;
+    doors.right_closed = s.door_right_closed;
+    doors.left_light = s.door_left_light;
+    doors.right_light = s.door_right_light;
+    doors.left_anim = s.door_left_anim;
+    doors.right_anim = s.door_right_anim;
+
+    cameras.is_open = s.cam_open;
+    cameras.current_cam = s.cam_current;
+    cameras.is_mask_open = s.cam_mask_open;
+
+    office.vent_light = s.office_vent_light;
+
+    mask_on = s.mask_on;
+    oxygen = s.oxygen;
+    max_oxygen = s.max_oxygen;
+
+    is_blackout = s.is_blackout;
+    blackout_alpha = s.blackout_alpha;
+    blackout_timer = s.blackout_timer;
+
+    animatronics.cedro.position = s.cedro_pos;
+    animatronics.eser.position = s.eser_pos;
+    animatronics.alice.position = s.alice_pos;
+    animatronics.sonk.position = s.sonk_pos;
+    animatronics.sonk.stage = s.sonk_stage;
+    animatronics.sonk.is_charging = s.sonk_charging;
+    animatronics.sonk.charge_timer = s.sonk_charge_timer;
+
+    // Reset UI state
+    fading_in = true;
+    fade_alpha = 255;
+    _win_triggered = false;
+    _power_out_snd = false;
+    m_result.clear();
 }
 
 }  // namespace fnwf

@@ -1,17 +1,18 @@
 #pragma once
 
 // EnginePS2 — concrete PS2 implementation of the Engine interface.
-// Uses SDL 1.2 from ps2sdk-ports.
-// Runs on the Emotion Engine (MIPS R5900) with 32MB RAM.
+//
+// Hybrid backend: SDL is used only for timers, image loading (SDL_image) and
+// text rasterisation (SDL_ttf); the DualShock is read through libpad. Every
+// pixel that reaches the TV is drawn by gsKit on the GS (Graphics Synthesizer)
+// — no SDL video, no software framebuffer blits.
 
 #include "engine/Engine.hpp"
 
 #ifdef __PS2__
-// PS2SDK: include only what we need — tamtypes.h 128-bit types break with -mgp32.
-// libpad.h and sifrpc.h pull in their own type definitions.
+// PS2SDK: include only what we need — tamtypes.h 128-bit types break with
+// -mgp32 (a compat header shadows it for the toolchain).
 #include <kernel.h>
-// ps2sdk moved DelayThread out of kernel.h into its own header; older
-// releases still have it in kernel.h — include only if present.
 #if defined(__has_include)
 #  if __has_include(<delaythread.h>)
 #    include <delaythread.h>
@@ -21,21 +22,21 @@
 #include <loadfile.h>
 #include <libpad.h>
 #include <audsrv.h>
-#include <sys/stat.h>  // For stat()
-#include <SDL.h>
-#include <SDL_ttf.h>
-#include <SDL_mixer.h>
-#include <SDL_image.h>
+#include <gsKit.h>
+#include <dmaKit.h>
 #else
-#include <SDL.h>
-#include <SDL_ttf.h>
-#include <SDL_mixer.h>
-#include <SDL_image.h>
+#error "EnginePS2 is only built for the PS2 target"
 #endif
 
+#include <SDL.h>
+#include <SDL_ttf.h>
+#include <SDL_mixer.h>
+#include <SDL_image.h>
+
+#include <cstdint>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
 
 namespace fnwf {
 
@@ -111,62 +112,70 @@ public:
 
     void update_discord(std::string_view details, std::string_view state) override;
 
-private:
-    void blit_scaled(SDL_Surface* src, std::int32_t dx, std::int32_t dy,
-                     std::uint32_t dw, std::uint32_t dh,
-                     std::int32_t sx, std::int32_t sy,
-                     std::int32_t sw, std::int32_t sh,
-                     std::uint8_t alpha);
+    // The GS has no cheap per-slice cos(theta) warp, and only 4MB of VRAM, so
+    // the office is drawn flat and effects go straight to the screen.
+    bool supports_cylindrical_office() const override { return false; }
+    bool supports_offscreen_targets() const override { return false; }
+    void set_draw_offset(std::int32_t dx, std::int32_t dy) override {
+        m_user_dx = dx;
+        m_user_dy = dy;
+    }
 
-    // Recomputes m_scale/m_off_x/m_off_y (logical size → screen, letterboxed).
+private:
+    // A texture living in gsKit's VRAM pool. Mem is the CPU copy kept for
+    // (re)uploads by the texture manager; Vram is owned by the manager.
+    struct GsTex
+    {
+        GSTEXTURE tex{};
+        bool valid{false};
+    };
+
+    GsTex* find_tex(std::uint32_t id);
+    void free_tex(GsTex& t);
+
+    // Converts a canonical SDL surface (32bpp) into a gsKit CT32 texture
+    // (bytes R,G,B,A with gsKit's alpha convention) and registers it.
+    GsTex& make_tex_from_surface(SDL_Surface* surf);
+
+    // Common textured-sprite draw: maps logical coords and blends.
+    void blit_tex(GsTex& t, std::int32_t dx, std::int32_t dy, std::uint32_t dw,
+                  std::uint32_t dh, std::int32_t sx, std::int32_t sy, std::int32_t sw,
+                  std::int32_t sh, std::uint8_t alpha);
+    void quad_tex(GsTex& t, float x0, float y0, float x1, float y1, float x2, float y2,
+                  float x3, float y3, std::uint8_t alpha);
+
+    // Recomputes m_scale/m_off_x/m_off_y (logical size → GS screen, letterboxed).
     void update_viewport();
 
-    // Reads the DualShock every frame (libpad directly — SDL's joystick
-    // driver hangs loading IOP modules under PCSX2's HLE) and appends
-    // virtual mouse/keyboard events — the game was built for mouse +
-    // keyboard. sdl_mouse_* report whether SDL already delivered real mouse
-    // input this frame (USB mouse) so nothing gets applied twice.
-    void poll_pad(std::vector<Event>& out, bool sdl_mouse_motion,
-                  bool sdl_mouse_button);
+    // sdl_mouse_* report whether SDL already delivered real mouse input this
+    // frame (USB mouse) so nothing gets applied twice.
+    void poll_pad(std::vector<Event>& out, bool sdl_mouse_motion, bool sdl_mouse_button);
 
-    // Runs padInit / SifLoadModule / padPortOpen in a background thread
-    // with a 1 s timeout so the game never freezes on a hung IOP bind.
-    // Only meaningful on PS2 (guarded at the definition site).
-    static void boot_pad_thread(EnginePS2 *eng, int sem_id);
+    static void boot_pad_thread(EnginePS2* eng, int sem_id);
 
-    // Where draws go: active render target, else the backbuffer, else the screen.
-    SDL_Surface* draw_target() const {
-        return m_target != nullptr ? m_target : (m_backbuf != nullptr ? m_backbuf : m_screen);
-    }
-
-    // Logical (game) → physical (screen) coordinate mapping.
+    // Logical (game) → physical (GS) coordinate mapping.
     std::int32_t map_x(std::int32_t v) const {
-        return m_off_x + static_cast<std::int32_t>(static_cast<float>(v) * m_scale);
+        return m_off_x + m_user_dx +
+               static_cast<std::int32_t>(static_cast<float>(v) * m_scale);
     }
     std::int32_t map_y(std::int32_t v) const {
-        return m_off_y + static_cast<std::int32_t>(static_cast<float>(v) * m_scale);
+        return m_off_y + m_user_dy +
+               static_cast<std::int32_t>(static_cast<float>(v) * m_scale);
     }
 
-    SDL_Surface* m_screen{nullptr};
-    // Offscreen buffer in the engine's canonical pixel format. All screen-space
-    // drawing targets it; present() blits it onto m_screen (which may be in a
-    // different format chosen by SDL's PS2 video driver).
-    SDL_Surface* m_backbuf{nullptr};
-    // 1x1 surface used purely as an SDL_PixelFormat template for conversions.
-    SDL_Surface* m_tpl_alpha{nullptr};
-    SDL_Surface* m_target{nullptr};
-    std::unordered_map<std::uint32_t, SDL_Surface*> m_textures{};
-    std::unordered_map<std::uint32_t, Mix_Chunk*> m_chunks{};
+    GSGLOBAL* m_gs{nullptr};
+    std::unordered_map<std::uint32_t, GsTex> m_textures{};
+    std::unordered_map<std::uint64_t, GsTex> m_text_cache{};
     std::vector<TTF_Font*> m_fonts{};
-    std::unordered_map<std::uint64_t, SDL_Surface*> m_text_cache{};
+    std::unordered_map<std::uint32_t, Mix_Chunk*> m_chunks{};
     std::uint32_t m_next_id{1};
     std::uint32_t m_logical_w{};
     std::uint32_t m_logical_h{};
-    std::uint32_t m_physical_w{};
-    std::uint32_t m_physical_h{};
     float m_scale{1.0f};
     std::int32_t m_off_x{0};
     std::int32_t m_off_y{0};
+    std::int32_t m_user_dx{0};
+    std::int32_t m_user_dy{0};
     bool m_running{false};
     bool m_vsync{false};
     bool m_ttf_ok{false};
@@ -178,18 +187,14 @@ private:
 
     // PS2 pad → virtual mouse/keyboard (see poll_pad(); libpad directly).
     bool m_pad_ok{false};
-    alignas(64) std::uint8_t m_pad_buf[256]{};  // padPortOpen DMA buffer
-    std::uint32_t m_pad_prev{0};  // PAD_* mask held last frame (edge detect)
-    std::int32_t m_mouse_x{0};    // logical cursor backing mouse_pos()
+    alignas(64) std::uint8_t m_pad_buf[256]{};
+    std::uint32_t m_pad_prev{0};
+    std::int32_t m_mouse_x{0};
     std::int32_t m_mouse_y{0};
 
-#ifdef __PS2__
-    // Boot-thread state: padInit / SifLoadModule hang on some HLE setups, so
-    // we run them in a separate thread with a 1s timeout — the game always
-    // boots (gray splash = no pad) instead of freezing forever.
+    // Boot-thread state: padInit / SifLoadModule hang on some HLE setups.
     s32 m_boot_thread_id{-1};
     s32 m_boot_sem_id{-1};
-#endif
 
     int m_master_vol{80};
     int m_sfx_vol{100};

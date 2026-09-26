@@ -26,6 +26,7 @@
 #include "game1/states/StoryState.hpp"
 #include "game1/states/WarningState.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -142,6 +143,13 @@ void game_loop_iter() {
     auto* cur = sm.current();
     if (cur && cur->is_done()) {
         if (g.state_name == "warning") {
+            sm.switch_state("loading", [](fnwf::Engine& e) {
+                auto loader = std::make_unique<fnwf::LoadingState>(e);
+                loader->set_preload({"cedro", "eser", "alice", "Sonk", "mafia"});
+                return loader;
+            });
+            g.state_name = "loading_menu";
+        } else if (g.state_name == "loading_menu") {
             do_switch("menu");
         } else if (g.state_name == "menu") {
             auto& res = cur->result();
@@ -195,6 +203,7 @@ void game_loop_iter() {
         } else if (g.state_name == "story") {
             sm.switch_state("loading", [](fnwf::Engine& e) {
                 auto loader = std::make_unique<fnwf::LoadingState>(e);
+                loader->set_preload({"cedro", "eser", "alice", "Sonk"});
                 loader->set_factory([](fnwf::Engine& e2) {
                     return std::make_unique<fnwf::GameplayState>(e2, g.pending_night);
                 });
@@ -204,6 +213,7 @@ void game_loop_iter() {
         } else if (g.state_name == "transition") {
             sm.switch_state("loading", [](fnwf::Engine& e) {
                 auto loader = std::make_unique<fnwf::LoadingState>(e);
+                loader->set_preload({"cedro", "eser", "alice", "Sonk"});
                 loader->set_factory([](fnwf::Engine& e2) {
                     return std::make_unique<fnwf::GameplayState>(e2, g.pending_night);
                 });
@@ -245,6 +255,9 @@ void game_loop_iter() {
                 g.state_name = "gameover";
             } else if (res == "menu") {
                 do_switch("menu");
+            } else if (res == "load_done") {
+                // Reload from saved snapshot - restart same night
+                do_switch("game");
             }
         } else if (g.state_name == "six_am") {
             if (cur->state_type() == fnwf::StateType::SixAM) {
@@ -283,6 +296,7 @@ void game_loop_iter() {
                     g.pending_night = 7;
                     sm.switch_state("loading", [](fnwf::Engine& e) {
                         auto loader = std::make_unique<fnwf::LoadingState>(e);
+                        loader->set_preload({"cedro", "eser", "alice", "Sonk"});
                         loader->set_factory([](fnwf::Engine& e2) {
                             return std::make_unique<fnwf::GameplayState>(
                                 e2, 7, &g.pending_custom_ai);
@@ -343,11 +357,61 @@ auto main(int argc, char** argv) -> int {
     eng_ptr->set_logical_size(fnwf::GameSettings::SCREEN_WIDTH, fnwf::GameSettings::SCREEN_HEIGHT);
 
     fnwf::SoundManager::set_engine(eng_ptr);
+
+    // Startup loading screen (primitives only: the font is what is loading).
+    {
+        using namespace fnwf::GameSettings;
+        const int cx = SCREEN_WIDTH / 2;
+        const int cy = SCREEN_HEIGHT / 2;
+        for (int frame = 0; frame < 4; ++frame) {
+            eng_ptr->clear(3, 3, 5);
+            const float base = frame * 30.0f * 3.14159f / 180.0f;
+            for (int i = 0; i < 8; ++i) {
+                const float t = base + i * 45.0f * 3.14159f / 180.0f;
+                eng_ptr->line(cx + static_cast<int>(std::cos(t) * 26.0f),
+                              cy - 20 + static_cast<int>(std::sin(t) * 26.0f),
+                              cx + static_cast<int>(std::cos(t) * 34.0f),
+                              cy - 20 + static_cast<int>(std::sin(t) * 34.0f), 170, 170, 180);
+            }
+            eng_ptr->draw_rect(cx - 160, cy + 40, 320, 10, 30, 30, 36);
+            eng_ptr->draw_rect(cx - 158, cy + 42,
+                               static_cast<int>(316.0f * (frame + 1) / 4.0f), 6, 150, 150, 160);
+            eng_ptr->draw_rect(cx - 160, cy + 40, 320, 10, 90, 90, 100, 255, false);
+            eng_ptr->present();
+        }
+    }
+
     fnwf::DrawUtils::set_fonts(*eng_ptr);
 
     auto& settings = fnwf::SettingsManager::instance();
     fnwf::Localization::set_language(settings.language);
     fnwf::DrawUtils::set_render_quality(settings.quality);
+
+    // Cache every sprite and sound in RAM up front: the DVD is slow, so
+    // loading these on first use would stutter mid-game. Each item loads
+    // between two presented loading frames, so the screen stays live.
+    {
+        using namespace fnwf::GameSettings;
+        const char* sprites[] = {"cedro", "eser", "alice", "Sonk", "mafia", "renan"};
+        constexpr int total = 6;
+        const int cx = SCREEN_WIDTH / 2;
+        const int cy = SCREEN_HEIGHT / 2;
+        for (int i = 0; i < total; ++i) {
+            eng_ptr->clear(3, 3, 5);
+            fnwf::DrawUtils::text(*eng_ptr, "FIVE NIGHTS WITH FRIENDS", cx, cy - 60, 30, 220,
+                                  220, 220, 255, true);
+            fnwf::DrawUtils::text(*eng_ptr, fnwf::Localization::get_text("loading"), cx, cy, 18,
+                                  170, 170, 180, 255, true);
+            const int bw = 420, bh = 10, bx = cx - bw / 2, by = cy + 50;
+            eng_ptr->draw_rect(bx, by, bw, bh, 30, 30, 36, 220);
+            eng_ptr->draw_rect(bx + 2, by + 2, static_cast<int>((bw - 4) * (i + 1) / total),
+                               bh - 4, 150, 150, 160, 255);
+            eng_ptr->draw_rect(bx, by, bw, bh, 90, 90, 100, 255, false);
+            eng_ptr->present();
+            fnwf::DrawUtils::load_sprite(*eng_ptr, sprites[i]);
+        }
+        fnwf::SoundManager::preload_all();
+    }
 
     g.eng = eng_ptr;
     g.test_office = test_office;

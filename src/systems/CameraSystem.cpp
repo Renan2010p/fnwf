@@ -13,6 +13,12 @@ CameraSystem::CameraSystem(Engine& eng) : m_eng(eng) {
     map_x = SCREEN_WIDTH - map_w - 20;
     map_y = SCREEN_HEIGHT - map_h - 60;
 
+    // PS2/gsKit: no VRAM for 1280x720 offscreen targets — the monitor and map
+    // are drawn straight to the screen (see draw_monitor / draw_map).
+    if (!m_eng.supports_offscreen_targets()) {
+        return;
+    }
+
     auto monitor_t = m_eng.create_target(SCREEN_WIDTH, SCREEN_HEIGHT);
     auto map_t = m_eng.create_target(map_w, map_h);
     auto map_base_t = m_eng.create_target(map_w, map_h);
@@ -300,8 +306,12 @@ auto CameraSystem::draw_monitor(Engine& eng,
     using namespace GameSettings;
     float eased = ease_out_cubic(anim_progress);
     int slide_offset = (int)((1.0f - eased) * (SCREEN_HEIGHT - 40));
+    const bool direct = !m_eng.supports_offscreen_targets();
 
-    eng.set_render_target(monitor_tex);
+    if (direct)
+        eng.set_draw_offset(0, slide_offset);
+    else
+        eng.set_render_target(monitor_tex);
     eng.clear(5, 10, 5, 230);
 
     if (static_timer > 0) {
@@ -319,8 +329,12 @@ auto CameraSystem::draw_monitor(Engine& eng,
         }
     }
 
-    eng.reset_render_target();
-    eng.draw_texture(monitor_tex, 0, slide_offset, SCREEN_WIDTH, SCREEN_HEIGHT);
+    if (direct) {
+        eng.set_draw_offset(0, 0);
+    } else {
+        eng.reset_render_target();
+        eng.draw_texture(monitor_tex, 0, slide_offset, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
 
     int btn_w = 400;
     int btn_x = SCREEN_WIDTH / 2 - btn_w / 2;
@@ -488,6 +502,41 @@ auto CameraSystem::draw_map(Engine& eng, const std::unordered_map<std::string, s
                                                                         {"2A", "3"},
                                                                         {"1B", "4A"},
                                                                         {"4A", "4B"}};
+
+    // PS2/gsKit: draw the map straight to the screen at its real position
+    // (the engine's draw offset already places it inside the sliding monitor).
+    if (!m_eng.supports_offscreen_targets()) {
+        eng.draw_rect(map_x, map_y, map_w, map_h, 10, 20, 10, 180);
+        eng.draw_rect(
+            map_x, map_y, map_w, map_h, CAM_OUTLINE.r, CAM_OUTLINE.g, CAM_OUTLINE.b, 255, false);
+        for (auto& [a, b] : connections) {
+            auto& p1 = cam_positions[a];
+            auto& p2 = cam_positions[b];
+            eng.line(map_x + p1.first, map_y + p1.second, map_x + p2.first, map_y + p2.second,
+                     0, 255, 0, 255);
+        }
+
+        cam_buttons.clear();
+        for (auto& [cam_id, pos] : cam_positions) {
+            int btn_w = 36, btn_h = 22;
+            int px = pos.first - btn_w / 2;
+            int py = pos.second - btn_h / 2;
+            cam_buttons[cam_id] = {map_x + px, map_y + py, btn_w, btn_h};
+
+            bool is_active = (cam_id == current_cam);
+            int bg_r = is_active ? 20 : 5, bg_g = is_active ? 80 : 20, bg_b = is_active ? 20 : 5;
+            eng.draw_rect(map_x + px, map_y + py, btn_w, btn_h, bg_r, bg_g, bg_b);
+            eng.draw_rect(map_x + px, map_y + py, btn_w, btn_h, 0, 255, 0, 255, false);
+            DrawUtils::text(
+                eng, cam_id, map_x + pos.first, map_y + pos.second, 11, 0, 255, 0, 255, true);
+        }
+
+        DrawUtils::text(
+            eng, "YOU", map_x + map_w / 2, map_y + map_h - 30, 12, 0, 255, 0, 255, true);
+        eng.line(map_x + map_w / 2, map_y + map_h - 45, map_x + map_w / 2, map_y + map_h - 55,
+                 0, 255, 0, 255);
+        return;
+    }
 
     if (map_base_dirty) {
         eng.set_render_target(map_base_tex);

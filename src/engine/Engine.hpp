@@ -115,6 +115,22 @@ public:
     // Misc
     virtual void update_discord(std::string_view details, std::string_view state) = 0;
 
+    // Whether this platform can composite the office's cylindrical panorama
+    // projection. The PS2's fixed-function GS has no cheap way to do the
+    // per-slice cos(theta) warp the cylinder needs, so it draws the office
+    // flat (whole room at once) instead. Desktop/web keep the cylinder.
+    virtual bool supports_cylindrical_office() const { return true; }
+
+    // Whether offscreen render targets (create_target / set_render_target) are
+    // cheap on this platform. The PS2's GS only has 4MB VRAM, so the game
+    // draws those effects straight to the screen there instead.
+    virtual bool supports_offscreen_targets() const { return true; }
+
+    // Adds a temporary translation to every logical draw coordinate. Used by
+    // the direct-to-screen effects above (e.g. the sliding camera monitor),
+    // avoiding a render target just to offset content. Default: no-op.
+    virtual void set_draw_offset(std::int32_t /*dx*/, std::int32_t /*dy*/) {}
+
     // Notification for derived classes when VSW triggers texture cache invalidation
     virtual void on_vsync_change() {}
 };

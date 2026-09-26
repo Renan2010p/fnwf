@@ -10,16 +10,30 @@ namespace fnwf {
 static constexpr float PI = 3.14159265f;
 
 Office::Office(Engine& eng) : m_eng(eng) {
-    auto office_t = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
-    auto office_static_t = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+    const bool offscreen = eng.supports_offscreen_targets();
 
-    if (!office_t.has_value() || !office_static_t.has_value()) {
-        std::fprintf(stderr, "ERROR: Failed to create office render targets\n");
-        return;
+    // The panorama target is only needed for the cylindrical composite. On
+    // PS2 (flat office) it is skipped, saving a full 1280x720 surface.
+    if (eng.supports_cylindrical_office()) {
+        auto office_t = eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+        if (!office_t.has_value()) {
+            std::fprintf(stderr, "ERROR: Failed to create office render target\n");
+            return;
+        }
+        office_tex = *office_t;
     }
 
-    office_tex = *office_t;
-    office_static_tex = *office_static_t;
+    // The static-room cache needs an offscreen target. Without one (PS2/gsKit)
+    // the room is redrawn directly to the screen each frame instead.
+    if (offscreen) {
+        auto office_static_t =
+            eng.create_target(GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+        if (!office_static_t.has_value()) {
+            std::fprintf(stderr, "ERROR: Failed to create office static render target\n");
+            return;
+        }
+        office_static_tex = *office_static_t;
+    }
 
     vp_x = GameSettings::OFFICE_WIDTH / 2;
     vp_y = GameSettings::SCREEN_HEIGHT / 2 - 30;
@@ -29,7 +43,7 @@ Office::Office(Engine& eng) : m_eng(eng) {
     bw_bottom = GameSettings::SCREEN_HEIGHT - 120;
 
     precalculate_projection();
-    build_static_layer();
+    if (offscreen) build_static_layer();
 }
 
 Color Office::shade(const Color& c, float factor) {
@@ -100,6 +114,19 @@ auto Office::draw(Engine& eng,
                   const std::string& anim_at_right,
                   const std::string& anim_at_vent,
                   const std::string& anim_in_office) -> void {
+    if (!eng.supports_cylindrical_office()) {
+        draw_flat(eng,
+                  left_door_anim,
+                  right_door_anim,
+                  left_light,
+                  right_light,
+                  anim_at_left,
+                  anim_at_right,
+                  anim_at_vent,
+                  anim_in_office);
+        return;
+    }
+
     float t = static_cast<float>(clock()) / CLOCKS_PER_SEC;
     eng.set_render_target(office_tex);
     eng.draw_texture(
@@ -143,6 +170,49 @@ auto Office::draw(Engine& eng,
             }
         }
     }
+}
+
+// Flat office: no panorama slice/warp. The cached static room is blitted to
+// the screen once and every dynamic prop is drawn on top in screen space —
+// the same draw order the cylindrical path uses, just without the per-slice
+// cos(theta) scaling the PS2 GS cannot cheaply reproduce.
+auto Office::draw_flat(Engine& eng,
+                       float left_door_anim,
+                       float right_door_anim,
+                       bool left_light,
+                       bool right_light,
+                       const std::string& anim_at_left,
+                       const std::string& anim_at_right,
+                       const std::string& anim_at_vent,
+                       const std::string& anim_in_office) -> void {
+    float t = static_cast<float>(clock()) / CLOCKS_PER_SEC;
+
+    if (m_eng.supports_offscreen_targets()) {
+        eng.draw_texture(
+            office_static_tex, 0, 0, GameSettings::OFFICE_WIDTH, GameSettings::SCREEN_HEIGHT);
+    } else {
+        // No offscreen targets (PS2/gsKit): redraw the static room straight to
+        // the screen. Same order as build_static_layer(), the GPU eats the
+        // primitives, and it costs no VRAM.
+        eng.clear(5, 5, 8);
+        draw_ceiling(eng);
+        draw_floor(eng);
+        draw_back_wall_base(eng);
+        draw_depth_structure(eng);
+        draw_hallways_base(eng);
+        draw_vent_base(eng);
+        draw_side_walls(eng);
+        draw_wall_dressing(eng);
+        draw_office_elements(eng);
+        draw_ambient(eng);
+    }
+
+    draw_back_wall_dynamic(eng, t);
+    draw_hallways_dynamic(eng, left_light, right_light, anim_at_left, anim_at_right);
+    draw_vent_dynamic(eng, anim_at_vent);
+    draw_doors(eng, left_door_anim, right_door_anim);
+    draw_fan(eng, t);
+    draw_in_office(eng, anim_in_office);
 }
 
 auto Office::draw_ceiling(Engine& eng) -> void {

@@ -3,6 +3,7 @@
 #include "core/Localization.hpp"
 #include "core/Rng.hpp"
 #include "game1/GameSettings.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace fnwf {
@@ -19,14 +20,22 @@ auto LoadingState::update(float dt) -> void {
     glitch_timer += dt;
     loader_angle += 360.0f * dt;
 
-    if (timer < 0.5)
-        font_alpha = (int)((timer / 0.5) * 255);
-    else if (duration - timer < 0.5)
-        font_alpha = (int)(((duration - timer) / 0.5) * 255);
+    if (timer < 0.4f)
+        font_alpha = (int)((timer / 0.4f) * 255);
     else
         font_alpha = 255;
 
-    if (timer >= duration) {
+    // Real work: load one queued sprite per frame. Each call blocks for the
+    // decode, then the next draw() shows the updated progress bar.
+    if (loaded < preload.size()) {
+        DrawUtils::load_sprite(m_eng, preload[loaded]);
+        ++loaded;
+    }
+
+    // Finish once everything loaded (plus a short minimum so the screen is
+    // visible). The 8s cap guarantees we never get stuck on a bad asset.
+    const bool all_loaded = (loaded >= preload.size()) || timer >= 8.0f;
+    if (all_loaded && timer >= duration) {
         done = true;
         if (next_factory)
             next_state = next_factory(m_eng);
@@ -55,6 +64,29 @@ auto LoadingState::draw(Engine& eng) -> void {
 
     DrawUtils::text(
         eng, Localization::get_text("loading"), lx, ly + 35, 14, 100, 100, 110, 255, true);
+
+    // Progress bar: filled by however much has actually loaded.
+    if (!preload.empty()) {
+        const float p = static_cast<float>(loaded) / static_cast<float>(preload.size());
+        const int bw = 420, bh = 10;
+        const int bx = SCREEN_WIDTH / 2 - bw / 2;
+        const int by = SCREEN_HEIGHT - 60;
+        eng.draw_rect(bx, by, bw, bh, 30, 30, 36, 220);
+        eng.draw_rect(bx + 2, by + 2, static_cast<int>((bw - 4) * p), bh - 4, 150, 150, 160, 255);
+        eng.draw_rect(bx, by, bw, bh, 90, 90, 100, 255, false);
+        const std::string item = (loaded < preload.size()) ? preload[loaded] : "";
+        if (!item.empty())
+            DrawUtils::text(eng,
+                            item,
+                            SCREEN_WIDTH / 2,
+                            by - 16,
+                            12,
+                            120,
+                            120,
+                            130,
+                            std::min(255, font_alpha),
+                            true);
+    }
 }
 
 }  // namespace fnwf

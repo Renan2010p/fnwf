@@ -15,7 +15,7 @@ ISO_OUTPUT="./fnwf-ps2.iso"
 ELF="builddir-ps2/fnwf.elf"
 
 # ── Version ──
-VERSION=$(grep "^version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
+VERSION=$(grep -m1 "version" meson.build | sed "s/.*'\(.*\)'.*/\1/")
 DISC_ID="SLUS-99001"  # Unique ID to avoid collision with Tekken Tag Tournament
 
 echo "=== Building PS2 ISO v${VERSION} ==="

@@ -1,5 +1,6 @@
 #pragma once
 #include "core/GameState.hpp"
+#include "core/GameSnapshot.hpp"
 #include "systems/Animatronics.hpp"
 #include "systems/CameraSystem.hpp"
 #include "systems/Doors.hpp"
@@ -27,11 +28,16 @@ public:
         return fnwf::StateType::Gameplay;
     }
 
+    // Snapshot capture/restore for save/load
+    auto capture_snapshot() const -> GameSnapshot;
+    auto restore_snapshot(const GameSnapshot& s) -> void;
+
 private:
     auto update_power_out(float dt) -> void;
     auto draw_hud(Engine& eng) -> void;
     auto draw_power_out(Engine& eng) -> void;
     auto draw_fade(Engine& eng) -> void;
+    auto draw_save_notify(Engine& eng) -> void;
 
     Engine& m_eng;
     int night{1};
@@ -75,6 +81,10 @@ private:
     bool _win_triggered{false};
     bool _power_out_snd{false};
     bool secret_mode{false};
+
+    // Save notification
+    bool m_save_notify{false};
+    float m_save_notify_timer{0.0f};
 };
 
 }  // namespace fnwf
