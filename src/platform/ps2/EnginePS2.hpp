@@ -68,9 +68,6 @@ public:
                    bool filled) override;
     void line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
               std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) override;
-    void fill_quad(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
-                   std::int32_t x3, std::int32_t y3, std::int32_t x4, std::int32_t y4,
-                   std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) override;
     void circle(std::int32_t cx, std::int32_t cy, std::int32_t radius,
                 std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
                 bool filled) override;

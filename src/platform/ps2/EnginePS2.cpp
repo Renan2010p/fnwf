@@ -594,19 +594,6 @@ void EnginePS2::line(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int
                        col_rgbaq(r, g, b, a));
 }
 
-void EnginePS2::fill_quad(std::int32_t x1, std::int32_t y1, std::int32_t x2, std::int32_t y2,
-                          std::int32_t x3, std::int32_t y3, std::int32_t x4, std::int32_t y4,
-                          std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a) {
-    if (m_gs == nullptr) return;
-    // One filled quad on the GS instead of hundreds of scanline primitives.
-    gsKit_set_primalpha(m_gs, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
-    gsKit_prim_quad(m_gs, static_cast<float>(map_x(x1)), static_cast<float>(map_y(y1)),
-                    static_cast<float>(map_x(x2)), static_cast<float>(map_y(y2)),
-                    static_cast<float>(map_x(x3)), static_cast<float>(map_y(y3)),
-                    static_cast<float>(map_x(x4)), static_cast<float>(map_y(y4)), 1,
-                    col_rgbaq(r, g, b, a));
-}
-
 void EnginePS2::circle(std::int32_t cx, std::int32_t cy, std::int32_t radius,
                        std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a,
                        bool filled) {
