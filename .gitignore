@@ -23,3 +23,8 @@ config.dat
 save.dat
 deps/
 build_deps/
+
+# Build artifacts / releases (not source)
+*.iso
+*.tar.gz
+create_ps2_iso*.py
