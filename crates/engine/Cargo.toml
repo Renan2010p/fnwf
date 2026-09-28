@@ -1,0 +1,13 @@
+[package]
+name = "fnwf-engine"
+description = "Abstract engine interface for Five Nights With Friends (no platform code)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+default = ["std"]
+# Enables the standard library. Turn off for bare-metal targets (e.g. PS2);
+# `alloc` is still required for the `String`/`Vec` used by the API.
+std = []

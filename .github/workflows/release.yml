@@ -1,0 +1,167 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL2 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
+
+      - name: Install SDL2 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 sdl2_ttf sdl2_image sdl2_mixer
+
+      - name: Install toolchain (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install toolchain (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_ttf
+            mingw-w64-x86_64-SDL2_image
+            mingw-w64-x86_64-SDL2_mixer
+            zip
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build and package (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: ./scripts/package.sh
+
+      - name: Build and package (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: ./scripts/package.sh
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-${{ matrix.os }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+          if-no-files-found: error
+
+  appimage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev \
+            file
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build AppImage
+        run: ./scripts/build-appimage.sh
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-appimage
+          path: dist/*.AppImage
+          if-no-files-found: error
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install matching wasm-bindgen-cli
+        run: |
+          WB=$(grep -A2 'name = "wasm-bindgen"' Cargo.lock | grep 'version' | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "wasm-bindgen $WB"
+          cargo install wasm-bindgen-cli --version "$WB"
+
+      - name: Build wasm
+        run: |
+          cargo build -p fnwf --release --target wasm32-unknown-unknown
+          wasm-bindgen --target web --no-typescript \
+            --out-dir web/pkg \
+            target/wasm32-unknown-unknown/release/fnwf_app.wasm
+
+      - name: Stage web bundle
+        run: |
+          mkdir -p dist
+          rm -rf dist/fnwf-web
+          mkdir -p dist/fnwf-web
+          cp index.html dist/fnwf-web/
+          cp -r web dist/fnwf-web/
+          cp -r assets dist/fnwf-web/
+          cp README.md LICENSE dist/fnwf-web/
+          (cd dist && tar -czf fnwf-web.tar.gz fnwf-web)
+          rm -rf dist/fnwf-web
+
+      - name: Upload web bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-web
+          path: dist/fnwf-web.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: [package, appimage, web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            Five Nights With Friends — Classic Edition 2.1.0 (written in Rust).
+
+            Downloads:
+            * Linux: `...linux-x86_64.tar.gz` or the standalone `.AppImage`.
+            * macOS: `...macos-*.tar.gz`.
+            * Windows: `...windows-x86_64.zip` (SDL2 bundled).
+            * Web: `fnwf-web.tar.gz` — serve over HTTP and open `index.html`.
+
+            See `RELEASE_NOTES.md` for details.

@@ -1,42 +1,52 @@
 # Contributing
 
-Thanks for taking a look at Five Nights With Friends (Classic Edition)!
+Thanks for helping with Five Nights With Friends — Classic Edition (Rust).
 
-## Building
+## Prerequisites
 
-Desktop (Linux):
+* Rust (stable) with `rustfmt` and `clippy`.
+* SDL2 development libraries: `SDL2`, `SDL2_ttf`, `SDL2_image`, `SDL2_mixer`.
+
+Debian/Ubuntu:
 
 ```bash
-meson setup build
-meson compile -C build
-./build/fnwf
+sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
 ```
 
-Windows (MSYS2), Web (Emscripten) and PlayStation 2 instructions are in
-`README.txt` (see the "Building from Source" and "PlayStation 2" sections).
+## Build, run, test
 
-## Project layout
+```bash
+cargo build --workspace
+cargo run --release
+cargo test --workspace
+```
 
-See `docs/ARCHITECTURE.md` for how the `Engine` abstraction and the platform
-backends fit together. In short: game code depends only on the `Engine`
-interface; platform code lives under `src/platform/<backend>/`.
+The game loads assets relative to the working directory, so run from the
+repository root (or use `./scripts/run.sh`).
 
-## Code style
+## Before opening a PR
 
-- C++17, `.clang-format` is provided — run `clang-format -i` on changed files.
-- Trailing return types (`auto f() -> T`) are used throughout.
-- Keep game code platform-agnostic: no SDL/gsKit/OS headers outside
-  `src/platform/`. Need something new? Add it to the `Engine` interface.
-- Prefer the existing helpers in `DrawUtils` over new ad-hoc drawing.
+```bash
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
 
-## Commits
+## Guidelines
 
-- Write commit messages in **English**.
-- Use a short prefix when it helps: `ps2:`, `web:`, `docs:`, `fix:`, `chore:`.
-- Keep machine-generated files out of the repo (ISOs, tarballs, build
-  directories) — they are covered by `.gitignore`.
+* Read `docs/ARCHITECTURE.md` and honor the crate dependency rules. If a change
+  needs a new capability, add a defaulted method to `Engine` rather than leaking
+  a platform type into the game.
+* Document every public item (`docs/CODE_STYLE.md`).
+* Keep changes small and focused; one logical change per commit.
+* Ports of upstream behaviour should reference the C++ original in a comment.
 
-## Assets
+## Regenerating translations
 
-All character sprites and sounds are original/placeholder. Do not add
-copyrighted material from other franchises.
+```bash
+python3 scripts/gen_localization.py
+```
+
+## License
+
+By contributing you agree that your work is licensed under GPL-3.0.

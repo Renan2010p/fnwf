@@ -1,0 +1,52 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/engine",
+    "crates/core",
+    "crates/game",
+    "crates/backend-sdl2",
+    "crates/backend-web",
+    "crates/app",
+]
+
+[workspace.package]
+version = "2.1.0"
+edition = "2021"
+license = "GPL-3.0"
+authors = ["Renan Lucas Vieira Hilário"]
+repository = "https://github.com/renan/fnwf"
+
+[workspace.dependencies]
+fnwf-engine = { path = "crates/engine", default-features = false }
+fnwf-core = { path = "crates/core", default-features = false }
+fnwf-game = { path = "crates/game", default-features = false }
+fnwf-backend-sdl2 = { path = "crates/backend-sdl2" }
+fnwf-backend-web = { path = "crates/backend-web" }
+sdl2 = { version = "0.37", features = ["image", "ttf", "mixer", "unsafe_textures"] }
+sdl2-sys = "0.37"
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "HtmlImageElement",
+    "HtmlAudioElement",
+    "Event",
+    "EventTarget",
+    "KeyboardEvent",
+    "MouseEvent",
+    "WheelEvent",
+    "Performance",
+    "TextMetrics",
+    "DomRect",
+] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

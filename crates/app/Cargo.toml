@@ -1,0 +1,29 @@
+[package]
+name = "fnwf"
+description = "Five Nights With Friends — Classic Edition (Rust)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+default-run = "fnwf"
+
+[lib]
+name = "fnwf_app"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "fnwf"
+path = "src/main.rs"
+
+[dependencies]
+fnwf-engine = { workspace = true, features = ["std"] }
+fnwf-core = { workspace = true, features = ["std"] }
+fnwf-game = { workspace = true, features = ["std"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+fnwf-backend-sdl2 = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+fnwf-backend-web = { workspace = true }
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }

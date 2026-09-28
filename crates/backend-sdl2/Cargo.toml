@@ -1,0 +1,13 @@
+[package]
+name = "fnwf-backend-sdl2"
+description = "SDL2 backend for Five Nights With Friends."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+fnwf-engine = { workspace = true }
+fnwf-core = { workspace = true }
+sdl2 = { workspace = true }
+sdl2-sys = { workspace = true }

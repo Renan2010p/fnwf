@@ -1,0 +1,19 @@
+[package]
+name = "fnwf-core"
+description = "Engine-agnostic services for Five Nights With Friends: draw, audio, i18n, save, settings and the state machine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+default = ["std"]
+# Standard-library build (desktop/web). Disable for bare-metal targets (PS2).
+std = ["fnwf-engine/std"]
+
+[dependencies]
+fnwf-engine = { workspace = true }
+# Float math for `no_std` (the std build uses the inherent `f32` methods).
+libm = "0.2"
+# `no_std`-compatible lazy statics and mutexes.
+spin = { version = "0.9", features = ["lazy"] }

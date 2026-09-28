@@ -1,31 +1,7 @@
-bin/
-build/
-build_*/
-builddir/
-builddir-*/
-*.gcda
-*.gcno
-*.o
-*.so
-*.dll
-*.exe
-*.pyc
-__pycache__/
-save.lua
-config.lua
-.fna_cache/
-nimcache/
-dist/
-*.bundle
-config.dat save.dat
-release/
-config.dat
-save.dat
-deps/
-build_deps/
-
-# Build artifacts / releases (not source)
-*.iso
-*.tar.gz
-create_ps2_iso*.py
-subprojects/packagecache/
+target/
+# Runtime settings / saves written to the working directory.
+/config.dat
+/save.dat
+/game_snapshot.dat
+# Web build output
+/web/pkg//dist/

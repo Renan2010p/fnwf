@@ -1,0 +1,16 @@
+[package]
+name = "fnwf-game"
+description = "Five Nights With Friends gameplay: systems and states."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+default = ["std"]
+# Standard-library build (desktop/web). Disable for bare-metal targets (PS2).
+std = ["fnwf-core/std", "fnwf-engine/std"]
+
+[dependencies]
+fnwf-engine = { workspace = true }
+fnwf-core = { workspace = true }

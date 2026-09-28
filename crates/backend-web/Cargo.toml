@@ -1,0 +1,16 @@
+[package]
+name = "fnwf-backend-web"
+description = "Web (wasm) backend for Five Nights With Friends, rendering through the Canvas2D API."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fnwf-engine = { workspace = true }
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true }

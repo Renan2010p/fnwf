@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title id="fnwf-title">Five Nights With Friends</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #030305;
+        overflow: hidden;
+      }
+      body {
+        display: grid;
+        place-items: center;
+      }
+      #fnwf-canvas {
+        image-rendering: pixelated;
+        max-width: 100vw;
+        max-height: 100vh;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="fnwf-canvas" width="1280" height="720"></canvas>
+    <script type="module">
+      import init from "./web/pkg/fnwf_app.js";
+      init().catch((err) => {
+        document.body.innerHTML =
+          '<pre style="color:#f66;font:14px monospace">Failed to start FNWF:\n' +
+          String(err) +
+          "</pre>";
+      });
+    </script>
+  </body>
+</html>

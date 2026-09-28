@@ -1,326 +1,99 @@
-name: Build & Deploy
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
-  workflow_dispatch:
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  # === Linux amd64 ===
-  build-linux-amd64:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+
+      - name: Install SDL2
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq meson ninja-build g++ pkg-config \
-            cmake curl ca-certificates \
-            libgl1-mesa-dev libasound2-dev libpulse-dev \
-            libudev-dev libpipewire-0.3-dev libdecor-0-dev \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
-            libxi-dev libxss-dev libwayland-dev wayland-protocols \
-            libxkbcommon-dev
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL2 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
+
+      - name: Install SDL2 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 sdl2_ttf sdl2_image sdl2_mixer
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
       - name: Build
-        run: |
-          chmod +x bootstrap.sh
-          ./bootstrap.sh
-          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
-          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
-          meson setup build --buildtype=release
-          ninja -C build
-      - name: Package
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-linux-amd64"
-          mkdir -p "release/${REL}"
-          cp build/fnwf "release/${REL}/"
-          cp -r assets "release/${REL}/"
-          chmod +x "release/${REL}/fnwf"
-          cd release && tar czf "${REL}.tar.gz" "${REL}"
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-linux-amd64
-          path: release/fnwf-classic-*-linux-amd64.tar.gz
+        run: cargo build --workspace --release
 
-  # === Linux aarch64 ===
-  build-linux-aarch64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install cross-compile tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-            meson ninja-build pkg-config cmake curl ca-certificates
-      - name: Build aarch64 dependencies
-        run: |
-          rm -rf build_deps deps
-          export PKG_CONFIG_ALLOW_CROSS=1
-          export CC=aarch64-linux-gnu-gcc
-          export CXX=aarch64-linux-gnu-g++
-          chmod +x bootstrap.sh
-          ./bootstrap.sh
-      - name: Build game
-        run: |
-          export CC=aarch64-linux-gnu-gcc
-          export CXX=aarch64-linux-gnu-g++
-          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
-          export PKG_CONFIG_ALLOW_CROSS=1
-          meson setup build_aarch64 --cross-file=cross/aarch64-linux.ini --buildtype=release
-          ninja -C build_aarch64
-      - name: Package
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-linux-aarch64"
-          mkdir -p "release/${REL}"
-          cp build_aarch64/fnwf "release/${REL}/"
-          cp -r assets "release/${REL}/"
-          chmod +x "release/${REL}/fnwf"
-          cd release && tar czf "${REL}.tar.gz" "${REL}"
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-linux-aarch64
-          path: release/fnwf-classic-*-linux-aarch64.tar.gz
+      - name: Test
+        run: cargo test --workspace
 
-  # === Windows amd64 ===
-  build-windows-amd64:
+  windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+
+      - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
           install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-meson
-            mingw-w64-x86_64-ninja
-            git zip curl
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_ttf
+            mingw-w64-x86_64-SDL2_image
+            mingw-w64-x86_64-SDL2_mixer
+
       - name: Build
-        shell: msys2 {0}
-        run: |
-          chmod +x bootstrap.sh
-          ./bootstrap.sh
-          export PKG_CONFIG_PATH="$(pwd)/deps/lib/pkgconfig:$PKG_CONFIG_PATH"
-          export LD_LIBRARY_PATH="$(pwd)/deps/lib:$LD_LIBRARY_PATH"
-          meson setup build --buildtype=release
-          ninja -C build
-      - name: Package
-        shell: msys2 {0}
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-windows-amd64"
-          mkdir -p "release/${REL}"
-          cp build/fnwf.exe "release/${REL}/"
-          cp -r assets "release/${REL}/"
-          cd release && tar czf "${REL}.tar.gz" "${REL}"
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-windows-amd64
-          path: release/fnwf-classic-*-windows-amd64.tar.gz
+        run: cargo build --workspace --release
 
-  # === macOS aarch64 ===
-  build-macos-aarch64:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          brew install meson ninja pkg-config sdl2 sdl2_ttf sdl2_image sdl2_mixer freetype
-      - name: Build
-        run: |
-          meson setup build --buildtype=release
-          ninja -C build
-      - name: Package
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-macos-aarch64"
-          mkdir -p "release/${REL}"
-          cp build/fnwf "release/${REL}/"
-          cp -r assets "release/${REL}/"
-          chmod +x "release/${REL}/fnwf"
-          cd release && tar czf "${REL}.tar.gz" "${REL}"
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-macos-aarch64
-          path: release/fnwf-classic-*-macos-aarch64.tar.gz
-
-  # === WebAssembly (WASM) ===
-  build-web-wasm:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v14
-      - name: Build
-        run: |
-          mkdir -p build_web
-          SOURCES=(
-            src/main.cpp
-            src/engine/Engine.cpp
-            src/core/DrawUtils.cpp
-            src/core/Localization.cpp
-            src/core/SaveManager.cpp
-            src/core/SettingsManager.cpp
-            src/core/StateMachine.cpp
-            src/core/StateRegistry.cpp
-            src/core/SoundManager.cpp
-            src/core/Platform.cpp
-            src/core/InputManager.cpp
-            src/core/MobileUI.cpp
-            src/systems/Office.cpp
-            src/systems/CameraSystem.cpp
-            src/systems/Doors.cpp
-            src/systems/Animatronics.cpp
-            src/systems/Power.cpp
-            src/systems/Jumpscare.cpp
-            src/platform/sdl2/EngineSDL2.cpp
-            src/platform/sdl2/plat_sdl2.cpp
-            src/platform/sdl2/plat_input.cpp
-          )
-          em++ \
-            "${SOURCES[@]}" \
-            src/game1/states/*.cpp \
-            -std=c++17 -Isrc -O2 \
-            -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_MIXER=2 \
-            -sSDL2_IMAGE_FORMATS='["png"]' \
-            -sSDL2_MIXER_FORMATS='["ogg"]' \
-            -sALLOW_MEMORY_GROWTH=1 \
-            -sINITIAL_MEMORY=134217728 \
-            -sFORCE_FILESYSTEM=1 \
-            --preload-file assets \
-            -lc++ -lc++abi \
-            --shell-file web/shell.html \
-            -o build_web/index.html
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-web-wasm
-          path: build_web/
 
-  # === PlayStation 2 (EE) + ISO ===
-  build-ps2-full:
-    runs-on: ubuntu-latest
-    container: ps2dev/ps2dev
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install build tools
-        run: |
-          apk update
-          apk add meson ninja-build pkgconf python3 cmake git build-base bash curl unzip
-      - name: Build gsKit and SDL ports
-        run: |
-          export PS2DEV=/usr/local/ps2dev
-          export PS2SDK=$PS2DEV/ps2sdk
-          export GSKIT=$PS2DEV/gsKit
-          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
 
-          cd /tmp
-          git clone --depth 1 https://github.com/ps2dev/gsKit.git
-          cd gsKit
-          make
-          make install
-          cd /tmp
+      - uses: Swatinem/rust-cache@v2
 
-          git clone --depth 1 https://github.com/ps2dev/ps2sdk-ports.git
-          cd ps2sdk-ports
-          chmod +x fetch.sh build-cmakelibs.sh
-          make sdl
-          make -C sdl install
-          make sdlmixer
-          make -C sdlmixer install
-          make sdlttf
-          make -C sdlttf install
-          make sdlimage
-          make -C sdlimage install
-      - name: Build ELF
-        run: |
-          export PS2DEV=/usr/local/ps2dev
-          export PS2SDK=$PS2DEV/ps2sdk
-          export GSKIT=$PS2DEV/gsKit
-          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
-          chmod +x build-ps2.sh
-          ./build-ps2.sh
-      - name: Build ISO
-        run: |
-          export PS2DEV=/usr/local/ps2dev
-          export PS2SDK=$PS2DEV/ps2sdk
-          export GSKIT=$PS2DEV/gsKit
-          export PATH=$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH
-          chmod +x build-ps2-iso.sh
-          ./build-ps2-iso.sh
-      - name: Package ELF
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          REL="fnwf-classic-${VER}-ps2-ee"
-          mkdir -p "release/${REL}"
-          cp builddir-ps2/fnwf.elf "release/${REL}/"
-          cp -r assets "release/${REL}/"
-          cd release && tar czf "${REL}.tar.gz" "${REL}"
-      - name: Upload ELF artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-ps2-ee
-          path: release/fnwf-classic-*-ps2-ee.tar.gz
-      - name: Upload ISO artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fnwf-ps2-iso
-          path: fnwf-ps2.iso
-
-  # === Deploy to GitHub Pages ===
-  deploy:
-    needs: [build-web-wasm]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download web artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: fnwf-web-wasm
-          path: build_web
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build_web
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  # === Create Release ===
-  create-release:
-    needs: [build-linux-amd64, build-linux-aarch64, build-windows-amd64, build-macos-aarch64, build-ps2-full]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VER=$(grep "version" meson.build | head -1 | sed "s/.*'\(.*\)'.*/\1/")
-          TAG="v${VER}--dev+$(echo "${{ github.sha }}" | cut -c1-7)"
-          gh release create "${TAG}" \
-            --title "Classic ${VER}" \
-            --generate-notes \
-            artifacts/*/*.tar.gz \
-            artifacts/fnwf-ps2-iso/fnwf-ps2.iso
+      - name: Build web (wasm)
+        run: cargo build -p fnwf --release --target wasm32-unknown-unknown
