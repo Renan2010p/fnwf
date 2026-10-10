@@ -32,11 +32,34 @@ pub fn build(b: *Builder) void {
     ) orelse engine_config.backend;
     const is_ps2: bool = neko_backend == .ps2;
 
+    // Cross-compile target triple (default: the host). Needed for the Windows
+    // packages, which are built from a Linux runner.
+    const target_triple: ?[]const u8 = b.option(
+        []const u8,
+        "target",
+        "Cross-compile target triple (default: the host)",
+    );
+    // For platforms without pkg-config (Windows), point at the SDL3 headers and
+    // libraries; the SDL3 backend of neko consumes these.
+    const sdl_include: ?[]const u8 = b.option(
+        []const u8,
+        "sdl3-include",
+        "Directory holding the SDL3 headers (platforms without pkg-config)",
+    );
+    const sdl_lib: ?[]const u8 = b.option(
+        []const u8,
+        "sdl3-lib",
+        "Directory holding the SDL3 libraries (platforms without pkg-config)",
+    );
+
     // ── Target ───────────────────────────────────────────────────────────
-    // The PS2 (R5900) is a 64-bit CPU with the N32 ABI: 32-bit pointers and
-    // size_t. The target is freestanding, and Zig's C backend is used because
-    // the PS2DEV toolchain links the emitted C against gsKit/PS2SDK.
     var query: Target.Query = b.graph.host.query;
+    if (target_triple) |triple| {
+        query = Target.Query.parse(.{ .arch_os_abi = triple }) catch {
+            std.debug.print("fnwf: bad -Dtarget '{s}'\n", .{triple});
+            @panic("fnwf: bad target");
+        };
+    }
     if (use_c_backend or is_ps2) query.ofmt = .c;
     if (is_ps2) {
         query.cpu_arch = .mips64el;
@@ -58,6 +81,8 @@ pub fn build(b: *Builder) void {
         .target = target,
         .optimize = optimize,
         .backend = neko_backend,
+        .@"sdl2-include" = sdl_include,
+        .@"sdl2-lib" = sdl_lib,
     });
     const neko: *Builder.Module = neko_dep.module("neko");
     const neko_backend_mod: *Builder.Module = neko_dep.module("neko_backend");

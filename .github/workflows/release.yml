@@ -1,0 +1,147 @@
+name: release
+
+# Build the game for Linux and Windows and attach .zip packages to the release.
+# Pushing a tag like `v2.3.0` publishes a GitHub Release; workflow_dispatch only
+# builds the artifacts.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ZIG_VERSION: 0.17.0
+  SDL3: 3.4.18
+  SDL3_IMAGE: 3.4.8
+  SDL3_TTF: 3.2.2
+  SDL3_MIXER: 3.2.4
+  # Games to package (the exe is copied as `fnwf-<game>`).
+  GAMES: classic fnwf1
+
+jobs:
+  package:
+    name: package (${{ matrix.os }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            target: "" # native
+            arch: x86_64
+            exe_suffix: ""
+          - os: windows
+            target: x86_64-windows-gnu
+            arch: x86_64
+            exe_suffix: ".exe"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Zig ${{ env.ZIG_VERSION }}
+        run: |
+          curl -fsSL -o zig.tar.xz \
+            "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
+          tar xf zig.tar.xz
+          echo "$PWD/zig-x86_64-linux-${ZIG_VERSION}" >> "$GITHUB_PATH"
+
+      - name: Install SDL3 (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev libsdl3-mixer-dev \
+            zip
+
+      - name: Fetch SDL3 for Windows (MinGW)
+        if: matrix.os == 'windows'
+        run: |
+          set -eux
+          gh=https://github.com/libsdl-org
+          work="$RUNNER_TEMP/sdl3"
+          mkdir -p "$work" && cd "$work"
+
+          curl -fsSL -o sdl3.tar.gz       "$gh/SDL/releases/download/release-${SDL3}/SDL3-devel-${SDL3}-mingw.tar.gz"
+          curl -fsSL -o sdl3_image.tar.gz "$gh/SDL_image/releases/download/release-${SDL3_IMAGE}/SDL3_image-devel-${SDL3_IMAGE}-mingw.tar.gz"
+          curl -fsSL -o sdl3_ttf.tar.gz   "$gh/SDL_ttf/releases/download/release-${SDL3_TTF}/SDL3_ttf-devel-${SDL3_TTF}-mingw.tar.gz"
+          curl -fsSL -o sdl3_mixer.tar.gz "$gh/SDL_mixer/releases/download/release-${SDL3_MIXER}/SDL3_mixer-devel-${SDL3_MIXER}-mingw.tar.gz"
+          curl -fsSL -o sdl3.zip          "$gh/SDL/releases/download/release-${SDL3}/SDL3-${SDL3}-win32-x64.zip"
+          curl -fsSL -o sdl3_image.zip    "$gh/SDL_image/releases/download/release-${SDL3_IMAGE}/SDL3_image-${SDL3_IMAGE}-win32-x64.zip"
+          curl -fsSL -o sdl3_ttf.zip      "$gh/SDL_ttf/releases/download/release-${SDL3_TTF}/SDL3_ttf-${SDL3_TTF}-win32-x64.zip"
+          curl -fsSL -o sdl3_mixer.zip    "$gh/SDL_mixer/releases/download/release-${SDL3_MIXER}/SDL3_mixer-${SDL3_MIXER}-win32-x64.zip"
+          for f in *.tar.gz; do tar xzf "$f"; done
+          for f in *.zip; do unzip -q -o "$f" -d "${f%.zip}"; done
+
+          # Merge the headers and import libraries into one place.
+          mkdir -p merged/include merged/lib dlls
+          for d in "SDL3-${SDL3}" "SDL3_image-${SDL3_IMAGE}" "SDL3_ttf-${SDL3_TTF}" "SDL3_mixer-${SDL3_MIXER}"; do
+            cp -r "$d"/x86_64-w64-mingw32/include/. merged/include/
+            cp -r "$d"/x86_64-w64-mingw32/lib/. merged/lib/
+          done
+          # The runtime DLLs both link the game (Zig finds `SDL3.dll`) and ship
+          # with it, so bundle the main DLLs plus the optional codec DLLs.
+          for d in "SDL3-${SDL3}-win32-x64" "SDL3_image-${SDL3_IMAGE}-win32-x64" "SDL3_ttf-${SDL3_TTF}-win32-x64" "SDL3_mixer-${SDL3_MIXER}-win32-x64"; do
+            cp "$d"/*.dll merged/lib/
+            cp "$d"/*.dll dlls/
+            cp "$d"/optional/*.dll dlls/ 2>/dev/null || true
+          done
+
+          echo "SDL3_INCLUDE=$work/merged/include" >> "$GITHUB_ENV"
+          echo "SDL3_LIB=$work/merged/lib" >> "$GITHUB_ENV"
+          echo "SDL3_DLLS=$work/dlls" >> "$GITHUB_ENV"
+
+      - name: Resolve version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build and package
+        shell: bash
+        run: |
+          set -eux
+          suffix="${{ matrix.exe_suffix }}"
+          pkg="fnwf-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+          stage="dist/${pkg}"
+          mkdir -p "$stage"
+
+          for game in $GAMES; do
+            args=(-Dgame="$game")
+            if [ -n "${{ matrix.target }}" ]; then args+=("-Dtarget=${{ matrix.target }}"); fi
+            if [ "${{ matrix.os }}" = "windows" ]; then
+              args+=("-Dsdl3-include=$SDL3_INCLUDE" "-Dsdl3-lib=$SDL3_LIB")
+            fi
+            zig build "${args[@]}"
+            cp "zig-out/bin/fnwf$suffix" "$stage/fnwf-$game$suffix"
+          done
+
+          cp README.md LICENSE "$stage/"
+          # Keep the layout the games resolve assets against (`fnwf/<game>/assets`).
+          mkdir -p "$stage/fnwf/classic" "$stage/fnwf/fnwf1"
+          cp -r fnwf/classic/assets "$stage/fnwf/classic/assets"
+          cp -r fnwf/fnwf1/assets "$stage/fnwf/fnwf1/assets"
+          if [ "${{ matrix.os }}" = "windows" ]; then cp "$SDL3_DLLS"/*.dll "$stage/"; fi
+
+          (cd dist && zip -r "${pkg}.zip" "${pkg}")
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fnwf-${{ matrix.os }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: publish release
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

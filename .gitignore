@@ -12,3 +12,6 @@ settings.dat
 *.swp
 *~
 .DS_Store
+
+# Release packaging
+dist/

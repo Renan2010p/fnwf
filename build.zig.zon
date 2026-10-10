@@ -5,8 +5,8 @@
     .license = "GPL-3.0-or-later",
     .dependencies = .{
         .neko = .{
-            .url = "git+https://github.com/Renan2010p/neko.git#21387af1ea1e353437b17b10f218b39c50384fb8",
-            .hash = "neko-0.1.0-7zlXesbtIABD71MDs9SEA1tOTytAi4-Gg5m1_EavU9qh",
+            .url = "git+https://github.com/Renan2010p/neko.git#2e678dca371dda8725950d6a069d80185298bbc8",
+            .hash = "neko-0.1.0-7zlXesvuIAArFQ1Sm15rZEsRlB-weeYvsGF2vkLFxz8n",
         },
     },
     .paths = .{
