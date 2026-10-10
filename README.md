@@ -66,14 +66,14 @@ The engine is a **remote dependency**, pinned in
 
 ```zig
 .neko = .{
-    .url = "https://github.com/Renan2010p/neko/archive/<commit>.tar.gz",
+    .url = "git+https://github.com/Renan2010p/neko.git#<full-commit-sha>",
     .hash = "neko-0.1.0-…",
 },
 ```
 
-The first build downloads it into Zig's cache — no local `../neko` checkout is
-needed. To follow a newer engine commit, point `.url` at that commit's tarball
-and refresh `.hash` (`zig fetch <url>` prints it).
+The first build fetches it — no local `../neko` checkout is needed. To follow a
+newer engine commit, bump the fragment to the new full SHA and refresh `.hash`
+(`zig fetch "git+https://github.com/Renan2010p/neko.git#<sha>"` prints it).
 
 ## Controls
 
