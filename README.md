@@ -16,8 +16,17 @@ complete games sharing a single mechanics layer:
 Every game renders through **SDL3**, ships its own assets, and can drop in GLSL
 shaders **without touching the engine**.
 
+## Screenshots
+
+**Classic Edition** — the office and the security monitor:
+
+| Office | Security monitor |
+|--------|------------------|
+| ![Classic Edition office](screenshots/classic_office.png) | ![Classic Edition security monitor](screenshots/classic_monitor.png) |
+
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Requirements](#requirements)
 - [Build & run](#build--run)
 - [Controls](#controls)
@@ -167,6 +176,7 @@ back to the CPU mesh unless a backend with a shader path is selected.
 ```
 build.zig / build.zig.zon   the game package (depends on the neko package)
 neko/config.zig             engine config for this game (backend choice)
+screenshots/                README captures (Classic Edition)
 fnwf/
   common/                   mechanics shared by every FNWF game
   classic/                  the Classic Edition
