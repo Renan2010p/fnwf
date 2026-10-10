@@ -187,8 +187,8 @@ fnwf/
 
 ## Credits
 
-Created and directed by **Renan Lucas Vieira Hilário**, implemented with AI
-assistance.
+Created and directed by **Renan Lucas Vieira Hilário**, with AI assistance from
+**DeepSeek V4.1 Flash**.
 
 Animatronics: **Cedro**, **Eser**, **Alice** and **Sonk**.
 
