@@ -89,7 +89,7 @@ jobs:
           done
           # The runtime DLLs both link the game (Zig finds `SDL3.dll`) and ship
           # with it, so bundle the main DLLs plus the optional codec DLLs.
-          for d in "SDL3-${SDL3}-win32-x64" "SDL3_image-${SDL3_IMAGE}-win32-x64" "SDL3_ttf-${SDL3_TTF}-win32-x64" "SDL3_mixer-${SDL3_MIXER}-win32-x64"; do
+          for d in sdl3 sdl3_image sdl3_ttf sdl3_mixer; do
             cp "$d"/*.dll merged/lib/
             cp "$d"/*.dll dlls/
             cp "$d"/optional/*.dll dlls/ 2>/dev/null || true
