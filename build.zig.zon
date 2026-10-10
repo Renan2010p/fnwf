@@ -1,6 +1,6 @@
 .{
     .name = .fnwf,
-    .version = "0.1.0",
+    .version = "2.3.0",
     .fingerprint = 0xb9efbab57fea4f8a,
     .license = "GPL-3.0-or-later",
     .dependencies = .{

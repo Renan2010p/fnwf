@@ -185,9 +185,13 @@ fn draw(ptr: *anyopaque, at: neko.Point) void {
         .size = 20,
         .color = neko.Color{ .r = 255, .g = 220, .b = 50, .a = classic_alpha },
     });
-    neko.sprite.text("v2.0f.3", 62, 176, neko.sprite.Options{
+    neko.sprite.text("v" ++ common.VERSION, 62, 176, neko.sprite.Options{
         .size = 15,
         .color = neko.Color{ .r = 140, .g = 170, .b = 200, .a = 220 },
+    });
+    neko.sprite.text("Neko: v" ++ common.NEKO_VERSION, 132, 176, neko.sprite.Options{
+        .size = 15,
+        .color = neko.Color{ .r = 120, .g = 140, .b = 170, .a = 200 },
     });
 
     const line_alpha: u8 = @intFromFloat(120.0 + 40.0 * @sin(self.timer * 2.0));

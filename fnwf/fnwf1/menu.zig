@@ -138,6 +138,7 @@ fn draw(ptr: *anyopaque, at: neko.Point) void {
     neko.sprite.text("WITH FRIENDS", 70, 150, .{ .size = 54, .color = config.WHITE });
     neko.sprite.text("1", 470, 150, .{ .size = 54, .color = config.ACCENT });
     neko.sprite.text("EDIÇÃO DEFINITIVA", 72, 212, .{ .size = 16, .color = config.MUTED });
+    neko.sprite.text("v" ++ common.VERSION ++ "   Neko: v" ++ common.NEKO_VERSION, 72, 238, .{ .size = 14, .color = neko.Color{ .r = 120, .g = 140, .b = 170 } });
 
     var i: usize = 0;
     while (i < self.count) : (i += 1) {
