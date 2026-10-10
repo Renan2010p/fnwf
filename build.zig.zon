@@ -1,0 +1,15 @@
+.{
+    .name = .fnwf,
+    .version = "0.1.0",
+    .fingerprint = 0xb9efbab57fea4f8a,
+    .license = "GPL-3.0-or-later",
+    .dependencies = .{
+        .neko = .{
+            .url = "https://github.com/Renan2010p/neko/archive/4bb7ee8.tar.gz",
+            .hash = "neko-0.1.0-7zlXejz-HQCR03lRQs0sW30RbAaRnswz_MIOdPPrI354",
+        },
+    },
+    .paths = .{
+        "",
+    },
+}

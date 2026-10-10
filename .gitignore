@@ -1,0 +1,14 @@
+# Zig build artifacts
+.zig-cache/
+zig-out/
+zig-pkg/
+
+# Runtime game state (saved settings / progress)
+config.dat
+progress.dat
+settings.dat
+
+# Editor / OS
+*.swp
+*~
+.DS_Store
