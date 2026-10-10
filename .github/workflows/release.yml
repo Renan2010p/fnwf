@@ -18,13 +18,16 @@ env:
   SDL3_IMAGE: 3.4.8
   SDL3_TTF: 3.2.2
   SDL3_MIXER: 3.2.4
-  # Games to package (the exe is copied as `fnwf-<game>`).
+  # Games to package (each exe is copied as `fnwf-<game>`).
   GAMES: classic fnwf1
 
 jobs:
   package:
     name: package (${{ matrix.os }})
     runs-on: ubuntu-latest
+    # Debian sid ships SDL3 (Ubuntu 24.04 does not).
+    container:
+      image: debian:sid
     strategy:
       fail-fast: false
       matrix:
@@ -38,6 +41,12 @@ jobs:
             arch: x86_64
             exe_suffix: ".exe"
     steps:
+      - name: Install base tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            git ca-certificates curl xz-utils zip unzip
+
       - uses: actions/checkout@v4
 
       - name: Install Zig ${{ env.ZIG_VERSION }}
@@ -50,10 +59,8 @@ jobs:
       - name: Install SDL3 (Linux)
         if: matrix.os == 'linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev libsdl3-mixer-dev \
-            zip
+          apt-get install -y --no-install-recommends \
+            libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev libsdl3-mixer-dev
 
       - name: Fetch SDL3 for Windows (MinGW)
         if: matrix.os == 'windows'
